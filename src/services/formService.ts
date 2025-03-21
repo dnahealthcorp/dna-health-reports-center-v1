@@ -2,6 +2,7 @@
 import { PatientFormData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatientById } from "./patientService";
+import type { Json } from "@/integrations/supabase/types";
 
 // Form data operations
 export const getPatientFormData = async (patientId: string): Promise<PatientFormData | null> => {
@@ -77,6 +78,12 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
   // Convert from database format to application format
   const patientInfo = await getPatientById(patientId);
   
+  // Safely parse JSON data with fallbacks
+  const vitals = data.vitals as Json || {};
+  const summaryFindings = data.summary_findings as Json || {};
+  const medications = data.medications as Json || [];
+  const supplements = data.supplements as Json || [];
+  
   return {
     patientInfo: {
       name: patientInfo?.name || '',
@@ -84,12 +91,26 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       gender: patientInfo?.gender || '',
       medicalRecordNumber: patientInfo?.medicalRecordNumber || ''
     },
-    vitals: data.vitals || {
+    vitals: typeof vitals === 'object' ? {
+      bloodPressure: (vitals as any)?.bloodPressure || '',
+      height: (vitals as any)?.height || '',
+      weight: (vitals as any)?.weight || ''
+    } : {
       bloodPressure: '',
       height: '',
       weight: ''
     },
-    summaryFindings: data.summary_findings || {
+    summaryFindings: typeof summaryFindings === 'object' ? {
+      glucoseMetabolism: (summaryFindings as any)?.glucoseMetabolism || '',
+      lipidProfile: (summaryFindings as any)?.lipidProfile || '',
+      inflammation: (summaryFindings as any)?.inflammation || '',
+      uricAcid: (summaryFindings as any)?.uricAcid || '',
+      vitamins: (summaryFindings as any)?.vitamins || '',
+      minerals: (summaryFindings as any)?.minerals || '',
+      sexHormones: (summaryFindings as any)?.sexHormones || '',
+      renalLiverFunction: (summaryFindings as any)?.renalLiverFunction || '',
+      cancerMarkers: (summaryFindings as any)?.cancerMarkers || ''
+    } : {
       glucoseMetabolism: '',
       lipidProfile: '',
       inflammation: '',
@@ -100,30 +121,44 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       renalLiverFunction: '',
       cancerMarkers: ''
     },
-    medications: data.medications || [],
+    medications: Array.isArray(medications) ? medications as any[] : [],
+    supplements: Array.isArray(supplements) ? supplements as any[] : [],
     exerciseRecommendations: data.exercise_recommendations || '',
     nurseNotes: data.nurse_notes || '',
     doctorNotes: data.doctor_notes || '',
     diagnosis: data.diagnosis || '',
     treatmentPlan: data.treatment_plan || '',
     showInsulinResistance: data.show_insulin_resistance || false,
-    nutritionRecommendations: data.nutrition_recommendations || {
+    nutritionRecommendations: typeof data.nutrition_recommendations === 'object' ? {
+      nutritionalPlan: (data.nutrition_recommendations as any)?.nutritionalPlan || '',
+      proteinConsumption: (data.nutrition_recommendations as any)?.proteinConsumption || '',
+      omissions: (data.nutrition_recommendations as any)?.omissions || '',
+      additionalConsiderations: (data.nutrition_recommendations as any)?.additionalConsiderations || ''
+    } : {
       nutritionalPlan: '',
       proteinConsumption: '',
       omissions: '',
       additionalConsiderations: ''
     },
-    exerciseDetail: data.exercise_detail || {
+    exerciseDetail: typeof data.exercise_detail === 'object' ? {
+      focusOn: (data.exercise_detail as any)?.focusOn || '',
+      walking: (data.exercise_detail as any)?.walking || '',
+      avoid: (data.exercise_detail as any)?.avoid || '',
+      tracking: (data.exercise_detail as any)?.tracking || ''
+    } : {
       focusOn: '',
       walking: '',
       avoid: '',
       tracking: ''
     },
-    sleepStressRecommendations: data.sleep_stress_recommendations || {
+    sleepStressRecommendations: typeof data.sleep_stress_recommendations === 'object' ? {
+      sleep: (data.sleep_stress_recommendations as any)?.sleep || '',
+      stress: (data.sleep_stress_recommendations as any)?.stress || ''
+    } : {
       sleep: '',
       stress: ''
     },
-    followUps: data.follow_ups || []
+    followUps: Array.isArray(data.follow_ups) ? data.follow_ups as any[] : []
   };
 };
 
@@ -135,22 +170,23 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
     .eq('patient_id', patientId)
     .maybeSingle();
   
+  // Convert application format to database format
   const formDataToSave = {
     patient_id: patientId,
-    vitals: formData.vitals,
-    summary_findings: formData.summaryFindings,
-    medications: formData.medications,
-    supplements: formData.supplements,
+    vitals: formData.vitals as Json,
+    summary_findings: formData.summaryFindings as Json,
+    medications: formData.medications as Json,
+    supplements: formData.supplements as Json,
     exercise_recommendations: formData.exerciseRecommendations,
     nurse_notes: formData.nurseNotes,
     doctor_notes: formData.doctorNotes,
     diagnosis: formData.diagnosis,
     treatment_plan: formData.treatmentPlan,
     show_insulin_resistance: formData.showInsulinResistance,
-    nutrition_recommendations: formData.nutritionRecommendations,
-    exercise_detail: formData.exerciseDetail,
-    sleep_stress_recommendations: formData.sleepStressRecommendations,
-    follow_ups: formData.followUps,
+    nutrition_recommendations: formData.nutritionRecommendations as Json,
+    exercise_detail: formData.exerciseDetail as Json,
+    sleep_stress_recommendations: formData.sleepStressRecommendations as Json,
+    follow_ups: formData.followUps as Json,
     last_updated: new Date().toISOString()
   };
   
