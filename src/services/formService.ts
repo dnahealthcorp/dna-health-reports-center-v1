@@ -173,20 +173,20 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
   // Convert application format to database format
   const formDataToSave = {
     patient_id: patientId,
-    vitals: formData.vitals as Json,
-    summary_findings: formData.summaryFindings as Json,
-    medications: formData.medications as Json,
-    supplements: formData.supplements as Json,
+    vitals: formData.vitals as unknown as Json,
+    summary_findings: formData.summaryFindings as unknown as Json,
+    medications: formData.medications as unknown as Json,
+    supplements: formData.supplements as unknown as Json,
     exercise_recommendations: formData.exerciseRecommendations,
     nurse_notes: formData.nurseNotes,
     doctor_notes: formData.doctorNotes,
     diagnosis: formData.diagnosis,
     treatment_plan: formData.treatmentPlan,
     show_insulin_resistance: formData.showInsulinResistance,
-    nutrition_recommendations: formData.nutritionRecommendations as Json,
-    exercise_detail: formData.exerciseDetail as Json,
-    sleep_stress_recommendations: formData.sleepStressRecommendations as Json,
-    follow_ups: formData.followUps as Json,
+    nutrition_recommendations: formData.nutritionRecommendations as unknown as Json,
+    exercise_detail: formData.exerciseDetail as unknown as Json,
+    sleep_stress_recommendations: formData.sleepStressRecommendations as unknown as Json,
+    follow_ups: formData.followUps as unknown as Json,
     last_updated: new Date().toISOString()
   };
   
