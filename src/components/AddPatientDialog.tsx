@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Patient } from "@/types";
 import { UserPlus } from "lucide-react";
 import * as databaseService from "@/services/databaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddPatientDialogProps {
   onAddPatient: (patient: Patient) => void;
@@ -42,12 +43,18 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
     setIsLoading(true);
 
     try {
+      // Get current user
+      const currentUser = await databaseService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error("You must be logged in to add a patient");
+      }
+
       // Auto-generate MRN
       const medicalRecordNumber = databaseService.generateMRN();
 
       // Create new patient
       const newPatient: Patient = {
-        id: `p${Date.now()}`,
+        id: crypto.randomUUID(),
         name: patientData.name,
         dateOfBirth: patientData.dateOfBirth,
         gender: patientData.gender,
@@ -57,13 +64,13 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
       };
 
       // Save patient to database
-      await databaseService.addPatient(newPatient);
+      const savedPatient = await databaseService.addPatient(newPatient);
 
       // Initialize form data for the new patient
-      await databaseService.getPatientFormData(newPatient.id);
+      await databaseService.getPatientFormData(savedPatient.id);
 
       setIsLoading(false);
-      onAddPatient(newPatient);
+      onAddPatient(savedPatient);
       setPatientData({
         name: "",
         dateOfBirth: "",
@@ -73,7 +80,7 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
       
       toast({
         title: "Patient added",
-        description: `${newPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
+        description: `${savedPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
       });
     } catch (error) {
       console.error("Error adding patient:", error);

@@ -1,53 +1,81 @@
 
-// This is a simple client-side database implementation using localStorage
-// In a real application, this would be replaced with a proper backend database
-
 import { Patient, PatientFormData, Medication, User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
-// Storage keys
-const PATIENTS_KEY = "dna_health_patients";
-const FORM_DATA_KEY = "dna_health_form_data";
-const MEDICATIONS_KEY = "dna_health_medications";
-const USERS_KEY = "dna_health_users";
-const CURRENT_USER_KEY = "dna_health_current_user";
-const PDF_FILES_KEY = "dna_health_pdf_files";
-
-// Initialize storage with mock data
-const initializeStorage = () => {
-  // Import mock data
-  import("@/lib/mockData").then((mockData) => {
-    if (!localStorage.getItem(PATIENTS_KEY)) {
-      localStorage.setItem(PATIENTS_KEY, JSON.stringify(mockData.mockPatients));
-    }
+// Initialize mock data for development
+const initializeStorage = async () => {
+  try {
+    // Import mock data
+    const mockData = await import("@/lib/mockData");
     
-    if (!localStorage.getItem(MEDICATIONS_KEY)) {
-      localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(mockData.mockMedications));
-    }
+    // Check if we already have data in Supabase
+    const { data: existingPatients } = await supabase
+      .from('patients')
+      .select('id')
+      .limit(1);
     
-    if (!localStorage.getItem(USERS_KEY)) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(mockData.mockUsers));
-    }
-    
-    if (!localStorage.getItem(CURRENT_USER_KEY)) {
-      // Default to doctor now
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(mockData.mockUsers[0])); 
-    }
-    
-    if (!localStorage.getItem(PDF_FILES_KEY)) {
-      localStorage.setItem(PDF_FILES_KEY, JSON.stringify([]));
-    }
-    
-    // Initialize form data for each patient if not exists
-    const patients = JSON.parse(localStorage.getItem(PATIENTS_KEY) || "[]");
-    patients.forEach((patient: Patient) => {
-      const formDataKey = `${FORM_DATA_KEY}_${patient.id}`;
-      if (!localStorage.getItem(formDataKey)) {
-        mockData.getPatientFormData(patient.id).then((formData) => {
-          localStorage.setItem(formDataKey, JSON.stringify(formData));
-        });
+    // If no data exists, seed the database with mock data
+    if (!existingPatients || existingPatients.length === 0) {
+      // Create mock users
+      for (const user of mockData.mockUsers) {
+        const { error } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            name: user.name,
+            role: user.role,
+            email: user.email
+          });
+        
+        if (error) console.error("Error seeding user:", error);
       }
-    });
-  });
+      
+      // Create mock patients
+      for (const patient of mockData.mockPatients) {
+        const { data: newPatient, error } = await supabase
+          .from('patients')
+          .insert({
+            id: patient.id,
+            name: patient.name,
+            date_of_birth: patient.dateOfBirth,
+            gender: patient.gender,
+            medical_record_number: patient.medicalRecordNumber,
+            status: patient.status,
+            last_updated: patient.lastUpdated
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error("Error seeding patient:", error);
+        } else if (newPatient) {
+          // Create form data for this patient
+          const formData = await mockData.getPatientFormData(patient.id);
+          await savePatientFormData(patient.id, formData);
+        }
+      }
+      
+      // Create mock medications
+      for (const medication of mockData.mockMedications) {
+        const { error } = await supabase
+          .from('medications')
+          .insert({
+            id: medication.id,
+            name: medication.name,
+            dosage: medication.dosage,
+            frequency: medication.frequency,
+            notes: medication.notes,
+            type: medication.type,
+            link: medication.link
+          });
+        
+        if (error) console.error("Error seeding medication:", error);
+      }
+    }
+  } catch (error) {
+    console.error("Error initializing storage:", error);
+  }
 };
 
 // Initialize on module import
@@ -55,158 +83,561 @@ initializeStorage();
 
 // Patient operations
 export const getPatients = async (): Promise<Patient[]> => {
-  const patients = localStorage.getItem(PATIENTS_KEY);
-  return patients ? JSON.parse(patients) : [];
+  const { data, error } = await supabase
+    .from('patients')
+    .select('*')
+    .order('last_updated', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching patients:", error);
+    return [];
+  }
+  
+  return data.map(patient => ({
+    id: patient.id,
+    name: patient.name,
+    dateOfBirth: patient.date_of_birth,
+    gender: patient.gender,
+    medicalRecordNumber: patient.medical_record_number,
+    lastUpdated: patient.last_updated,
+    status: patient.status
+  }));
 };
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
-  const patients = await getPatients();
-  return patients.find(p => p.id === id || p.medicalRecordNumber === id) || null;
+  let query = supabase.from('patients').select('*');
+  
+  // Check if id is a MRN or a UUID
+  if (id.startsWith('MRN-')) {
+    query = query.eq('medical_record_number', id);
+  } else {
+    query = query.eq('id', id);
+  }
+  
+  const { data, error } = await query.single();
+  
+  if (error) {
+    console.error("Error fetching patient:", error);
+    return null;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    dateOfBirth: data.date_of_birth,
+    gender: data.gender,
+    medicalRecordNumber: data.medical_record_number,
+    lastUpdated: data.last_updated,
+    status: data.status
+  };
 };
 
 export const addPatient = async (patient: Patient): Promise<Patient> => {
-  const patients = await getPatients();
-  const newPatients = [...patients, patient];
-  localStorage.setItem(PATIENTS_KEY, JSON.stringify(newPatients));
-  return patient;
+  const { data, error } = await supabase
+    .from('patients')
+    .insert({
+      id: patient.id,
+      name: patient.name,
+      date_of_birth: patient.dateOfBirth,
+      gender: patient.gender,
+      medical_record_number: patient.medicalRecordNumber,
+      status: patient.status,
+      last_updated: new Date().toISOString()
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error adding patient:", error);
+    throw error;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    dateOfBirth: data.date_of_birth,
+    gender: data.gender,
+    medicalRecordNumber: data.medical_record_number,
+    lastUpdated: data.last_updated,
+    status: data.status
+  };
 };
 
 export const updatePatient = async (patient: Patient): Promise<Patient> => {
-  const patients = await getPatients();
-  const updatedPatients = patients.map(p => p.id === patient.id ? patient : p);
-  localStorage.setItem(PATIENTS_KEY, JSON.stringify(updatedPatients));
-  return patient;
+  const { data, error } = await supabase
+    .from('patients')
+    .update({
+      name: patient.name,
+      date_of_birth: patient.dateOfBirth,
+      gender: patient.gender,
+      medical_record_number: patient.medicalRecordNumber,
+      status: patient.status,
+      last_updated: new Date().toISOString()
+    })
+    .eq('id', patient.id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating patient:", error);
+    throw error;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    dateOfBirth: data.date_of_birth,
+    gender: data.gender,
+    medicalRecordNumber: data.medical_record_number,
+    lastUpdated: data.last_updated,
+    status: data.status
+  };
 };
 
 export const deletePatient = async (id: string): Promise<void> => {
-  const patients = await getPatients();
-  const filteredPatients = patients.filter(p => p.id !== id);
-  localStorage.setItem(PATIENTS_KEY, JSON.stringify(filteredPatients));
+  const { error } = await supabase
+    .from('patients')
+    .delete()
+    .eq('id', id);
   
-  // Also delete related form data
-  localStorage.removeItem(`${FORM_DATA_KEY}_${id}`);
+  if (error) {
+    console.error("Error deleting patient:", error);
+    throw error;
+  }
 };
 
 // Form data operations
 export const getPatientFormData = async (patientId: string): Promise<PatientFormData | null> => {
-  const formDataKey = `${FORM_DATA_KEY}_${patientId}`;
-  const formData = localStorage.getItem(formDataKey);
-  return formData ? JSON.parse(formData) : null;
+  const { data, error } = await supabase
+    .from('patient_form_data')
+    .select('*')
+    .eq('patient_id', patientId)
+    .maybeSingle();
+  
+  if (error) {
+    console.error("Error fetching patient form data:", error);
+    return null;
+  }
+  
+  if (!data) {
+    // Create a new empty form data if none exists
+    const patient = await getPatientById(patientId);
+    if (!patient) return null;
+    
+    const emptyFormData: PatientFormData = {
+      patientInfo: {
+        name: patient.name,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        medicalRecordNumber: patient.medicalRecordNumber
+      },
+      vitals: {
+        bloodPressure: '',
+        height: '',
+        weight: ''
+      },
+      summaryFindings: {
+        glucoseMetabolism: '',
+        lipidProfile: '',
+        inflammation: '',
+        uricAcid: '',
+        vitamins: '',
+        minerals: '',
+        sexHormones: '',
+        renalLiverFunction: '',
+        cancerMarkers: ''
+      },
+      medications: [],
+      exerciseRecommendations: '',
+      nurseNotes: '',
+      doctorNotes: '',
+      diagnosis: '',
+      treatmentPlan: '',
+      showInsulinResistance: false,
+      nutritionRecommendations: {
+        nutritionalPlan: '',
+        proteinConsumption: '',
+        omissions: '',
+        additionalConsiderations: ''
+      },
+      exerciseDetail: {
+        focusOn: '',
+        walking: '',
+        avoid: '',
+        tracking: ''
+      },
+      sleepStressRecommendations: {
+        sleep: '',
+        stress: ''
+      },
+      followUps: []
+    };
+    
+    await savePatientFormData(patientId, emptyFormData);
+    return emptyFormData;
+  }
+  
+  // Convert from database format to application format
+  return {
+    patientInfo: {
+      name: data.patient?.name || '',
+      dateOfBirth: data.patient?.date_of_birth || '',
+      gender: data.patient?.gender || '',
+      medicalRecordNumber: data.patient?.medical_record_number || ''
+    },
+    vitals: data.vitals || {
+      bloodPressure: '',
+      height: '',
+      weight: ''
+    },
+    summaryFindings: data.summary_findings || {
+      glucoseMetabolism: '',
+      lipidProfile: '',
+      inflammation: '',
+      uricAcid: '',
+      vitamins: '',
+      minerals: '',
+      sexHormones: '',
+      renalLiverFunction: '',
+      cancerMarkers: ''
+    },
+    medications: data.medications || [],
+    exerciseRecommendations: data.exercise_recommendations || '',
+    nurseNotes: data.nurse_notes || '',
+    doctorNotes: data.doctor_notes || '',
+    diagnosis: data.diagnosis || '',
+    treatmentPlan: data.treatment_plan || '',
+    showInsulinResistance: data.show_insulin_resistance || false,
+    nutritionRecommendations: data.nutrition_recommendations || {
+      nutritionalPlan: '',
+      proteinConsumption: '',
+      omissions: '',
+      additionalConsiderations: ''
+    },
+    exerciseDetail: data.exercise_detail || {
+      focusOn: '',
+      walking: '',
+      avoid: '',
+      tracking: ''
+    },
+    sleepStressRecommendations: data.sleep_stress_recommendations || {
+      sleep: '',
+      stress: ''
+    },
+    followUps: data.follow_ups || []
+  };
 };
 
 export const savePatientFormData = async (patientId: string, formData: PatientFormData): Promise<PatientFormData> => {
-  const formDataKey = `${FORM_DATA_KEY}_${patientId}`;
-  localStorage.setItem(formDataKey, JSON.stringify(formData));
+  // Check if form data already exists
+  const { data: existingData } = await supabase
+    .from('patient_form_data')
+    .select('id')
+    .eq('patient_id', patientId)
+    .maybeSingle();
   
-  // Update last updated time on patient
-  const patient = await getPatientById(patientId);
-  if (patient) {
-    patient.lastUpdated = new Date().toISOString();
-    await updatePatient(patient);
+  const formDataToSave = {
+    patient_id: patientId,
+    vitals: formData.vitals,
+    summary_findings: formData.summaryFindings,
+    medications: formData.medications,
+    supplements: formData.supplements,
+    exercise_recommendations: formData.exerciseRecommendations,
+    nurse_notes: formData.nurseNotes,
+    doctor_notes: formData.doctorNotes,
+    diagnosis: formData.diagnosis,
+    treatment_plan: formData.treatmentPlan,
+    show_insulin_resistance: formData.showInsulinResistance,
+    nutrition_recommendations: formData.nutritionRecommendations,
+    exercise_detail: formData.exerciseDetail,
+    sleep_stress_recommendations: formData.sleepStressRecommendations,
+    follow_ups: formData.followUps,
+    last_updated: new Date().toISOString()
+  };
+  
+  let error;
+  if (existingData) {
+    // Update existing form data
+    const result = await supabase
+      .from('patient_form_data')
+      .update(formDataToSave)
+      .eq('id', existingData.id);
+    
+    error = result.error;
+  } else {
+    // Insert new form data
+    const result = await supabase
+      .from('patient_form_data')
+      .insert(formDataToSave);
+    
+    error = result.error;
   }
+  
+  if (error) {
+    console.error("Error saving patient form data:", error);
+    throw error;
+  }
+  
+  // Update patient's last updated timestamp
+  await supabase
+    .from('patients')
+    .update({ last_updated: new Date().toISOString() })
+    .eq('id', patientId);
   
   return formData;
 };
 
 // Medication operations
 export const getMedications = async (): Promise<Medication[]> => {
-  const medications = localStorage.getItem(MEDICATIONS_KEY);
-  return medications ? JSON.parse(medications) : [];
+  const { data, error } = await supabase
+    .from('medications')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching medications:", error);
+    return [];
+  }
+  
+  return data.map(med => ({
+    id: med.id,
+    name: med.name,
+    dosage: med.dosage,
+    frequency: med.frequency,
+    notes: med.notes,
+    type: med.type as 'medication' | 'supplement',
+    link: med.link
+  }));
 };
 
 export const addMedication = async (medication: Medication): Promise<Medication> => {
-  const medications = await getMedications();
-  const newMedications = [...medications, medication];
-  localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(newMedications));
-  return medication;
+  const { data, error } = await supabase
+    .from('medications')
+    .insert({
+      name: medication.name,
+      dosage: medication.dosage,
+      frequency: medication.frequency,
+      notes: medication.notes,
+      type: medication.type,
+      link: medication.link
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error adding medication:", error);
+    throw error;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    dosage: data.dosage,
+    frequency: data.frequency,
+    notes: data.notes,
+    type: data.type as 'medication' | 'supplement',
+    link: data.link
+  };
 };
 
 export const updateMedication = async (medication: Medication): Promise<Medication> => {
-  const medications = await getMedications();
-  const updatedMedications = medications.map(m => m.id === medication.id ? medication : m);
-  localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(updatedMedications));
-  return medication;
+  const { data, error } = await supabase
+    .from('medications')
+    .update({
+      name: medication.name,
+      dosage: medication.dosage,
+      frequency: medication.frequency,
+      notes: medication.notes,
+      type: medication.type,
+      link: medication.link
+    })
+    .eq('id', medication.id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating medication:", error);
+    throw error;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    dosage: data.dosage,
+    frequency: data.frequency,
+    notes: data.notes,
+    type: data.type as 'medication' | 'supplement',
+    link: data.link
+  };
 };
 
 export const deleteMedication = async (id: string): Promise<void> => {
-  const medications = await getMedications();
-  const filteredMedications = medications.filter(m => m.id !== id);
-  localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(filteredMedications));
+  const { error } = await supabase
+    .from('medications')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error("Error deleting medication:", error);
+    throw error;
+  }
 };
 
 // User operations
 export const getUsers = async (): Promise<User[]> => {
-  const users = localStorage.getItem(USERS_KEY);
-  return users ? JSON.parse(users) : [];
+  const { data, error } = await supabase
+    .from('users')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+  
+  return data.map(user => ({
+    id: user.id,
+    name: user.name,
+    role: user.role as 'nurse' | 'doctor' | 'admin',
+    email: user.email
+  }));
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
-  const user = localStorage.getItem(CURRENT_USER_KEY);
-  return user ? JSON.parse(user) : null;
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) return null;
+  
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', session.user.id)
+    .maybeSingle();
+  
+  if (error || !data) {
+    console.error("Error fetching current user:", error);
+    return null;
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    role: data.role as 'nurse' | 'doctor' | 'admin',
+    email: data.email
+  };
 };
 
 export const setCurrentUser = async (user: User): Promise<User> => {
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  // In Supabase, this would update the user's profile
+  const { error } = await supabase
+    .from('users')
+    .upsert({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      email: user.email
+    });
+  
+  if (error) {
+    console.error("Error setting current user:", error);
+    throw error;
+  }
+  
   return user;
 };
 
 export const logoutUser = async (): Promise<void> => {
-  // We don't completely remove the current user, just set to null
-  // so we can remember the last logged in user
-  localStorage.removeItem(CURRENT_USER_KEY);
+  const { error } = await supabase.auth.signOut();
+  
+  if (error) {
+    console.error("Error signing out:", error);
+    throw error;
+  }
 };
 
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
-  // In a real app, this would validate credentials against a backend
-  // For now, we'll just check if a user with this email exists
-  const users = await getUsers();
-  const user = users.find(u => u.email === email);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
   
-  if (user) {
-    await setCurrentUser(user);
-    return user;
+  if (error || !data.user) {
+    console.error("Error signing in:", error);
+    return null;
   }
   
-  return null;
+  return getCurrentUser();
 };
 
 // PDF file operations
-interface PDFFile {
-  id: string;
-  patientId: string;
-  fileName: string;
-  createdAt: string;
-  createdBy: string;
-  url: string;
-}
-
-export const savePDFReference = async (patientId: string, fileName: string): Promise<PDFFile> => {
-  const pdfFiles = await getPDFFiles();
+export const savePDFReference = async (patientId: string, fileName: string): Promise<any> => {
   const currentUser = await getCurrentUser();
   
-  const newPDFFile: PDFFile = {
-    id: `pdf-${Date.now()}`,
-    patientId,
-    fileName,
-    createdAt: new Date().toISOString(),
-    createdBy: currentUser?.name || "Unknown",
-    url: fileName // In a real app, this would be a URL to the file storage
+  const pdfFile = {
+    patient_id: patientId,
+    file_name: fileName,
+    created_by: currentUser?.id,
+    url: fileName // In a real app, this would be a URL to the file in storage
   };
   
-  const updatedPDFFiles = [...pdfFiles, newPDFFile];
-  localStorage.setItem(PDF_FILES_KEY, JSON.stringify(updatedPDFFiles));
+  const { data, error } = await supabase
+    .from('pdf_files')
+    .insert(pdfFile)
+    .select()
+    .single();
   
-  return newPDFFile;
+  if (error) {
+    console.error("Error saving PDF reference:", error);
+    throw error;
+  }
+  
+  return {
+    id: data.id,
+    patientId: data.patient_id,
+    fileName: data.file_name,
+    createdAt: data.created_at,
+    createdBy: data.created_by,
+    url: data.url
+  };
 };
 
-export const getPDFFiles = async (): Promise<PDFFile[]> => {
-  const pdfFiles = localStorage.getItem(PDF_FILES_KEY);
-  return pdfFiles ? JSON.parse(pdfFiles) : [];
+export const getPDFFiles = async (): Promise<any[]> => {
+  const { data, error } = await supabase
+    .from('pdf_files')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching PDF files:", error);
+    return [];
+  }
+  
+  return data.map(pdf => ({
+    id: pdf.id,
+    patientId: pdf.patient_id,
+    fileName: pdf.file_name,
+    createdAt: pdf.created_at,
+    createdBy: pdf.created_by,
+    url: pdf.url
+  }));
 };
 
-export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile[]> => {
-  const pdfFiles = await getPDFFiles();
-  return pdfFiles.filter(pdf => pdf.patientId === patientId);
+export const getPDFFilesByPatientId = async (patientId: string): Promise<any[]> => {
+  const { data, error } = await supabase
+    .from('pdf_files')
+    .select('*')
+    .eq('patient_id', patientId);
+  
+  if (error) {
+    console.error("Error fetching PDF files for patient:", error);
+    return [];
+  }
+  
+  return data.map(pdf => ({
+    id: pdf.id,
+    patientId: pdf.patient_id,
+    fileName: pdf.file_name,
+    createdAt: pdf.created_at,
+    createdBy: pdf.created_by,
+    url: pdf.url
+  }));
 };
 
 // Generate a unique MRN

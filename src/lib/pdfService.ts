@@ -3,6 +3,7 @@
 import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
 import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<void> => {
   try {
@@ -16,6 +17,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     // Save PDF reference to database if we have a patient
     if (patient) {
       const fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      
+      // In a production app, you would upload the PDF to Supabase storage
+      // For now, we'll just save the reference
       await savePDFReference(patient.id, fileName);
     }
     

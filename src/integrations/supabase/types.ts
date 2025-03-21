@@ -9,7 +9,211 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      medications: {
+        Row: {
+          dosage: string
+          frequency: string
+          id: string
+          link: string | null
+          name: string
+          notes: string | null
+          type: string
+        }
+        Insert: {
+          dosage: string
+          frequency: string
+          id?: string
+          link?: string | null
+          name: string
+          notes?: string | null
+          type: string
+        }
+        Update: {
+          dosage?: string
+          frequency?: string
+          id?: string
+          link?: string | null
+          name?: string
+          notes?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      patient_form_data: {
+        Row: {
+          diagnosis: string | null
+          doctor_notes: string | null
+          exercise_detail: Json | null
+          exercise_recommendations: string | null
+          follow_ups: Json | null
+          id: string
+          last_updated: string
+          medications: Json | null
+          nurse_notes: string | null
+          nutrition_recommendations: Json | null
+          patient_id: string
+          show_insulin_resistance: boolean | null
+          sleep_stress_recommendations: Json | null
+          summary_findings: Json | null
+          supplements: Json | null
+          treatment_plan: string | null
+          vitals: Json | null
+        }
+        Insert: {
+          diagnosis?: string | null
+          doctor_notes?: string | null
+          exercise_detail?: Json | null
+          exercise_recommendations?: string | null
+          follow_ups?: Json | null
+          id?: string
+          last_updated?: string
+          medications?: Json | null
+          nurse_notes?: string | null
+          nutrition_recommendations?: Json | null
+          patient_id: string
+          show_insulin_resistance?: boolean | null
+          sleep_stress_recommendations?: Json | null
+          summary_findings?: Json | null
+          supplements?: Json | null
+          treatment_plan?: string | null
+          vitals?: Json | null
+        }
+        Update: {
+          diagnosis?: string | null
+          doctor_notes?: string | null
+          exercise_detail?: Json | null
+          exercise_recommendations?: string | null
+          follow_ups?: Json | null
+          id?: string
+          last_updated?: string
+          medications?: Json | null
+          nurse_notes?: string | null
+          nutrition_recommendations?: Json | null
+          patient_id?: string
+          show_insulin_resistance?: boolean | null
+          sleep_stress_recommendations?: Json | null
+          summary_findings?: Json | null
+          supplements?: Json | null
+          treatment_plan?: string | null
+          vitals?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_form_data_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          created_by: string | null
+          date_of_birth: string
+          gender: string
+          id: string
+          last_updated: string
+          medical_record_number: string
+          name: string
+          status: string
+        }
+        Insert: {
+          created_by?: string | null
+          date_of_birth: string
+          gender: string
+          id?: string
+          last_updated?: string
+          medical_record_number: string
+          name: string
+          status: string
+        }
+        Update: {
+          created_by?: string | null
+          date_of_birth?: string
+          gender?: string
+          id?: string
+          last_updated?: string
+          medical_record_number?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdf_files: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          patient_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          patient_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          patient_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_files_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdf_files_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

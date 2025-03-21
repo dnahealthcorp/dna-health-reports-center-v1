@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { loginUser, getUsers } from "@/services/databaseService";
 import { User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,15 +18,31 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
   // Fetch demo users on mount
-  useState(() => {
+  useEffect(() => {
     const fetchUsers = async () => {
-      const users = await getUsers();
-      setDemoUsers(users || []);
+      try {
+        const users = await getUsers();
+        setDemoUsers(users || []);
+      } catch (error) {
+        console.error("Error fetching demo users:", error);
+      }
     };
     
     fetchUsers();
-  });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +91,8 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const user = await loginUser(demoUser.email, "password");
+      // For demo purposes, we'll use a standard password
+      const user = await loginUser(demoUser.email, "password123");
       
       if (user) {
         toast({
@@ -83,14 +101,62 @@ const Login = () => {
         });
         
         navigate("/");
+      } else {
+        toast({
+          title: "Demo Login",
+          description: "Creating demo account...",
+        });
+        
+        // Create the demo user in Supabase auth if it doesn't exist
+        const { data, error } = await supabase.auth.signUp({
+          email: demoUser.email,
+          password: "password123",
+          options: {
+            data: {
+              name: demoUser.name,
+              role: demoUser.role
+            }
+          }
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Try logging in again
+        const loggedInUser = await loginUser(demoUser.email, "password123");
+        
+        if (loggedInUser) {
+          toast({
+            title: "Success",
+            description: `Welcome to demo account, ${loggedInUser.name}!`
+          });
+          
+          navigate("/");
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Demo login error:", error);
-      toast({
-        title: "Error",
-        description: "Could not log in with demo account",
-        variant: "destructive"
-      });
+      
+      // If the account already exists, try to sign in
+      if (error.message?.includes("already registered")) {
+        try {
+          await loginUser(demoUser.email, "password123");
+          navigate("/");
+        } catch (signInError) {
+          toast({
+            title: "Error",
+            description: "Could not log in with demo account",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not log in with demo account",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
