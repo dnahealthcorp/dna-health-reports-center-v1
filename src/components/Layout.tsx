@@ -15,9 +15,10 @@ const Layout = ({ children }: LayoutProps) => {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login');
-    } else if (!isLoading) {
+    if (!isLoading) {
+      if (!user && window.location.pathname !== "/login") {
+        navigate('/login');
+      }
       setCheckingAuth(false);
     }
   }, [user, isLoading, navigate]);
