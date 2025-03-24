@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,6 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const navigate = useNavigate();
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -38,7 +36,6 @@ const Dashboard = () => {
         setIsLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -74,9 +71,7 @@ const Dashboard = () => {
     bg: "bg-amber-100",
     isDate: true
   }];
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="animate-fade-in">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -89,8 +84,9 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <div className="grid gap-6 mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
-            <Card key={index} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+          {stats.map((stat, index) => <Card key={index} className="animate-fade-in-up" style={{
+          animationDelay: `${index * 0.1}s`
+        }}>
               <CardContent className="flex items-center p-6">
                 <div className={`w-12 h-12 rounded-full ${stat.bg} flex items-center justify-center mr-4`}>
                   <stat.icon className={`${stat.color}`} size={24} />
@@ -102,12 +98,13 @@ const Dashboard = () => {
                   </h4>
                 </div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
 
         {/* Patient Tabs */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+        <Card className="animate-fade-in-up" style={{
+        animationDelay: "0.4s"
+      }}>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-left">Patient Forms</CardTitle>
@@ -139,33 +136,15 @@ const Dashboard = () => {
               </TabsList>
               
               <TabsContent value="action-required" className="mt-0">
-                {viewMode === 'cards' ? (
-                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {currentUser?.role === "nurse" ? (
-                      nurseActionRequired.length > 0 ? (
-                        nurseActionRequired.map(patient => (
-                          <PatientCard key={patient.id} patient={patient} />
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground col-span-full py-8 text-center">
+                {viewMode === 'cards' ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {currentUser?.role === "nurse" ? nurseActionRequired.length > 0 ? nurseActionRequired.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
                           No patients require nurse review at this time.
-                        </p>
-                      )
-                    ) : (
-                      doctorActionRequired.length > 0 ? (
-                        doctorActionRequired.map(patient => (
-                          <PatientCard key={patient.id} patient={patient} />
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground col-span-full py-8 text-center">
-                          No patients require doctor review at this time.
-                        </p>
-                      )
-                    )}
-                  </div>
-                ) : (
-                  // Table view
-                  <div className="overflow-x-auto">
+                        </p> : doctorActionRequired.length > 0 ? doctorActionRequired.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
+                        No patients require doctor review at this time.
+                      </p>}
+                  </div> :
+              // Table view
+              <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -179,10 +158,7 @@ const Dashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentUser?.role === "nurse" ? (
-                          nurseActionRequired.length > 0 ? (
-                            nurseActionRequired.map(patient => (
-                              <TableRow key={patient.id}>
+                        {currentUser?.role === "nurse" ? nurseActionRequired.length > 0 ? nurseActionRequired.map(patient => <TableRow key={patient.id}>
                                 <TableCell>{patient.medicalRecordNumber}</TableCell>
                                 <TableCell>{patient.name}</TableCell>
                                 <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
@@ -193,103 +169,59 @@ const Dashboard = () => {
                                 </TableCell>
                                 <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
                                 <TableCell>
-                                  {patient.pdfFiles?.length > 0 ? (
-                                    patient.pdfFiles.map(file => (
-                                      <a
-                                        key={file.id}
-                                        href={`data:application/pdf;base64,${file.url}`}
-                                        download={file.fileName}
-                                        className="flex items-center text-primary hover:underline mb-1"
-                                      >
+                                  {patient.pdfFiles?.length > 0 ? patient.pdfFiles.map(file => <a key={file.id} href={`data:application/pdf;base64,${file.url}`} download={file.fileName} className="flex items-center text-primary hover:underline mb-1">
                                         <Download size={14} className="mr-1" />
                                         <span className="text-xs">{file.fileName}</span>
-                                      </a>
-                                    ))
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">No files</span>
-                                  )}
+                                      </a>) : <span className="text-xs text-muted-foreground">No files</span>}
                                 </TableCell>
                                 <TableCell>
                                   <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
                                     View
                                   </Button>
                                 </TableCell>
-                              </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
+                              </TableRow>) : <TableRow>
                               <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                                 No patients require nurse review at this time.
                               </TableCell>
-                            </TableRow>
-                          )
-                        ) : (
-                          doctorActionRequired.length > 0 ? (
-                            doctorActionRequired.map(patient => (
-                              <TableRow key={patient.id}>
-                                <TableCell>{patient.medicalRecordNumber}</TableCell>
-                                <TableCell>{patient.name}</TableCell>
-                                <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
-                                <TableCell>
-                                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                    Doctor Review
-                                  </span>
-                                </TableCell>
-                                <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
-                                <TableCell>
-                                  {patient.pdfFiles?.length > 0 ? (
-                                    patient.pdfFiles.map(file => (
-                                      <a
-                                        key={file.id}
-                                        href={`data:application/pdf;base64,${file.url}`}
-                                        download={file.fileName}
-                                        className="flex items-center text-primary hover:underline mb-1"
-                                      >
-                                        <Download size={14} className="mr-1" />
-                                        <span className="text-xs">{file.fileName}</span>
-                                      </a>
-                                    ))
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">No files</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
-                                    View
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                                No patients require doctor review at this time.
+                            </TableRow> : doctorActionRequired.length > 0 ? doctorActionRequired.map(patient => <TableRow key={patient.id}>
+                              <TableCell>{patient.medicalRecordNumber}</TableCell>
+                              <TableCell>{patient.name}</TableCell>
+                              <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                  Doctor Review
+                                </span>
                               </TableCell>
-                            </TableRow>
-                          )
-                        )}
+                              <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                {patient.pdfFiles?.length > 0 ? patient.pdfFiles.map(file => <a key={file.id} href={`data:application/pdf;base64,${file.url}`} download={file.fileName} className="flex items-center text-primary hover:underline mb-1">
+                                      <Download size={14} className="mr-1" />
+                                      <span className="text-xs">{file.fileName}</span>
+                                    </a>) : <span className="text-xs text-muted-foreground">No files</span>}
+                              </TableCell>
+                              <TableCell>
+                                <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
+                                  View
+                                </Button>
+                              </TableCell>
+                            </TableRow>) : <TableRow>
+                            <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                              No patients require doctor review at this time.
+                            </TableCell>
+                          </TableRow>}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
+                  </div>}
               </TabsContent>
               
               <TabsContent value="completed" className="mt-0">
-                {viewMode === 'cards' ? (
-                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {recentlyCompleted.length > 0 ? (
-                      recentlyCompleted.map(patient => (
-                        <PatientCard key={patient.id} patient={patient} />
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground col-span-full py-8 text-center">
+                {viewMode === 'cards' ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {recentlyCompleted.length > 0 ? recentlyCompleted.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
                         No completed patient forms yet.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  // Table view
-                  <div className="overflow-x-auto">
+                      </p>}
+                  </div> :
+              // Table view
+              <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -303,9 +235,7 @@ const Dashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {recentlyCompleted.length > 0 ? (
-                          recentlyCompleted.map(patient => (
-                            <TableRow key={patient.id}>
+                        {recentlyCompleted.length > 0 ? recentlyCompleted.map(patient => <TableRow key={patient.id}>
                               <TableCell>{patient.medicalRecordNumber}</TableCell>
                               <TableCell>{patient.name}</TableCell>
                               <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
@@ -316,58 +246,34 @@ const Dashboard = () => {
                               </TableCell>
                               <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                {patient.pdfFiles?.length > 0 ? (
-                                  patient.pdfFiles.map(file => (
-                                    <a
-                                      key={file.id}
-                                      href={`data:application/pdf;base64,${file.url}`}
-                                      download={file.fileName}
-                                      className="flex items-center text-primary hover:underline mb-1"
-                                    >
+                                {patient.pdfFiles?.length > 0 ? patient.pdfFiles.map(file => <a key={file.id} href={`data:application/pdf;base64,${file.url}`} download={file.fileName} className="flex items-center text-primary hover:underline mb-1">
                                       <Download size={14} className="mr-1" />
                                       <span className="text-xs">{file.fileName}</span>
-                                    </a>
-                                  ))
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">No files</span>
-                                )}
+                                    </a>) : <span className="text-xs text-muted-foreground">No files</span>}
                               </TableCell>
                               <TableCell>
                                 <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
                                   View
                                 </Button>
                               </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
+                            </TableRow>) : <TableRow>
                             <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                               No completed patient forms yet.
                             </TableCell>
-                          </TableRow>
-                        )}
+                          </TableRow>}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
+                  </div>}
               </TabsContent>
               
               <TabsContent value="all" className="mt-0">
-                {viewMode === 'cards' ? (
-                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {patients.length > 0 ? (
-                      patients.map(patient => (
-                        <PatientCard key={patient.id} patient={patient} />
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground col-span-full py-8 text-center">
+                {viewMode === 'cards' ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {patients.length > 0 ? patients.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
                         No patients available.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  // Table view
-                  <div className="overflow-x-auto">
+                      </p>}
+                  </div> :
+              // Table view
+              <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -381,72 +287,46 @@ const Dashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {patients.length > 0 ? (
-                          patients.map(patient => (
-                            <TableRow key={patient.id}>
+                        {patients.length > 0 ? patients.map(patient => <TableRow key={patient.id}>
                               <TableCell>{patient.medicalRecordNumber}</TableCell>
                               <TableCell>{patient.name}</TableCell>
                               <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                {patient.status === 'nurse-pending' && (
-                                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                {patient.status === 'nurse-pending' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                     Nurse Review
-                                  </span>
-                                )}
-                                {patient.status === 'doctor-pending' && (
-                                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                  </span>}
+                                {patient.status === 'doctor-pending' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
                                     Doctor Review
-                                  </span>
-                                )}
-                                {patient.status === 'completed' && (
-                                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                  </span>}
+                                {patient.status === 'completed' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                     Completed
-                                  </span>
-                                )}
+                                  </span>}
                               </TableCell>
                               <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                {patient.pdfFiles?.length > 0 ? (
-                                  patient.pdfFiles.map(file => (
-                                    <a
-                                      key={file.id}
-                                      href={`data:application/pdf;base64,${file.url}`}
-                                      download={file.fileName}
-                                      className="flex items-center text-primary hover:underline mb-1"
-                                    >
+                                {patient.pdfFiles?.length > 0 ? patient.pdfFiles.map(file => <a key={file.id} href={`data:application/pdf;base64,${file.url}`} download={file.fileName} className="flex items-center text-primary hover:underline mb-1">
                                       <Download size={14} className="mr-1" />
                                       <span className="text-xs">{file.fileName}</span>
-                                    </a>
-                                  ))
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">No files</span>
-                                )}
+                                    </a>) : <span className="text-xs text-muted-foreground">No files</span>}
                               </TableCell>
                               <TableCell>
                                 <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
                                   View
                                 </Button>
                               </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
+                            </TableRow>) : <TableRow>
                             <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                               No patients available.
                             </TableCell>
-                          </TableRow>
-                        )}
+                          </TableRow>}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
+                  </div>}
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Dashboard;

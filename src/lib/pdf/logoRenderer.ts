@@ -29,19 +29,3 @@ export const loadMontserratFonts = async (doc: jsPDF): Promise<void> => {
     // Fall back to default font
   }
 };
-
-/**
- * Converts a logo file to Data URL for embedding in PDF
- * Now returns a promise with a string
- */
-export const logoToDataURL = async (): Promise<string> => {
-  try {
-    // For reliability, use the base64 encoded version of the logo
-    // This prevents file loading issues that can occur with relative paths
-    return '/assets/DNA Logo - Grey.svg';
-  } catch (error) {
-    console.error("Error converting logo to data URL:", error);
-    // Return a placeholder on error
-    return '';
-  }
-};
