@@ -10,18 +10,20 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   signOut: async () => {},
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 // Helper function to validate roles
-const validateRole = (role: string): "nurse" | "doctor" | "admin" => {
+const validateRole = (role: string | undefined): "nurse" | "doctor" | "admin" => {
   if (role === "nurse" || role === "doctor" || role === "admin") {
     return role;
   }
@@ -35,13 +37,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const refreshUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event);
+        console.log("Auth state changed:", event, session?.user?.id);
         
         if (!isMounted) return;
         
@@ -52,15 +65,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const currentUser = await getCurrentUser();
               
               if (currentUser) {
+                console.log("User found in database:", currentUser);
                 setUser(currentUser);
               } else {
                 // Create user in users table if they don't exist yet
                 console.log("User authenticated but not found in users table, creating user record");
+                const validRole = validateRole(session.user.user_metadata.role);
                 const newUser: User = {
                   id: session.user.id,
                   name: session.user.email?.split('@')[0] || 'New User',
                   email: session.user.email || '',
-                  role: validateRole(session.user.user_metadata.role || "nurse")
+                  role: validRole
                 };
                 
                 // Create the user in the database
@@ -72,13 +87,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching user after auth change:", error);
             // Don't sign out on error, just set a basic user if we have a session
             if (session) {
-              const fallbackRole = validateRole(session.user.user_metadata.role || "nurse");
-              setUser({
+              const validRole = validateRole(session.user.user_metadata.role);
+              const fallbackUser: User = {
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: fallbackRole
-              });
+                role: validRole
+              };
+              setUser(fallbackUser);
             }
           } finally {
             if (isMounted) {
@@ -111,17 +127,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Only try to get the current user if we have a session
         if (session) {
           try {
+            console.log("Found existing session, fetching user");
             const currentUser = await getCurrentUser();
             if (currentUser && isMounted) {
+              console.log("User found in database for existing session:", currentUser);
               setUser(currentUser);
             } else if (isMounted) {
               // User is authenticated but not in our users table
               console.log("User authenticated but not found in users table, creating fallback user");
+              const validRole = validateRole(session.user.user_metadata.role);
               const newUser: User = {
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: validateRole(session.user.user_metadata.role || "nurse")
+                role: validRole
               };
               
               // Try to create the user in the database
@@ -137,17 +156,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching user:", error);
             // Use session data as fallback if we have a session
             if (session.user && isMounted) {
-              const fallbackRole = validateRole(session.user.user_metadata.role || "nurse");
-              setUser({
+              const validRole = validateRole(session.user.user_metadata.role);
+              const fallbackUser: User = {
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: fallbackRole
-              });
+                role: validRole
+              };
+              setUser(fallbackUser);
             }
           }
         } else if (isMounted) {
           // No session, so no user
+          console.log("No existing session found");
           setUser(null);
         }
       } catch (error) {
@@ -187,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import Index from "@/pages/Index";
@@ -9,6 +8,7 @@ import Forms from "@/pages/Forms";
 import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
+import Admin from "@/pages/Admin";
 import { AuthProvider } from "@/components/AuthProvider";
 
 function App() {
@@ -22,6 +22,7 @@ function App() {
         <Route path="/forms" element={<Forms />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
