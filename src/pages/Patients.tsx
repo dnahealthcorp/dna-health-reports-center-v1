@@ -48,7 +48,6 @@ const Patients = () => {
     
     fetchPatients();
     
-    // Subscribe to realtime changes
     const channel = supabase
       .channel('patients-changes')
       .on('postgres_changes', { 
@@ -70,7 +69,6 @@ const Patients = () => {
     setPatients(prev => [newPatient, ...prev]);
   };
 
-  // Filter patients based on search query
   const filteredPatients = searchQuery && patients
     ? patients.filter(patient => 
         patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -114,7 +112,6 @@ const Patients = () => {
           </div>
         </div>
 
-        {/* Search */}
         <div className="relative mb-8">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
           <Input
@@ -125,7 +122,6 @@ const Patients = () => {
           />
         </div>
 
-        {/* Patient Display */}
         {isLoading ? (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, index) => (

@@ -34,14 +34,15 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { getUsers, addUser, updateUser, deleteUser } from "@/services/userService";
+import { getUsers, addUser, updateUser, deleteUser, registerUser } from "@/services/userService";
 import { User } from "@/types";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 
 export const UserManagement = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -49,7 +50,8 @@ export const UserManagement = () => {
     id: "",
     name: "",
     email: "",
-    role: "nurse" as "nurse" | "doctor" | "admin"
+    role: "nurse" as "nurse" | "doctor" | "admin",
+    password: "" // Only used for new user registration
   });
 
   useEffect(() => {
@@ -79,7 +81,8 @@ export const UserManagement = () => {
       id: "",
       name: "",
       email: "",
-      role: "nurse"
+      role: "nurse",
+      password: ""
     });
     setIsDialogOpen(true);
   };
@@ -90,7 +93,8 @@ export const UserManagement = () => {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role as "nurse" | "doctor" | "admin",
+      password: "" // Not needed for edit
     });
     setIsDialogOpen(true);
   };
@@ -114,42 +118,79 @@ export const UserManagement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
       if (selectedUser) {
         // Update existing user
         await updateUser({
-          ...formData,
-          id: selectedUser.id
+          ...selectedUser,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role
         });
+        
         toast({
           title: "Success",
           description: "User updated successfully",
         });
       } else {
         // Add new user
-        await addUser(formData);
+        if (!formData.email) {
+          throw new Error("Email is required");
+        }
+        
+        if (formData.password) {
+          // Register a new user with the provided password
+          await registerUser(
+            formData.email,
+            formData.password,
+            formData.name,
+            formData.role
+          );
+        } else {
+          // Add a new user with a generated password
+          await addUser({
+            name: formData.name,
+            email: formData.email,
+            role: formData.role
+          });
+        }
+        
         toast({
           title: "Success",
           description: "User added successfully",
         });
       }
+      
       setIsDialogOpen(false);
       fetchUsers();
     } catch (error) {
       console.error("Error saving user:", error);
+      
+      // Provide more detailed error message
+      let errorMessage = selectedUser 
+        ? "Failed to update user" 
+        : "Failed to add user";
+        
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+      }
+      
       toast({
         title: "Error",
-        description: selectedUser 
-          ? "Failed to update user" 
-          : "Failed to add user",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!selectedUser) return;
     
+    setIsSubmitting(true);
     try {
       await deleteUser(selectedUser.id);
       toast({
@@ -160,11 +201,19 @@ export const UserManagement = () => {
       fetchUsers();
     } catch (error) {
       console.error("Error deleting user:", error);
+      
+      let errorMessage = "Failed to delete user";
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -272,6 +321,24 @@ export const UserManagement = () => {
                     required
                   />
                 </div>
+                {!selectedUser && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Leave blank to generate a random password"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.password 
+                        ? "User will login with this password" 
+                        : "A random password will be generated"}
+                    </p>
+                  </div>
+                )}
                 <div className="grid gap-2">
                   <Label htmlFor="role">Role</Label>
                   <Select 
@@ -290,11 +357,23 @@ export const UserManagement = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {selectedUser ? "Update" : "Add"}
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {selectedUser ? "Updating..." : "Adding..."}
+                    </>
+                  ) : (
+                    selectedUser ? "Update" : "Add"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -311,11 +390,28 @@ export const UserManagement = () => {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="button" variant="destructive" onClick={handleConfirmDelete}>
-                Delete
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={handleConfirmDelete}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

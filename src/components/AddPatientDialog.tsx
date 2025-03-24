@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Plus } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 
@@ -14,6 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -40,7 +41,8 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { 
   addPatient, 
-  getPatientByMedicalRecordNumber 
+  getPatientByMedicalRecordNumber,
+  generateMRN 
 } from "@/services/index";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,6 +80,7 @@ export function AddPatientDialog({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const form = useForm<AddPatientFormValues>({
     resolver: zodResolver(addPatientFormSchema),
@@ -85,9 +88,28 @@ export function AddPatientDialog({
       name: "",
       dateOfBirth: undefined,
       gender: "Male",
-      medicalRecordNumber: "",
+      medicalRecordNumber: generateMRN(),
     },
   });
+
+  const handleOpenChange = (newOpenState: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(newOpenState);
+    } else {
+      setDialogOpen(newOpenState);
+    }
+    
+    // Reset form when dialog is opened
+    if (newOpenState) {
+      form.reset({
+        name: "",
+        dateOfBirth: undefined,
+        gender: "Male",
+        medicalRecordNumber: generateMRN(),
+      });
+      setFormErrors({});
+    }
+  };
 
   const handleSubmit = async (data: AddPatientFormValues) => {
     setIsLoading(true);
@@ -141,7 +163,7 @@ export function AddPatientDialog({
       
       // Close dialog and refresh patient list
       form.reset();
-      if (onOpenChange) onOpenChange(false);
+      handleOpenChange(false);
       if (onPatientAdded) {
         onPatientAdded(newPatient);
       }
@@ -169,8 +191,19 @@ export function AddPatientDialog({
     }
   };
 
+  const isControlled = open !== undefined && onOpenChange !== undefined;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog 
+      open={isControlled ? open : dialogOpen} 
+      onOpenChange={handleOpenChange}
+    >
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Patient
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Patient</DialogTitle>
