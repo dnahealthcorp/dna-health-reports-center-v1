@@ -1,89 +1,61 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from "react";
 import { PatientFormData } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
 
 interface PatientInfoCardProps {
   formData: PatientFormData;
-  handleInputChange: (section: keyof PatientFormData | "", field: string, value: string) => void;
+  handleInputChange: (section: keyof PatientFormData | "", field: string, value: string | boolean) => void;
   canEditNurseSection: boolean;
 }
 
 export const PatientInfoCard = ({
   formData,
   handleInputChange,
-  canEditNurseSection
+  canEditNurseSection,
 }: PatientInfoCardProps) => {
-  // Format date for display
   const formatDate = (dateString: string) => {
-    if (!dateString) return "";
     try {
-      return format(new Date(dateString), "PPP");
+      const date = new Date(dateString);
+      return format(date, "PPP"); // Localized date format (e.g., April 29, 2023)
     } catch (error) {
       return dateString;
     }
   };
 
   return (
-    <Card className="animate-fade-in-up mb-6">
-      <CardHeader>
+    <Card className="mb-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+      <CardHeader className="pb-3">
         <CardTitle>Patient Information</CardTitle>
         <CardDescription>
           Basic patient information and demographics
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name"
-                value={formData.patientInfo.name}
-                onChange={(e) => handleInputChange("patientInfo", "name", e.target.value)}
-                disabled={!canEditNurseSection}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth</Label>
-              <Input 
-                id="dob"
-                value={formatDate(formData.patientInfo.dateOfBirth)}
-                disabled={true}
-                className="bg-muted/30"
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Full Name</h3>
+            <p className="text-base">{formData.patientInfo?.name || "Not provided"}</p>
           </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <Select 
-                value={formData.patientInfo.gender}
-                onValueChange={(value) => handleInputChange("patientInfo", "gender", value)}
-                disabled={!canEditNurseSection}
-              >
-                <SelectTrigger id="gender">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mrn">Medical Record Number</Label>
-              <Input 
-                id="mrn"
-                value={formData.patientInfo.medicalRecordNumber}
-                disabled={true}
-                className="bg-muted/30"
-              />
-            </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Gender</h3>
+            <p className="text-base">{formData.patientInfo?.gender || "Not provided"}</p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Date of Birth</h3>
+            <p className="text-base">
+              {formData.patientInfo?.dateOfBirth 
+                ? formatDate(formData.patientInfo.dateOfBirth) 
+                : "Not provided"}
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Medical Record Number</h3>
+            <p className="text-base">{formData.patientInfo?.medicalRecordNumber || "Not provided"}</p>
           </div>
         </div>
       </CardContent>

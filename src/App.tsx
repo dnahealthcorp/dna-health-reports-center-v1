@@ -12,6 +12,7 @@ import Login from './pages/Login'
 import Settings from './pages/Settings'
 import { Toaster } from './components/ui/toaster'
 import { getCurrentUser } from './services/databaseService'
+import AppSidebar from './components/AppSidebar'
 
 // Protected route component with improved error handling
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -58,17 +59,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
-        <Route path="/patients/:id" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
-        <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
-        <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AppSidebar>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
+          <Route path="/patients/:id" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
+          <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
+          <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AppSidebar>
       <Toaster />
     </>
   )
