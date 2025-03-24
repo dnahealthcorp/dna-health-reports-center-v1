@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { getPatients } from "@/services";
 import { Patient } from "@/types";
 import Layout from "@/components/Layout";
 import PatientCard from "@/components/PatientCard";
-import AddPatientDialog from "@/components/AddPatientDialog";
+import { AddPatientDialog } from "@/components/AddPatientDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -133,8 +132,8 @@ const Patients = () => {
 
       <AddPatientDialog
         open={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
-        onAdd={handlePatientAdded}
+        onOpenChange={setIsAddDialogOpen}
+        onPatientAdded={handlePatientAdded}
       />
     </Layout>
   );

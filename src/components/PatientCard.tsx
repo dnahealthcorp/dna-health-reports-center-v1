@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Patient } from '@/types';
 import {
   Card,
   CardContent,
@@ -22,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { deletePatient, updatePatient } from "@/services";
-import { Patient } from "@/types";
 import { Badge } from "@/components/ui/badge";
 
 interface PatientCardProps {
@@ -31,7 +31,7 @@ interface PatientCardProps {
   onDelete: (patientId: string) => void;
 }
 
-const PatientCard = ({ patient }: PatientCardProps) => {
+const PatientCard = ({ patient, onUpdate, onDelete }: PatientCardProps) => {
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -172,7 +172,6 @@ const PatientCard = ({ patient }: PatientCardProps) => {
         </div>
       </CardFooter>
 
-      {/* Dialog for edit */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -240,7 +239,6 @@ const PatientCard = ({ patient }: PatientCardProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for delete confirmation */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -267,11 +265,6 @@ const PatientCard = ({ patient }: PatientCardProps) => {
       </Dialog>
     </Card>
   );
-};
-
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString();
 };
 
 export default PatientCard;
