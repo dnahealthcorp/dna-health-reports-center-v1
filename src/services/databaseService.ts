@@ -1,4 +1,3 @@
-
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, Medication, User, PDFFile, Json,
@@ -75,13 +74,16 @@ const mapMedicationFromDB = (dbMedication: any): Medication => {
 };
 
 // Function to safely convert JSON values to typed arrays with improved type safety
-function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => item is T): T[] {
+function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => boolean): T[] {
   if (!jsonArray || !Array.isArray(jsonArray)) {
     return [];
   }
   
-  // Use type assertion to ensure proper typing
-  return jsonArray.filter((item): item is T => typeGuard(item));
+  // Filter the array first to get only items that pass the type guard
+  const filteredArray = jsonArray.filter(item => typeGuard(item));
+  
+  // Then do a type assertion to T[] since we've verified the types
+  return filteredArray as unknown as T[];
 }
 
 // Patient operations
