@@ -1,6 +1,10 @@
 
 // Database service implementation using Supabase
-import { Patient, PatientFormData, Medication, User, PDFFile, Json } from "@/types";
+import { 
+  Patient, PatientFormData, Medication, User, PDFFile, Json,
+  isVital, isSummaryFinding, isNutritionRecommendation, isExerciseRecommendation,
+  isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem
+} from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -41,9 +45,11 @@ const mapPatientFromDB = (dbPatient: any): Patient => {
 
 const mapUserFromDB = (dbUser: any): User => {
   // Ensure role is one of the allowed values
-  const role = dbUser.role === 'nurse' || dbUser.role === 'doctor' || dbUser.role === 'admin' 
-    ? dbUser.role as 'nurse' | 'doctor' | 'admin'
-    : 'user' as 'nurse' | 'doctor' | 'admin'; // Default fallback
+  let role: 'nurse' | 'doctor' | 'admin' = 'nurse'; // Default
+  
+  if (dbUser.role === 'nurse' || dbUser.role === 'doctor' || dbUser.role === 'admin') {
+    role = dbUser.role as 'nurse' | 'doctor' | 'admin';
+  }
 
   return {
     id: dbUser.id,
@@ -63,6 +69,16 @@ const mapMedicationFromDB = (dbMedication: any): Medication => {
     type: dbMedication.type as 'medication' | 'supplement',
     link: dbMedication.link || undefined
   };
+};
+
+// Function to safely convert JSON values to typed arrays
+const safeJsonArrayConversion = <T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => item is T, defaultValue: T[]): T[] => {
+  if (!jsonArray || !Array.isArray(jsonArray)) {
+    return defaultValue;
+  }
+  
+  // Filter out any items that don't match the type guard and cast the rest
+  return jsonArray.filter(typeGuard);
 };
 
 // Patient operations
@@ -295,6 +311,86 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
     }
     
     // Transform the data from database format to application format with proper type handling
+    const defaultVitals = {
+      bloodPressure: '',
+      height: '',
+      weight: '',
+      heartRate: '',
+      temperature: '',
+      respiratoryRate: '',
+      oxygenSaturation: ''
+    };
+    
+    const defaultSummaryFindings = {
+      glucoseMetabolism: '',
+      lipidProfile: '',
+      inflammation: '',
+      uricAcid: '',
+      vitamins: '',
+      minerals: '',
+      sexHormones: '',
+      renalLiverFunction: '',
+      cancerMarkers: ''
+    };
+    
+    const defaultNutritionRecs = {
+      nutritionalPlan: '',
+      proteinConsumption: '',
+      omissions: '',
+      additionalConsiderations: ''
+    };
+    
+    const defaultExerciseDetail = {
+      focusOn: '',
+      walking: '',
+      avoid: '',
+      tracking: ''
+    };
+    
+    const defaultSleepStressRecs = {
+      sleep: '',
+      stress: ''
+    };
+    
+    // Safely check and convert the JSON fields
+    const vitals = data.vitals && typeof data.vitals === 'object' && isVital(data.vitals)
+      ? data.vitals
+      : defaultVitals;
+      
+    const summaryFindings = data.summary_findings && typeof data.summary_findings === 'object' && isSummaryFinding(data.summary_findings)
+      ? data.summary_findings
+      : defaultSummaryFindings;
+    
+    const medications = safeJsonArrayConversion(
+      data.medications as Json, 
+      isMedicationItem,
+      []
+    );
+    
+    const supplements = safeJsonArrayConversion(
+      data.supplements as Json,
+      isSupplementItem,
+      []
+    );
+    
+    const nutritionRecommendations = data.nutrition_recommendations && typeof data.nutrition_recommendations === 'object' && isNutritionRecommendation(data.nutrition_recommendations)
+      ? data.nutrition_recommendations
+      : defaultNutritionRecs;
+    
+    const exerciseDetail = data.exercise_detail && typeof data.exercise_detail === 'object' && isExerciseRecommendation(data.exercise_detail)
+      ? data.exercise_detail
+      : defaultExerciseDetail;
+    
+    const sleepStressRecommendations = data.sleep_stress_recommendations && typeof data.sleep_stress_recommendations === 'object' && isSleepStressRecommendation(data.sleep_stress_recommendations)
+      ? data.sleep_stress_recommendations
+      : defaultSleepStressRecs;
+    
+    const followUps = safeJsonArrayConversion(
+      data.follow_ups as Json,
+      isFollowUp,
+      []
+    );
+    
     const formData: PatientFormData = {
       patientInfo: {
         name: '',
@@ -302,51 +398,20 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
         gender: '',
         medicalRecordNumber: ''
       },
-      vitals: typeof data.vitals === 'object' ? data.vitals as any : {
-        bloodPressure: '',
-        height: '',
-        weight: '',
-        heartRate: '',
-        temperature: '',
-        respiratoryRate: '',
-        oxygenSaturation: ''
-      },
-      summaryFindings: typeof data.summary_findings === 'object' ? data.summary_findings as any : {
-        glucoseMetabolism: '',
-        lipidProfile: '',
-        inflammation: '',
-        uricAcid: '',
-        vitamins: '',
-        minerals: '',
-        sexHormones: '',
-        renalLiverFunction: '',
-        cancerMarkers: ''
-      },
-      medications: Array.isArray(data.medications) ? data.medications : [],
-      supplements: Array.isArray(data.supplements) ? data.supplements : [],
+      vitals,
+      summaryFindings,
+      medications,
+      supplements,
       exerciseRecommendations: data.exercise_recommendations || '',
       nurseNotes: data.nurse_notes || '',
       doctorNotes: data.doctor_notes || '',
       diagnosis: data.diagnosis || '',
       treatmentPlan: data.treatment_plan || '',
       showInsulinResistance: Boolean(data.show_insulin_resistance),
-      nutritionRecommendations: typeof data.nutrition_recommendations === 'object' ? data.nutrition_recommendations as any : {
-        nutritionalPlan: '',
-        proteinConsumption: '',
-        omissions: '',
-        additionalConsiderations: ''
-      },
-      exerciseDetail: typeof data.exercise_detail === 'object' ? data.exercise_detail as any : {
-        focusOn: '',
-        walking: '',
-        avoid: '',
-        tracking: ''
-      },
-      sleepStressRecommendations: typeof data.sleep_stress_recommendations === 'object' ? data.sleep_stress_recommendations as any : {
-        sleep: '',
-        stress: ''
-      },
-      followUps: Array.isArray(data.follow_ups) ? data.follow_ups : []
+      nutritionRecommendations,
+      exerciseDetail,
+      sleepStressRecommendations,
+      followUps
     };
     
     // Get patient info
@@ -382,23 +447,23 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       throw checkError;
     }
     
-    // Convert form data to database format
+    // Convert form data to database format - making sure to convert complex objects to JSON
     const dbFormData = {
       patient_id: patientId,
-      vitals: formData.vitals,
-      summary_findings: formData.summaryFindings,
-      medications: formData.medications,
-      supplements: formData.supplements,
+      vitals: formData.vitals as Json,
+      summary_findings: formData.summaryFindings as Json,
+      medications: formData.medications as Json,
+      supplements: formData.supplements as Json,
       exercise_recommendations: formData.exerciseRecommendations,
       nurse_notes: formData.nurseNotes,
       doctor_notes: formData.doctorNotes,
       diagnosis: formData.diagnosis,
       treatment_plan: formData.treatmentPlan,
       show_insulin_resistance: formData.showInsulinResistance,
-      nutrition_recommendations: formData.nutritionRecommendations,
-      exercise_detail: formData.exerciseDetail,
-      sleep_stress_recommendations: formData.sleepStressRecommendations,
-      follow_ups: formData.followUps,
+      nutrition_recommendations: formData.nutritionRecommendations as Json,
+      exercise_detail: formData.exerciseDetail as Json,
+      sleep_stress_recommendations: formData.sleepStressRecommendations as Json,
+      follow_ups: formData.followUps as Json,
       last_updated: new Date().toISOString()
     };
     
