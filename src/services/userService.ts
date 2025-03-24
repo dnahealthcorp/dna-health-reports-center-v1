@@ -1,162 +1,171 @@
+
+import { supabase } from "./baseService";
 import { User } from "@/types";
-import { supabase, initializeFromMockData } from "./baseService";
-import { mockUsers } from "@/lib/mockData";
 
-const mapUserFromDB = (dbUser: any): User => {
-  // Ensure role is one of the allowed values
-  let role: 'nurse' | 'doctor' | 'admin' = 'nurse'; // Default
-  
-  if (dbUser.role === 'nurse' || dbUser.role === 'doctor' || dbUser.role === 'admin') {
-    role = dbUser.role as 'nurse' | 'doctor' | 'admin';
+export const getUsers = async (): Promise<User[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data as User[];
+  } catch (error) {
+    console.error("Error getting users:", error);
+    throw error;
   }
+};
 
-  return {
-    id: dbUser.id,
-    name: dbUser.name,
-    email: dbUser.email,
-    role: role
-  };
+export const getUserById = async (id: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data as User;
+  } catch (error) {
+    console.error(`Error getting user with ID ${id}:`, error);
+    return null;
+  }
+};
+
+// Note: In a real application, you would use auth functions to handle user creation
+// This is a simplified version that only updates the 'users' table
+export const addUser = async (user: Omit<User, "id" | "created_at">): Promise<User> => {
+  try {
+    // Generate a random UUID for demo purposes
+    // In a real app, this would come from Supabase Auth when creating the user
+    const id = `user-${Date.now()}`;
+    
+    const newUser: Omit<User, "created_at"> = {
+      id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+    
+    const { data, error } = await supabase
+      .from('users')
+      .insert([newUser])
+      .select()
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data as User;
+  } catch (error) {
+    console.error("Error adding user:", error);
+    throw error;
+  }
+};
+
+export const updateUser = async (user: Omit<User, "created_at">): Promise<User> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        name: user.name,
+        email: user.email,
+        role: user.role
+      })
+      .eq('id', user.id)
+      .select()
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data as User;
+  } catch (error) {
+    console.error(`Error updating user with ID ${user.id}:`, error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error(`Error deleting user with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+  try {
+    // Get current authenticated user from Supabase Auth
+    const { data: authData } = await supabase.auth.getUser();
+    
+    if (!authData.user) {
+      return null;
+    }
+    
+    // Get user data from users table
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+    
+    if (error) {
+      console.error("Error getting current user:", error);
+      return null;
+    }
+    
+    return data as User;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
 };
 
 export const getUsers = async (): Promise<User[]> => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('*');
-    
-    if (error) {
-      throw error;
-    }
-    
-    return (data || []).map(mapUserFromDB);
-  } catch (error) {
-    console.error("Error getting users from Supabase:", error);
-    
-    // Fallback to mock data - directly import mockUsers
-    return mockUsers;
-  }
-};
-
-export const getCurrentUser = async (): Promise<User | null> => {
-  try {
-    // Get authentication state
-    const { data: authData } = await supabase.auth.getSession();
-    if (!authData.session) {
-      return null;
-    }
-    
-    // Get user from our users table
-    const { data, error } = await supabase
-      .from('users')
       .select('*')
-      .eq('id', authData.session.user.id)
-      .single();
+      .order('name');
     
     if (error) {
       throw error;
     }
     
-    return data ? mapUserFromDB(data) : null;
+    return data as User[];
   } catch (error) {
-    console.error("Error getting current user from Supabase:", error);
-    
-    // Fallback to first user in mock data
-    return mockUsers[0] || null;
-  }
-};
-
-export const setCurrentUser = async (user: User): Promise<User> => {
-  try {
-    // Check if user exists
-    const { data, error: checkError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', user.id);
-      
-    if (checkError) {
-      throw checkError;
-    }
-    
-    // Insert or update
-    let error;
-    if (data && data.length > 0) {
-      // Update
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          name: user.name,
-          email: user.email,
-          role: user.role
-        })
-        .eq('id', user.id);
-        
-      error = updateError;
-    } else {
-      // Insert
-      const { error: insertError } = await supabase
-        .from('users')
-        .insert([{
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }]);
-        
-      error = insertError;
-    }
-    
-    if (error) {
-      throw error;
-    }
-    
-    return user;
-  } catch (error) {
-    console.error("Error setting current user in Supabase:", error);
-    throw error;
+    console.error("Error getting users:", error);
+    return [];
   }
 };
 
 export const logoutUser = async (): Promise<void> => {
   try {
     const { error } = await supabase.auth.signOut();
+    
     if (error) {
       throw error;
     }
   } catch (error) {
-    console.error("Error logging out user from Supabase:", error);
+    console.error("Error signing out:", error);
     throw error;
-  }
-};
-
-export const loginUser = async (email: string, password: string): Promise<User | null> => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (error) {
-      throw error;
-    }
-    
-    if (!data.user) {
-      return null;
-    }
-    
-    // Get user from our users table
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
-    
-    if (userError) {
-      throw userError;
-    }
-    
-    return userData ? mapUserFromDB(userData) : null;
-  } catch (error) {
-    console.error("Error logging in user with Supabase:", error);
-    return null;
   }
 };

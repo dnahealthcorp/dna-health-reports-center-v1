@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -6,15 +5,14 @@ import { calculateAge, convertToKg, calculateBMI, drawStatBox, addPageNumber } f
 import { addLogoToPage, loadMontserratFonts } from "./logoRenderer";
 import * as databaseService from "@/services/databaseService";
 
-const addMontserratFont = (doc: jsPDF) => {
-  // Add Montserrat font to jsPDF instance
-  // Need to register the font first
-  doc.addFont("Montserrat-Regular.ttf", "Montserrat", "normal");
-  doc.addFont("Montserrat-Bold.ttf", "Montserrat", "bold");
-  doc.addFont("Montserrat-Medium.ttf", "Montserrat", "medium");
-  
-  // Set default font
-  doc.setFont("Montserrat");
+// Filter out empty rows from tables
+const filterEmptyRows = (data: any[]) => {
+  return data.filter(row => row.some(cell => cell !== ''));
+};
+
+// Set Helvetica font for the document
+const setHelveticaFont = (doc: jsPDF) => {
+  doc.setFont("helvetica");
 };
 
 /**
@@ -22,11 +20,12 @@ const addMontserratFont = (doc: jsPDF) => {
  */
 const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number, contentWidth: number) => {
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
-  // Key statistics boxes
-  drawStatBox(doc, "6 out of 10 causes\nof death are\npreventable", 60, contentMargin, contentWidth, pageWidth);
-  drawStatBox(doc, "We only spend 3%\nof our health care\nexpenditure on\nprevention", 110, contentMargin, contentWidth, pageWidth);
-  drawStatBox(doc, "90% of our health\ncare expenditure\noccurs in the last 3\nyears of our lives", 160, contentMargin, contentWidth, pageWidth);
+  // Key statistics boxes with reduced vertical spacing
+  drawStatBox(doc, "6 out of 10 causes\nof death are\npreventable", 50, contentMargin, contentWidth, pageWidth);
+  drawStatBox(doc, "We only spend 3%\nof our health care\nexpenditure on\nprevention", 90, contentMargin, contentWidth, pageWidth);
+  drawStatBox(doc, "90% of our health\ncare expenditure\noccurs in the last 3\nyears of our lives", 130, contentMargin, contentWidth, pageWidth);
   
   // Add page number
   addPageNumber(doc, 1, pageWidth);
@@ -40,46 +39,46 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
-  // Title and introduction
+  // Title and introduction with reduced spacing
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(14);
-  doc.setFont("Montserrat", "normal");
-  doc.text("Your step towards ", 70, 70);
+  doc.text("Your step towards ", 70, 50);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "bold");
-  doc.text("optimal health", 125, 70);
+  doc.setFont("helvetica", "bold");
+  doc.text("optimal health", 125, 50);
   doc.setTextColor(100, 100, 100);
-  doc.setFont("Montserrat", "normal");
-  doc.text(".", 164, 70);
+  doc.setFont("helvetica", "normal");
+  doc.text(".", 164, 50);
   
   doc.setFontSize(12);
-  doc.text("Our approach is proactive, rather than reactive,", contentMargin, 85);
-  doc.text("giving you ", contentMargin, 92);
+  doc.text("Our approach is proactive, rather than reactive,", contentMargin, 65);
+  doc.text("giving you ", contentMargin, 72);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
-  doc.text("control of your health", 45, 92);
+  doc.setFont("helvetica", "bold");
+  doc.text("control of your health", 45, 72);
   doc.setTextColor(100, 100, 100);
-  doc.setFont("Montserrat", "normal");
-  doc.text(" throughout your life.", 95, 92);
+  doc.setFont("helvetica", "normal");
+  doc.text(" throughout your life.", 95, 72);
   
   // Greeting
   doc.setFontSize(10);
-  doc.text("Dear", contentMargin, 105);
-  doc.text(`${patientInfo.name},`, 35, 105);
+  doc.text("Dear", contentMargin, 85);
+  doc.text(`${patientInfo.name},`, 35, 85);
   
-  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels", contentMargin, 115);
-  doc.text("privileged to be a part of your journey to wellness and longevity.", contentMargin, 122);
+  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels", contentMargin, 95);
+  doc.text("privileged to be a part of your journey to wellness and longevity.", contentMargin, 102);
   
   // Key vital signs table
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
-  doc.text("Key vital signs", contentMargin, 140);
+  doc.setFont("helvetica", "bold");
+  doc.text("Key vital signs", contentMargin, 115);
   
   // Vital signs table with proper width
   autoTable(doc, {
-    startY: 145,
+    startY: 120,
     head: [
       [
         { content: 'Vitals', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -98,8 +97,8 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'Montserrat',
+      cellPadding: 4,
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -122,11 +121,12 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
   
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
   // Summary of findings
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
+  doc.setFont("helvetica", "bold");
   doc.text("Summary of findings", contentMargin, 70);
   
   // Summary findings table with proper width
@@ -153,7 +153,7 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     styles: {
       fontSize: 10,
       cellPadding: 5,
-      font: 'Montserrat',
+      font: 'helvetica',
       overflow: 'linebreak',
       textColor: [60, 60, 60]
     },
@@ -176,6 +176,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
   let startY = 70;
   
@@ -184,7 +185,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     // Insulin Resistance section
     doc.setFontSize(12);
     doc.setTextColor(153, 188, 68); // #99bc44
-    doc.setFont("Montserrat", "medium");
+    doc.setFont("helvetica", "bold");
     doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, startY);
     
     // Add the specified insulin resistance image
@@ -200,7 +201,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // Cardiovascular risk table
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
+  doc.setFont("helvetica", "bold");
   doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, startY);
   
   // Determine which row to highlight based on gender
@@ -224,7 +225,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     styles: {
       fontSize: 10,
       cellPadding: 5,
-      font: 'Montserrat',
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -264,11 +265,12 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
 const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
   // Doctor's Recommendations
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
+  doc.setFont("helvetica", "bold");
   doc.text("Doctors Recommendations", contentMargin, 70);
   
   // Nutrition recommendations table
@@ -292,7 +294,7 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       cellPadding: 5,
       overflow: 'linebreak',
       minCellHeight: 20,
-      font: 'Montserrat',
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -312,6 +314,7 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
 const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
   // Exercise recommendations table
   autoTable(doc, {
@@ -334,7 +337,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       cellPadding: 5,
       overflow: 'linebreak',
       minCellHeight: 20,
-      font: 'Montserrat',
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -363,7 +366,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       cellPadding: 5,
       overflow: 'linebreak',
       minCellHeight: 20,
-      font: 'Montserrat',
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -383,14 +386,15 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
 const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
-  // Medications title
+  // Medications title with reduced spacing
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
-  doc.text("Medications", contentMargin, 70);
+  doc.setFont("helvetica", "bold");
+  doc.text("Medications", contentMargin, 50);
   
-  // Medications table with actual patient medications
+  // Get actual medications data
   const medicationRows = formData.medications.map(med => {
     const medication = medications.find(m => m.id === med.medicationId);
     return [
@@ -400,24 +404,12 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
     ];
   });
   
-  // If no medications, add example rows
-  if (medicationRows.length === 0) {
-    medicationRows.push(
-      ['Jardiance', '25mg Once daily with food (am)', 'Prescription'],
-      ['Crestor', '20mg at night', 'Prescription']
-    );
-  }
+  // Filter out empty medication rows
+  const displayedMedications = filterEmptyRows(medicationRows);
   
-  // Limit to 5 medications to save space
-  const displayedMedications = medicationRows.slice(0, 5);
-  
-  // Add empty rows to match the design
-  while (displayedMedications.length < 5) {
-    displayedMedications.push(['', '', '']);
-  }
-  
-  autoTable(doc, {
-    startY: 80,
+  // Medications table with optimized spacing
+  const medicationsTable = autoTable(doc, {
+    startY: 55,
     head: [
       [
         { content: 'Medications', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -425,12 +417,12 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
         { content: 'Type', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
       ]
     ],
-    body: displayedMedications,
+    body: displayedMedications.length > 0 ? displayedMedications : [['No medications prescribed', '', '']],
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'Montserrat',
+      cellPadding: 4,
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -441,14 +433,8 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Supplements title with improved spacing
-  doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
-  doc.text("Supplements", contentMargin, 160);
-  
-  // Get supplements from formData or use defaults
-  const supplementRows = (formData.supplements || []).map(sup => {
+  // Get supplements data
+  const supplementRows = formData.supplements.map(sup => {
     const supplement = medications.find(m => m.id === sup.supplementId);
     return [
       supplement?.name || '',
@@ -457,25 +443,20 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
     ];
   });
   
-  // If no supplements, add default rows
-  if (supplementRows.length === 0) {
-    supplementRows.push(
-      ['Biogena Multispektrum', '2 capsules once daily in the morning (am)', 'Clinic'],
-      ['Biogena Omni Lactis', '2 capsules once daily with food (any time)', 'Clinic']
-    );
-  }
+  // Filter out empty supplement rows
+  const displayedSupplements = filterEmptyRows(supplementRows);
   
-  // Limit to 4 supplements
-  const displayedSupplements = supplementRows.slice(0, 4);
+  // Calculate the position after the medications table
+  const supplementsY = medicationsTable.finalY + 20;
   
-  // Add empty rows to match the design
-  while (displayedSupplements.length < 4) {
-    displayedSupplements.push(['', '', '']);
-  }
+  // Supplements title and table with optimized spacing
+  doc.setFontSize(12);
+  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setFont("helvetica", "bold");
+  doc.text("Supplements", contentMargin, supplementsY);
   
-  // Supplements table with specific dosages
   autoTable(doc, {
-    startY: 170,
+    startY: supplementsY + 5,
     head: [
       [
         { content: 'Supplements', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -483,12 +464,12 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
         { content: 'Source', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
       ]
     ],
-    body: displayedSupplements,
+    body: displayedSupplements.length > 0 ? displayedSupplements : [['No supplements prescribed', '', '']],
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'Montserrat',
+      cellPadding: 4,
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -509,38 +490,26 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
 const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
+  setHelveticaFont(doc);
   
-  // Follow-ups and referrals
+  // Follow-ups and referrals with reduced spacing
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("Montserrat", "medium");
-  doc.text("Follow-ups and referrals", contentMargin, 70);
+  doc.setFont("helvetica", "bold");
+  doc.text("Follow-ups and referrals", contentMargin, 50);
   
-  // Get follow-ups from form data or use defaults
-  const followUpRows = (formData.followUps || []).map(followUp => [
+  // Get follow-ups from form data
+  const followUpRows = formData.followUps.map(followUp => [
     followUp.withDoctor || '',
     followUp.forReason || '',
     followUp.date || ''
   ]);
   
-  // If no follow-ups, add default rows
-  if (followUpRows.length === 0) {
-    followUpRows.push(
-      ['Dr Nas', 'Follow up', '23/10/2025'],
-      ['Dr Ismail', 'Consultation', '25/10/2025']
-    );
-  }
+  // Filter out empty follow-up rows
+  const displayedFollowUps = filterEmptyRows(followUpRows);
   
-  // Limit to 4 follow-ups
-  const displayedFollowUps = followUpRows.slice(0, 4);
-  
-  // Add empty rows to match the design
-  while (displayedFollowUps.length < 4) {
-    displayedFollowUps.push(['', '', '']);
-  }
-  
-  autoTable(doc, {
-    startY: 80,
+  const followUpsTable = autoTable(doc, {
+    startY: 55,
     head: [
       [
         { content: 'With', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -548,12 +517,12 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
         { content: 'Date', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
       ]
     ],
-    body: displayedFollowUps,
+    body: displayedFollowUps.length > 0 ? displayedFollowUps : [['No follow-ups scheduled', '', '']],
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'Montserrat',
+      cellPadding: 4,
+      font: 'helvetica',
       textColor: [60, 60, 60]
     },
     columnStyles: {
@@ -564,13 +533,14 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Closing and signature
+  // Closing and signature with optimized spacing
+  const signatureY = followUpsTable.finalY + 20;
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.setFont("Montserrat", "normal");
-  doc.text("Kind Regards,", contentMargin, 160);
-  doc.setFont("Montserrat", "bold");
-  doc.text("Dr Eslam Yakout", contentMargin, 170);
+  doc.setFont("helvetica", "normal");
+  doc.text("Kind Regards,", contentMargin, signatureY);
+  doc.setFont("helvetica", "bold");
+  doc.text("Dr Eslam Yakout", contentMargin, signatureY + 10);
   
   // Add page number
   addPageNumber(doc, 8, pageWidth);

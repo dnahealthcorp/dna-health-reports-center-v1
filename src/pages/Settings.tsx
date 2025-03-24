@@ -5,9 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Pill, Beaker, Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, Users } from "lucide-react";
 import { getCurrentUser } from "@/services/databaseService";
-import Medications from "./Medications";
+import UserManagement from "@/components/settings/UserManagement";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -56,11 +56,11 @@ const Settings = () => {
       <div className="container mx-auto py-6 max-w-5xl">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
         
-        <Tabs defaultValue="medications">
+        <Tabs defaultValue="users">
           <TabsList className="mb-4">
-            <TabsTrigger value="medications" className="flex items-center">
-              <Pill className="h-4 w-4 mr-2" />
-              Medications & Supplements
+            <TabsTrigger value="users" className="flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              User Management
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center">
               <SettingsIcon className="h-4 w-4 mr-2" />
@@ -68,8 +68,8 @@ const Settings = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="medications">
-            <Medications />
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
           
           <TabsContent value="system">
