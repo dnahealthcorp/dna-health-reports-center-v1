@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
@@ -27,6 +26,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event);
+        
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+          try {
+            if (session) {
+              const currentUser = await getCurrentUser();
+              if (currentUser) {
+                setUser(currentUser);
+              } else {
+                // Create user in users table if they don't exist yet
+                console.log("User authenticated but not found in users table");
+                // Keep signed in since the user is authenticated in Supabase
+                setUser({
+                  id: session.user.id,
+                  name: session.user.email?.split('@')[0] || 'New User',
+                  email: session.user.email || '',
+                  role: 'user' // Default role
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching user after auth change:", error);
+            // Don't sign out on error, just log it
+          } finally {
+            setIsLoading(false);
+          }
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          navigate("/login");
+          setIsLoading(false);
+        } else {
+          // For other events, just update loading state
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
     const fetchUser = async () => {
       try {
         // First check if we have a session
@@ -36,10 +76,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session) {
           try {
             const currentUser = await getCurrentUser();
-            setUser(currentUser);
+            if (currentUser) {
+              setUser(currentUser);
+            } else {
+              // User is authenticated but not in our users table
+              console.log("User authenticated but not found in users table");
+              // Keep signed in since the user is authenticated in Supabase
+              setUser({
+                id: session.user.id,
+                name: session.user.email?.split('@')[0] || 'New User',
+                email: session.user.email || '',
+                role: 'user' // Default role
+              });
+            }
           } catch (error) {
             console.error("Error fetching user:", error);
-            // Don't clear the user on error, as this could lead to redirect loops
+            // Don't clear the user on error if we have a session
+            if (session.user) {
+              // Use session data as fallback
+              setUser({
+                id: session.user.id,
+                name: session.user.email?.split('@')[0] || 'New User',
+                email: session.user.email || '',
+                role: 'user' // Default role
+              });
+            }
           }
         } else {
           // No session, so no user
@@ -53,25 +114,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchUser();
-
-    // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event);
-        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-          try {
-            const currentUser = await getCurrentUser();
-            setUser(currentUser);
-          } catch (error) {
-            console.error("Error fetching user after auth change:", error);
-          }
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          navigate("/login");
-        }
-        setIsLoading(false);
-      }
-    );
 
     return () => {
       subscription.unsubscribe();
