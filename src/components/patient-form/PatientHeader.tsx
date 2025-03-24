@@ -1,8 +1,9 @@
 
-import { useNavigate } from "react-router-dom";
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Save, Loader2 } from "lucide-react";
-import { Patient } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { CircleUser, PlusCircle, FilePlus2 } from "lucide-react";
+import { Patient } from '@/types';
 
 interface PatientHeaderProps {
   patient: Patient;
@@ -11,54 +12,46 @@ interface PatientHeaderProps {
   isSaving: boolean;
 }
 
-export const PatientHeader = ({ 
-  patient, 
-  handleExportPDF, 
-  handleSave, 
-  isSaving 
-}: PatientHeaderProps) => {
-  const navigate = useNavigate();
-
+export const PatientHeader: React.FC<PatientHeaderProps> = ({
+  patient,
+  handleExportPDF,
+  handleSave,
+  isSaving
+}) => {
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-      <div>
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center text-muted-foreground hover:text-foreground transition-colors mb-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          <span className="text-sm">Back</span>
-        </button>
-        <h1 className="text-3xl font-semibold tracking-tight">{patient?.name || "Patient"}</h1>
-        <div className="flex items-center gap-3 mt-1">
-          <p className="text-muted-foreground">
-            MRN: {patient?.medicalRecordNumber || "N/A"}
-          </p>
-          <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
-          <p className="text-muted-foreground">
-            DOB: {patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : "N/A"}
-          </p>
+    <Card className="mb-6 border-0 shadow-md">
+      <CardContent className="p-4 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+        <div className="flex items-center space-x-4">
+          <CircleUser size={48} className="text-primary" />
+          <div>
+            <h2 className="text-2xl font-bold">{patient.name || "Unnamed Patient"}</h2>
+            <p className="text-muted-foreground">
+              MRN: {patient.medicalRecordNumber} · 
+              Last Updated: {new Date(patient.lastUpdated).toLocaleDateString()}
+            </p>
+          </div>
         </div>
-      </div>
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={handleExportPDF}>
-          <Download className="mr-2 h-4 w-4" />
-          Export PDF
-        </Button>
-        <Button disabled={isSaving} onClick={handleSave}>
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Form
-            </>
-          )}
-        </Button>
-      </div>
-    </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleExportPDF}
+          >
+            <FilePlus2 size={16} />
+            Export PDF
+          </Button>
+          
+          <Button 
+            className="flex items-center gap-2"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            <PlusCircle size={16} />
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

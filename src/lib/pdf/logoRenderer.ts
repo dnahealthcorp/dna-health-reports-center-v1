@@ -16,6 +16,20 @@ export const addLogoToPage = (doc: jsPDF): void => {
 };
 
 /**
+ * Renders the logo on a PDF document
+ */
+export const renderLogo = async (doc: jsPDF, x: number, y: number, width: number): Promise<void> => {
+  try {
+    // Use a PNG logo for better compatibility
+    doc.addImage("/assets/dna-logo.png", "PNG", x, y, width, width * 0.33);
+    console.log("Logo rendered on PDF successfully");
+  } catch (error) {
+    console.error("Error rendering logo on PDF:", error);
+    // Continue without the logo if there's an error
+  }
+};
+
+/**
  * Loads the Montserrat font files for the PDF
  */
 export const loadMontserratFonts = async (doc: jsPDF): Promise<void> => {

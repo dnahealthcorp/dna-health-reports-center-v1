@@ -107,7 +107,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   pdf.text("Medications", leftMargin, topMargin + 10);
   
   // Format medication section to include only items with data
-  const medicationList = formData.medications.filter(med => med.medicationId || med.dosage || med.frequency);
+  const medicationList = formData.medications.filter(med => med.medicationId || med.dosage || med.notes);
   
   if (medicationList.length > 0) {
     // Create a formatted list of medications for the PDF
@@ -115,7 +115,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     
     autoTable(pdf, {
       startY: topMargin + 15,
-      head: [['Medication', 'Dosage', 'Frequency']],
+      head: [['Medication', 'Dosage', 'Notes']],
       body: medList.map(med => [med.name || 'N/A', med.dosage || 'N/A', med.frequency || 'N/A']),
       margin: { left: leftMargin },
       styles: { fontSize: 10, font: "helvetica" },
@@ -267,6 +267,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   pdf.setTextColor(100, 100, 100);
   pdf.text("© DNA Health Corp", contentWidth / 2 + leftMargin - 15, 285);
   
-  // Return PDF as Uint8Array
-  return pdf.output('arraybuffer');
+  // Return PDF as Uint8Array (convert ArrayBuffer to Uint8Array)
+  const arrayBuffer = pdf.output('arraybuffer');
+  return new Uint8Array(arrayBuffer);
 };
