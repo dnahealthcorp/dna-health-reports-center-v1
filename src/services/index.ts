@@ -14,7 +14,7 @@ export {
   getPatientFormData, 
   savePatientFormData,
   generateMRN 
-} from './patientService';
+} from './patient';
 
 // Medication service exports
 export { 
