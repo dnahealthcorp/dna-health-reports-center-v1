@@ -1,33 +1,19 @@
 
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
-import { getPatients } from "@/services/databaseService";
+import { getPatients } from "@/lib/mockData";
 import { Patient } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import PatientCard from "@/components/PatientCard";
 import AddPatientDialog from "@/components/AddPatientDialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
 const Patients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        navigate("/login");
-        return;
-      }
-      
-      fetchPatients();
-    };
-    
     const fetchPatients = async () => {
       try {
         const data = await getPatients();
@@ -39,21 +25,8 @@ const Patients = () => {
       }
     };
     
-    checkAuth();
-    
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        fetchPatients();
-      } else if (event === 'SIGNED_OUT') {
-        navigate("/login");
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
+    fetchPatients();
+  }, []);
 
   const handleAddPatient = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
