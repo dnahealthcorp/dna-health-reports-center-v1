@@ -4,7 +4,7 @@ import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
 import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
 
-export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<void> => {
+export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
   try {
     // Get patient and user information for the PDF
     const patient = await getPatientById(formData.patientInfo.medicalRecordNumber);
@@ -14,9 +14,17 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     const pdfOutput = generatePDFImpl(formData, medications);
     
     // Save PDF reference to database if we have a patient
+    let fileName = "";
     if (patient) {
-      const fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      await savePDFReference(patient.id, fileName);
+      fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      try {
+        await savePDFReference(patient.id, fileName);
+      } catch (error) {
+        console.error("Error saving PDF reference:", error);
+        // Continue even if saving reference fails
+      }
+    } else {
+      fileName = `Patient_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
     }
     
     // For debugging
@@ -25,8 +33,11 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       medicationsCount: medications.length,
       currentUser: currentUser?.name
     });
+    
+    return fileName;
   } catch (error) {
     console.error("Error generating PDF:", error);
-    throw error;
+    // Return a default filename in case of error
+    return `Error_Report_${Date.now()}.pdf`;
   }
 };

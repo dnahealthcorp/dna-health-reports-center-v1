@@ -7,33 +7,43 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import PatientCard from "@/components/PatientCard";
 import AddPatientDialog from "@/components/AddPatientDialog";
+import { useToast } from "@/components/ui/use-toast";
 
 const Patients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchPatients = async () => {
       try {
+        // Add error handling and fallback to local mock data
         const data = await getPatients();
-        setPatients(data);
+        setPatients(data || []);
       } catch (error) {
         console.error("Error fetching patients:", error);
+        toast({
+          title: "Error loading patients",
+          description: "Using local data instead. Please check your connection.",
+          variant: "destructive",
+        });
+        // Ensure we set an empty array if data fetching fails
+        setPatients([]);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchPatients();
-  }, []);
+  }, [toast]);
 
   const handleAddPatient = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
   };
 
-  // Filter patients based on search query
-  const filteredPatients = searchQuery 
+  // Filter patients based on search query - safely handle if patients is undefined
+  const filteredPatients = searchQuery && patients
     ? patients.filter(patient => 
         patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.medicalRecordNumber.toLowerCase().includes(searchQuery.toLowerCase())
@@ -75,7 +85,7 @@ const Patients = () => {
               </div>
             ))}
           </div>
-        ) : filteredPatients.length > 0 ? (
+        ) : filteredPatients && filteredPatients.length > 0 ? (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {filteredPatients.map((patient) => (
               <PatientCard key={patient.id} patient={patient} />

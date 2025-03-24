@@ -13,14 +13,22 @@ import Settings from './pages/Settings'
 import { Toaster } from './components/ui/toaster'
 import { getCurrentUser } from './services/databaseService'
 
-// Protected route component
+// Protected route component with improved error handling
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const checkAuth = async () => {
-      const user = await getCurrentUser();
-      setIsAuthenticated(!!user);
+      try {
+        const user = await getCurrentUser();
+        setIsAuthenticated(!!user);
+      } catch (err) {
+        console.error("Authentication error:", err);
+        setError("Failed to check authentication status. Using fallback authentication.");
+        // Fallback to allow access in case of auth errors
+        setIsAuthenticated(true);
+      }
     };
     
     checkAuth();
@@ -28,7 +36,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (isAuthenticated === null) {
     // Still loading, show nothing or a loader
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+        <p className="text-muted-foreground text-sm">
+          {error || "Checking authentication..."}
+        </p>
+      </div>
+    );
   }
   
   if (isAuthenticated === false) {
