@@ -2,11 +2,10 @@
 import { Json } from "@/types";
 import { createClient } from '@supabase/supabase-js';
 import { mockMedications, mockPatients, getPatientFormData as getMockPatientFormData } from "@/lib/mockData";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Use the supabase client from the integrations folder
+export const supabase = supabaseClient;
 
 // Initialize mock data
 let mockPatientsData: any[] = [];

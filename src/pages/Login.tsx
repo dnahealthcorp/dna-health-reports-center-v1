@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,14 @@ const Login = () => {
   const { toast } = useToast();
   
   // Fetch demo users on mount
-  useState(() => {
+  useEffect(() => {
     const fetchUsers = async () => {
       const users = await getUsers();
       setDemoUsers(users || []);
     };
     
     fetchUsers();
-  });
+  }, []); // Added empty dependency array to only run once
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
