@@ -4,6 +4,7 @@ import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
 import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
   try {
@@ -33,13 +34,48 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     // Generate the PDF
     const pdfOutput = await generatePDFImpl(formData, medications);
     
+    // Create a Blob from the PDF data
+    const blob = new Blob([pdfOutput], { type: 'application/pdf' });
+    
+    // Create a download link and trigger the download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
     // Save PDF reference to database if we have a patient
     let fileName = "";
     if (patient) {
       fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
       try {
-        // Save to Supabase database
-        await savePDFReference(patient.id, fileName);
+        // Create a unique ID for the PDF file
+        const pdfId = uuidv4();
+        
+        // Upload to Supabase Storage if available
+        if (supabase.storage) {
+          try {
+            const { data, error } = await supabase.storage
+              .from('patient-pdfs')
+              .upload(`${patient.id}/${fileName}`, blob);
+            
+            if (error) {
+              console.error("Error uploading PDF to storage:", error);
+            } else {
+              console.log("PDF uploaded to storage:", data);
+              
+              // Get public URL
+              const { data: urlData } = supabase.storage
+                .from('patient-pdfs')
+                .getPublicUrl(`${patient.id}/${fileName}`);
+                
+              // Save PDF reference with URL
+              await savePDFReference(patient.id, fileName, urlData.publicUrl, pdfId);
+            }
+          } catch (storageError) {
+            console.error("Error accessing storage:", storageError);
+          }
+        } else {
+          // If storage not available, just save the reference
+          await savePDFReference(patient.id, fileName);
+        }
       } catch (error) {
         console.error("Error saving PDF reference:", error);
         // Continue even if saving reference fails
@@ -47,6 +83,16 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     } else {
       fileName = `Patient_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
     }
+    
+    // Set up download
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
     
     // For debugging
     console.log("PDF generated successfully with data:", {

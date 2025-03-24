@@ -1,77 +1,52 @@
 
-import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import './App.css'
-import Index from './pages/Index'
-import Patients from './pages/Patients'
-import PatientForm from './pages/PatientForm'
-import Forms from './pages/Forms'
-import NotFound from './pages/NotFound'
-import Medications from './pages/Medications'
-import Login from './pages/Login'
-import Settings from './pages/Settings'
-import { Toaster } from './components/ui/toaster'
-import { getCurrentUser } from './services/databaseService'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Protected route component with improved error handling
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await getCurrentUser();
-        setIsAuthenticated(!!user);
-      } catch (err) {
-        console.error("Authentication error:", err);
-        setError("Failed to check authentication status. Using fallback authentication.");
-        // Fallback to allow access in case of auth errors
-        setIsAuthenticated(true);
-      }
-    };
-    
-    checkAuth();
-  }, []);
-  
-  if (isAuthenticated === null) {
-    // Still loading, show nothing or a loader
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-        <p className="text-muted-foreground text-sm">
-          {error || "Checking authentication..."}
-        </p>
-      </div>
-    );
-  }
-  
-  if (isAuthenticated === false) {
-    // Not authenticated, redirect to login
-    return <Navigate to="/login" />;
-  }
-  
-  // Authenticated, render children
-  return <>{children}</>;
-};
+// Pages
+import Index from "@/pages/Index";
+import NotFound from "@/pages/NotFound";
+import Login from "@/pages/Login";
+import Patients from "@/pages/Patients";
+import PatientForm from "@/pages/PatientForm";
+import Medications from "@/pages/Medications";
+import Forms from "@/pages/Forms";
+import Settings from "@/pages/Settings";
+
+// Create a supplements page
+const Supplements = lazy(() => import("@/pages/Supplements"));
+
+// Layouts
+import MedicationLayout from "@/components/MedicationLayout";
+
+// Create a client
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
-        <Route path="/patients/:id" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
-        <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
-        <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </>
-  )
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/patients" element={<Patients />} />
+            <Route path="/patient/:id" element={<PatientForm />} />
+            
+            {/* Use the MedicationLayout for Medications and Supplements pages */}
+            <Route path="/medications" element={<MedicationLayout><Medications /></MedicationLayout>} />
+            <Route path="/supplements" element={<MedicationLayout><Supplements /></MedicationLayout>} />
+            
+            <Route path="/forms" element={<Forms />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+        <Toaster />
+      </Router>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -43,7 +42,8 @@ export const PatientInfoCard = ({
                 type="date"
                 value={formData.patientInfo.dateOfBirth}
                 onChange={(e) => handleInputChange("patientInfo", "dateOfBirth", e.target.value)}
-                disabled={!canEditNurseSection}
+                disabled={true}
+                className="bg-gray-100"
               />
             </div>
           </div>
