@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -408,7 +409,7 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   const displayedMedications = filterEmptyRows(medicationRows);
   
   // Medications table with optimized spacing
-  const medicationsTable = autoTable(doc, {
+  const medicationsTableResult = autoTable(doc, {
     startY: 55,
     head: [
       [
@@ -451,8 +452,13 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
   
-  // Fix for lastAutoTable property - get the finalY position
-  const finalY = medicationsTable?.lastAutoTable?.finalY || 130;
+  // Fix for determining the Y position after the medications table
+  // Instead of accessing a property on the result, calculate a fallback position
+  let finalY = 130; // Default position if we can't determine it
+  if (medicationsTableResult && typeof medicationsTableResult === 'object' && 'lastAutoTable' in medicationsTableResult) {
+    finalY = (medicationsTableResult.lastAutoTable as any).finalY || finalY;
+  }
+  
   doc.text("Supplements", contentMargin, finalY + 30);
   
   autoTable(doc, {
@@ -508,7 +514,7 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // Filter out empty follow-up rows
   const displayedFollowUps = filterEmptyRows(followUpRows);
   
-  const followUpsTable = autoTable(doc, {
+  const followUpsTableResult = autoTable(doc, {
     startY: 55,
     head: [
       [
@@ -533,8 +539,12 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Fix for lastAutoTable property - get the finalY position
-  const finalY = followUpsTable?.lastAutoTable?.finalY || 100;
+  // Fix for determining the Y position after the follow-ups table
+  // Instead of accessing a property on the result, calculate a fallback position
+  let finalY = 100; // Default position if we can't determine it
+  if (followUpsTableResult && typeof followUpsTableResult === 'object' && 'lastAutoTable' in followUpsTableResult) {
+    finalY = (followUpsTableResult.lastAutoTable as any).finalY || finalY;
+  }
   
   // Closing and signature with optimized spacing
   doc.setFontSize(10);
