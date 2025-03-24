@@ -1,5 +1,8 @@
-
-import { Medication, Patient, User, SummaryFinding, NutritionRecommendation, ExerciseRecommendation, SleepStressRecommendation, FollowUp } from "@/types";
+import { 
+  Medication, Patient, User, SummaryFinding, 
+  NutritionRecommendation, ExerciseRecommendation, 
+  SleepStressRecommendation, FollowUp 
+} from "@/types";
 
 export const mockMedications: Medication[] = [
   {

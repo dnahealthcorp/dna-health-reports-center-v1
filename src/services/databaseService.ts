@@ -1,11 +1,12 @@
+
 // Database service implementation using Supabase
 import { 
-  Patient, PatientFormData, Medication, User, PDFFile, Json,
+  Patient, PatientFormData, User, PDFFile, Json,
   isVital, isSummaryFinding, isNutritionRecommendation, isExerciseRecommendation,
   isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem,
   MedicationItem, SupplementItem, Vital, SummaryFinding, FollowUp,
   NutritionRecommendation, ExerciseRecommendation, SleepStressRecommendation,
-  toJson, safeJsonArray
+  toJson, safeJsonArray, Medication
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
