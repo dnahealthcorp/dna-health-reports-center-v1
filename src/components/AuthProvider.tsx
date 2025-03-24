@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   id: session.user.id,
                   name: session.user.email?.split('@')[0] || 'New User',
                   email: session.user.email || '',
-                  role: 'user' // Default role
+                  role: 'nurse' // Default role changed from 'user' to 'nurse'
                 });
               }
             }
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: 'user' // Default role
+                role: 'nurse' // Default role changed from 'user' to 'nurse'
               });
             }
           } catch (error) {
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: 'user' // Default role
+                role: 'nurse' // Default role changed from 'user' to 'nurse'
               });
             }
           }
