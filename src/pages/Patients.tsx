@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
@@ -67,7 +66,7 @@ const Patients = () => {
     };
   }, [toast]);
 
-  const handleAddPatient = (newPatient: Patient) => {
+  const handlePatientAdded = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
   };
 
@@ -111,7 +110,7 @@ const Patients = () => {
               />
               <label htmlFor="view-mode">Card View</label>
             </div>
-            <AddPatientDialog onAddPatient={handleAddPatient} />
+            <AddPatientDialog onPatientAdded={handlePatientAdded} />
           </div>
         </div>
 

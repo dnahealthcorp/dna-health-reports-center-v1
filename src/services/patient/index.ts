@@ -5,7 +5,9 @@ export {
   getPatientById, 
   addPatient, 
   updatePatient, 
-  deletePatient 
+  deletePatient,
+  getPatientByMedicalRecordNumber,
+  generateMRN
 } from './patientCore';
 
 export { 
@@ -13,5 +15,3 @@ export {
   savePatientFormData, 
   createEmptyPatientFormData 
 } from './patientFormData';
-
-export { generateMRN } from './patientUtils';

@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -453,7 +452,7 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   doc.setFont("helvetica", "bold");
   
   // Fix for lastAutoTable property - get the finalY position
-  const finalY = medicationsTable ? (medicationsTable as any).finalY : 130;
+  const finalY = medicationsTable?.lastAutoTable?.finalY || 130;
   doc.text("Supplements", contentMargin, finalY + 30);
   
   autoTable(doc, {
@@ -535,7 +534,7 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   });
   
   // Fix for lastAutoTable property - get the finalY position
-  const finalY = followUpsTable ? (followUpsTable as any).finalY : 100;
+  const finalY = followUpsTable?.lastAutoTable?.finalY || 100;
   
   // Closing and signature with optimized spacing
   doc.setFontSize(10);
