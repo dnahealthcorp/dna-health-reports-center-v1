@@ -73,7 +73,7 @@ const Patients = () => {
   
   const handleAddPatient = (newPatient: Patient) => {
     // The new patient should have In-review as default status
-    const patientWithDefaultStatus = {
+    const patientWithDefaultStatus: Patient = {
       ...newPatient,
       status: "nurse-pending" // This will be displayed as "In-review"
     };
