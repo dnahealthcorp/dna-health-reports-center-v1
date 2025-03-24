@@ -114,13 +114,13 @@ const Login = () => {
     
     try {
       // For demo purposes, we'll use a standard password
-      const password = "password123";
+      let demoPassword = "password123";
       if (demoUser.email === "admin@dnahealthcorp.com") {
-        password = "adminPassword123";
+        demoPassword = "adminPassword123";
       }
       
       console.log(`Attempting demo login with ${demoUser.email}`);
-      const user = await loginUser(demoUser.email, password);
+      const user = await loginUser(demoUser.email, demoPassword);
       
       if (user) {
         toast({
