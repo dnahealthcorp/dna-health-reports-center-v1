@@ -1,195 +1,141 @@
+
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
+import { Plus } from "lucide-react";
+import { getPatients } from "@/services";
 import { Patient } from "@/types";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import Layout from "@/components/Layout";
 import PatientCard from "@/components/PatientCard";
-import { AddPatientDialog } from "@/components/AddPatientDialog";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { getPatients } from "@/services/databaseService";
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import AddPatientDialog from "@/components/AddPatientDialog";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 
 const Patients = () => {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const patientsData = await getPatients();
-        setPatients(patientsData);
-      } catch (error) {
-        console.error("Error fetching patients:", error);
-        toast({
-          title: "Error loading patients",
-          description: "Could not load patients from the database. Please check your connection.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchPatients();
-    
-    const channel = supabase
-      .channel('patients-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'patients' 
-      }, (payload) => {
-        console.log('Change received!', payload);
-        fetchPatients();
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+  }, []);
 
-  const handlePatientAdded = (newPatient: Patient) => {
-    setPatients(prev => [newPatient, ...prev]);
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredPatients(patients);
+    } else {
+      const term = searchTerm.toLowerCase();
+      setFilteredPatients(
+        patients.filter(
+          (patient) =>
+            patient.name.toLowerCase().includes(term) ||
+            patient.medicalRecordNumber.toLowerCase().includes(term)
+        )
+      );
+    }
+  }, [searchTerm, patients]);
+
+  const fetchPatients = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getPatients();
+      setPatients(data);
+      setFilteredPatients(data);
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load patients",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const filteredPatients = searchQuery && patients
-    ? patients.filter(patient => 
-        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.medicalRecordNumber.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : patients;
+  const handleAddPatient = () => {
+    setIsAddDialogOpen(true);
+  };
 
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'nurse-pending':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Nurse Review</Badge>;
-      case 'doctor-pending':
-        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Doctor Review</Badge>;
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
-    }
+  const handlePatientAdded = (newPatient: Patient) => {
+    setPatients((prev) => [...prev, newPatient]);
+    setIsAddDialogOpen(false);
+    toast({
+      title: "Success",
+      description: "Patient added successfully",
+    });
+  };
+
+  const handlePatientUpdated = (updatedPatient: Patient) => {
+    setPatients((prev) =>
+      prev.map((p) => (p.id === updatedPatient.id ? updatedPatient : p))
+    );
+  };
+
+  const handlePatientDeleted = (patientId: string) => {
+    setPatients((prev) => prev.filter((p) => p.id !== patientId));
+    toast({
+      title: "Success",
+      description: "Patient deleted successfully",
+    });
   };
 
   return (
     <Layout>
-      <div className="animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Patients</h1>
-            <p className="text-muted-foreground mt-1">
-              View and manage patient forms
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="view-mode"
-                checked={viewMode === 'cards'}
-                onCheckedChange={(checked) => setViewMode(checked ? 'cards' : 'table')}
-              />
-              <label htmlFor="view-mode">Card View</label>
-            </div>
-            <AddPatientDialog onPatientAdded={handlePatientAdded} />
-          </div>
-        </div>
-
-        <div className="relative mb-8">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input
-            placeholder="Search patients by name or medical record number..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {isLoading ? (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, index) => (
-              <div key={index} className="rounded-lg border border-border p-5 h-40 animate-pulse">
-                <div className="h-5 bg-muted/50 rounded w-3/4 mb-4"></div>
-                <div className="h-4 bg-muted/50 rounded w-1/2 mb-6"></div>
-                <div className="h-4 bg-muted/50 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
-        ) : filteredPatients && filteredPatients.length > 0 ? (
-          viewMode === 'cards' ? (
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {filteredPatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>MRN</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Gender</TableHead>
-                    <TableHead>Date of Birth</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPatients.map((patient) => (
-                    <TableRow key={patient.id}>
-                      <TableCell className="font-medium">{patient.medicalRecordNumber}</TableCell>
-                      <TableCell>{patient.name}</TableCell>
-                      <TableCell>{patient.gender}</TableCell>
-                      <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
-                      <TableCell>{getStatusBadge(patient.status)}</TableCell>
-                      <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-2">No patients found</p>
-            {searchQuery && (
-              <p className="text-sm">
-                Try adjusting your search or{" "}
-                <button 
-                  className="text-primary"
-                  onClick={() => setSearchQuery("")}
-                >
-                  clear the search
-                </button>
-              </p>
-            )}
-          </div>
-        )}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight">Patients</h1>
+        <Button onClick={handleAddPatient}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Patient
+        </Button>
       </div>
+
+      <div className="mb-6">
+        <Input
+          placeholder="Search by name or medical record number..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 animate-pulse">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-muted h-32 rounded-lg"
+              style={{ animationDelay: `${i * 0.05}s` }}
+            />
+          ))}
+        </div>
+      ) : filteredPatients.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">No patients found</p>
+          <Button variant="outline" onClick={handleAddPatient}>
+            Add your first patient
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPatients.map((patient) => (
+            <PatientCard
+              key={patient.id}
+              patient={patient}
+              onUpdate={handlePatientUpdated}
+              onDelete={handlePatientDeleted}
+            />
+          ))}
+        </div>
+      )}
+
+      <AddPatientDialog
+        open={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onAdd={handlePatientAdded}
+      />
     </Layout>
   );
 };

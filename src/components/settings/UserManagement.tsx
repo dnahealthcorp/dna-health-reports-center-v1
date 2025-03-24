@@ -110,10 +110,12 @@ export const UserManagement = () => {
   };
 
   const handleRoleChange = (value: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      role: value as "nurse" | "doctor" | "admin"
-    }));
+    if (value === 'nurse' || value === 'doctor' || value === 'admin') {
+      setFormData(prev => ({ 
+        ...prev, 
+        role: value as "nurse" | "doctor" | "admin"
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
