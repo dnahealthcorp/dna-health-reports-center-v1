@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,7 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
         gender: patientData.gender,
         medicalRecordNumber,
         lastUpdated: new Date().toISOString(),
-        status: 'nurse-pending'
+        status: 'in-review' // Changed default status to 'in-review'
       };
 
       // Save patient to database
