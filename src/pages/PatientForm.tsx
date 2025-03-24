@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -53,6 +52,7 @@ const PatientForm = () => {
   const [formData, setFormData] = useState<PatientFormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -186,6 +186,8 @@ const PatientForm = () => {
   const handleExportPDF = async () => {
     if (!formData || !patient) return;
     
+    setIsExporting(true);
+    
     try {
       // Ensure patient info is set correctly before generating PDF
       formData.patientInfo = {
@@ -195,20 +197,25 @@ const PatientForm = () => {
         medicalRecordNumber: patient.medicalRecordNumber
       };
       
+      // First save the form to ensure we have the latest data
+      await savePatientFormData(patient.id, formData);
+      
       // Generate the PDF
       const fileName = await generatePDF(formData, medications);
       
       toast({
         title: "PDF Generated",
-        description: "Patient report has been downloaded",
+        description: "Patient report has been downloaded as " + fileName,
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
         title: "Error",
-        description: "Could not generate PDF",
+        description: "Could not generate PDF: " + (error as Error).message,
         variant: "destructive"
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -428,6 +435,7 @@ const PatientForm = () => {
           handleExportPDF={handleExportPDF}
           handleSave={handleSave}
           isSaving={isSaving}
+          isExporting={isExporting}
         />
 
         <PatientInfoCard 
