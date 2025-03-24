@@ -1,123 +1,238 @@
 
-// This is a simple client-side database implementation using localStorage
-// In a real application, this would be replaced with a proper backend database
+// Database service implementation using Supabase
+import { Patient, PatientFormData, Medication, User, PDFFile } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
-import { Patient, PatientFormData, Medication, User } from "@/types";
-
-// Storage keys
-const PATIENTS_KEY = "dna_health_patients";
-const FORM_DATA_KEY = "dna_health_form_data";
-const MEDICATIONS_KEY = "dna_health_medications";
-const USERS_KEY = "dna_health_users";
-const CURRENT_USER_KEY = "dna_health_current_user";
-const PDF_FILES_KEY = "dna_health_pdf_files";
-
-// Initialize storage with mock data
-const initializeStorage = () => {
+// Initialize with mock data for fallback
+const initializeFromMockData = async () => {
   try {
-    // Import mock data
-    import("@/lib/mockData").then((mockData) => {
-      if (!localStorage.getItem(PATIENTS_KEY)) {
-        localStorage.setItem(PATIENTS_KEY, JSON.stringify(mockData.mockPatients));
-      }
-      
-      if (!localStorage.getItem(MEDICATIONS_KEY)) {
-        localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(mockData.mockMedications));
-      }
-      
-      if (!localStorage.getItem(USERS_KEY)) {
-        localStorage.setItem(USERS_KEY, JSON.stringify(mockData.mockUsers));
-      }
-      
-      if (!localStorage.getItem(CURRENT_USER_KEY)) {
-        // Default to doctor now
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(mockData.mockUsers[0])); 
-      }
-      
-      if (!localStorage.getItem(PDF_FILES_KEY)) {
-        localStorage.setItem(PDF_FILES_KEY, JSON.stringify([]));
-      }
-      
-      // Initialize form data for each patient if not exists
-      const patients = JSON.parse(localStorage.getItem(PATIENTS_KEY) || "[]");
-      patients.forEach((patient: Patient) => {
-        const formDataKey = `${FORM_DATA_KEY}_${patient.id}`;
-        if (!localStorage.getItem(formDataKey)) {
-          mockData.getPatientFormData(patient.id).then((formData) => {
-            localStorage.setItem(formDataKey, JSON.stringify(formData));
-          });
-        }
-      });
-    }).catch(error => {
-      console.error("Error initializing mock data:", error);
-    });
+    // Import mock data only if needed
+    const mockData = await import("@/lib/mockData");
+    return {
+      mockPatients: mockData.mockPatients,
+      mockMedications: mockData.mockMedications,
+      mockUsers: mockData.mockUsers,
+      getPatientFormData: mockData.getPatientFormData
+    };
   } catch (error) {
-    console.error("Failed to initialize storage:", error);
+    console.error("Failed to initialize mock data:", error);
+    return {
+      mockPatients: [],
+      mockMedications: [],
+      mockUsers: [],
+      getPatientFormData: () => Promise.resolve(null)
+    };
   }
 };
-
-// Initialize on module import
-try {
-  initializeStorage();
-} catch (error) {
-  console.error("Critical error during storage initialization:", error);
-}
 
 // Patient operations
 export const getPatients = async (): Promise<Patient[]> => {
   try {
-    const patients = localStorage.getItem(PATIENTS_KEY);
-    return patients ? JSON.parse(patients) : [];
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*');
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
   } catch (error) {
-    console.error("Error getting patients:", error);
-    return [];
+    console.error("Error getting patients from Supabase:", error);
+    
+    // Fallback to mock data
+    const { mockPatients } = await initializeFromMockData();
+    return mockPatients;
   }
 };
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {
   try {
-    const patients = await getPatients();
-    return patients.find(p => p.id === id || p.medicalRecordNumber === id) || null;
+    // First try by ID
+    let { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      // If not found by ID, try by medical record number
+      const { data: mrnData, error: mrnError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('medical_record_number', id)
+        .single();
+        
+      if (mrnError) {
+        throw mrnError;
+      }
+      
+      data = mrnData;
+    }
+    
+    return data || null;
   } catch (error) {
-    console.error(`Error getting patient by ID ${id}:`, error);
-    return null;
+    console.error(`Error getting patient by ID ${id} from Supabase:`, error);
+    
+    // Fallback to mock data
+    const { mockPatients } = await initializeFromMockData();
+    return mockPatients.find(p => p.id === id || p.medicalRecordNumber === id) || null;
   }
 };
 
 export const addPatient = async (patient: Patient): Promise<Patient> => {
   try {
-    const patients = await getPatients();
-    const newPatients = [...patients, patient];
-    localStorage.setItem(PATIENTS_KEY, JSON.stringify(newPatients));
-    return patient;
+    // Make sure patient has an ID if not provided
+    const patientWithId = {
+      ...patient,
+      id: patient.id || uuidv4()
+    };
+    
+    const { data, error } = await supabase
+      .from('patients')
+      .insert([{
+        id: patientWithId.id,
+        name: patientWithId.name,
+        date_of_birth: patientWithId.dateOfBirth,
+        gender: patientWithId.gender,
+        medical_record_number: patientWithId.medicalRecordNumber,
+        last_updated: new Date().toISOString(),
+        status: patientWithId.status
+      }])
+      .select();
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Create an empty form data for this patient
+    await createEmptyPatientFormData(patientWithId.id);
+    
+    return patientWithId;
   } catch (error) {
-    console.error("Error adding patient:", error);
+    console.error("Error adding patient to Supabase:", error);
     throw error;
   }
 };
 
 export const updatePatient = async (patient: Patient): Promise<Patient> => {
   try {
-    const patients = await getPatients();
-    const updatedPatients = patients.map(p => p.id === patient.id ? patient : p);
-    localStorage.setItem(PATIENTS_KEY, JSON.stringify(updatedPatients));
+    const { error } = await supabase
+      .from('patients')
+      .update({
+        name: patient.name,
+        date_of_birth: patient.dateOfBirth,
+        gender: patient.gender,
+        medical_record_number: patient.medicalRecordNumber,
+        last_updated: new Date().toISOString(),
+        status: patient.status
+      })
+      .eq('id', patient.id);
+    
+    if (error) {
+      throw error;
+    }
+    
     return patient;
   } catch (error) {
-    console.error(`Error updating patient ${patient.id}:`, error);
+    console.error(`Error updating patient ${patient.id} in Supabase:`, error);
     throw error;
   }
 };
 
 export const deletePatient = async (id: string): Promise<void> => {
   try {
-    const patients = await getPatients();
-    const filteredPatients = patients.filter(p => p.id !== id);
-    localStorage.setItem(PATIENTS_KEY, JSON.stringify(filteredPatients));
+    // Delete patient form data first
+    const { error: formError } = await supabase
+      .from('patient_form_data')
+      .delete()
+      .eq('patient_id', id);
+      
+    if (formError) {
+      console.warn(`Error deleting form data for patient ${id}:`, formError);
+    }
     
-    // Also delete related form data
-    localStorage.removeItem(`${FORM_DATA_KEY}_${id}`);
+    // Then delete the patient
+    const { error } = await supabase
+      .from('patients')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      throw error;
+    }
   } catch (error) {
-    console.error(`Error deleting patient ${id}:`, error);
+    console.error(`Error deleting patient ${id} from Supabase:`, error);
+    throw error;
+  }
+};
+
+// Create empty form data for a new patient
+const createEmptyPatientFormData = async (patientId: string): Promise<void> => {
+  try {
+    const patient = await getPatientById(patientId);
+    if (!patient) {
+      throw new Error(`Patient with ID ${patientId} not found`);
+    }
+    
+    const emptyFormData: PatientFormData = {
+      patientInfo: {
+        name: patient.name,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        medicalRecordNumber: patient.medicalRecordNumber
+      },
+      vitals: {
+        bloodPressure: '',
+        height: '',
+        weight: '',
+        heartRate: '',
+        temperature: '',
+        respiratoryRate: '',
+        oxygenSaturation: ''
+      },
+      summaryFindings: {
+        glucoseMetabolism: '',
+        lipidProfile: '',
+        inflammation: '',
+        uricAcid: '',
+        vitamins: '',
+        minerals: '',
+        sexHormones: '',
+        renalLiverFunction: '',
+        cancerMarkers: ''
+      },
+      medications: [],
+      supplements: [],
+      exerciseRecommendations: '',
+      nurseNotes: '',
+      doctorNotes: '',
+      diagnosis: '',
+      treatmentPlan: '',
+      showInsulinResistance: false,
+      nutritionRecommendations: {
+        nutritionalPlan: '',
+        proteinConsumption: '',
+        omissions: '',
+        additionalConsiderations: ''
+      },
+      exerciseDetail: {
+        focusOn: '',
+        walking: '',
+        avoid: '',
+        tracking: ''
+      },
+      sleepStressRecommendations: {
+        sleep: '',
+        stress: ''
+      },
+      followUps: []
+    };
+    
+    await savePatientFormData(patientId, emptyFormData);
+  } catch (error) {
+    console.error(`Error creating empty form data for patient ${patientId}:`, error);
     throw error;
   }
 };
@@ -125,19 +240,150 @@ export const deletePatient = async (id: string): Promise<void> => {
 // Form data operations
 export const getPatientFormData = async (patientId: string): Promise<PatientFormData | null> => {
   try {
-    const formDataKey = `${FORM_DATA_KEY}_${patientId}`;
-    const formData = localStorage.getItem(formDataKey);
-    return formData ? JSON.parse(formData) : null;
+    const { data, error } = await supabase
+      .from('patient_form_data')
+      .select('*')
+      .eq('patient_id', patientId)
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (!data) {
+      return null;
+    }
+    
+    // Transform the data from database format to application format
+    const formData: PatientFormData = {
+      patientInfo: {
+        name: '',
+        dateOfBirth: '',
+        gender: '',
+        medicalRecordNumber: ''
+      },
+      vitals: data.vitals || {
+        bloodPressure: '',
+        height: '',
+        weight: '',
+        heartRate: '',
+        temperature: '',
+        respiratoryRate: '',
+        oxygenSaturation: ''
+      },
+      summaryFindings: data.summary_findings || {
+        glucoseMetabolism: '',
+        lipidProfile: '',
+        inflammation: '',
+        uricAcid: '',
+        vitamins: '',
+        minerals: '',
+        sexHormones: '',
+        renalLiverFunction: '',
+        cancerMarkers: ''
+      },
+      medications: data.medications || [],
+      supplements: data.supplements || [],
+      exerciseRecommendations: data.exercise_recommendations || '',
+      nurseNotes: data.nurse_notes || '',
+      doctorNotes: data.doctor_notes || '',
+      diagnosis: data.diagnosis || '',
+      treatmentPlan: data.treatment_plan || '',
+      showInsulinResistance: data.show_insulin_resistance || false,
+      nutritionRecommendations: data.nutrition_recommendations || {
+        nutritionalPlan: '',
+        proteinConsumption: '',
+        omissions: '',
+        additionalConsiderations: ''
+      },
+      exerciseDetail: data.exercise_detail || {
+        focusOn: '',
+        walking: '',
+        avoid: '',
+        tracking: ''
+      },
+      sleepStressRecommendations: data.sleep_stress_recommendations || {
+        sleep: '',
+        stress: ''
+      },
+      followUps: data.follow_ups || []
+    };
+    
+    // Get patient info
+    const patient = await getPatientById(patientId);
+    if (patient) {
+      formData.patientInfo = {
+        name: patient.name,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        medicalRecordNumber: patient.medicalRecordNumber
+      };
+    }
+    
+    return formData;
   } catch (error) {
-    console.error(`Error getting form data for patient ${patientId}:`, error);
-    return null;
+    console.error(`Error getting form data for patient ${patientId} from Supabase:`, error);
+    
+    // Fallback to mock data
+    const { getPatientFormData: getMockPatientFormData } = await initializeFromMockData();
+    return getMockPatientFormData(patientId);
   }
 };
 
 export const savePatientFormData = async (patientId: string, formData: PatientFormData): Promise<PatientFormData> => {
   try {
-    const formDataKey = `${FORM_DATA_KEY}_${patientId}`;
-    localStorage.setItem(formDataKey, JSON.stringify(formData));
+    // Check if record exists
+    const { data, error: checkError } = await supabase
+      .from('patient_form_data')
+      .select('id')
+      .eq('patient_id', patientId);
+      
+    if (checkError) {
+      throw checkError;
+    }
+    
+    // Convert form data to database format
+    const dbFormData = {
+      patient_id: patientId,
+      vitals: formData.vitals,
+      summary_findings: formData.summaryFindings,
+      medications: formData.medications,
+      supplements: formData.supplements,
+      exercise_recommendations: formData.exerciseRecommendations,
+      nurse_notes: formData.nurseNotes,
+      doctor_notes: formData.doctorNotes,
+      diagnosis: formData.diagnosis,
+      treatment_plan: formData.treatmentPlan,
+      show_insulin_resistance: formData.showInsulinResistance,
+      nutrition_recommendations: formData.nutritionRecommendations,
+      exercise_detail: formData.exerciseDetail,
+      sleep_stress_recommendations: formData.sleepStressRecommendations,
+      follow_ups: formData.followUps,
+      last_updated: new Date().toISOString()
+    };
+    
+    // Insert or update
+    let error;
+    if (data && data.length > 0) {
+      // Update
+      const { error: updateError } = await supabase
+        .from('patient_form_data')
+        .update(dbFormData)
+        .eq('patient_id', patientId);
+        
+      error = updateError;
+    } else {
+      // Insert
+      const { error: insertError } = await supabase
+        .from('patient_form_data')
+        .insert([dbFormData]);
+        
+      error = insertError;
+    }
+    
+    if (error) {
+      throw error;
+    }
     
     // Update last updated time on patient
     const patient = await getPatientById(patientId);
@@ -148,7 +394,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
     
     return formData;
   } catch (error) {
-    console.error(`Error saving form data for patient ${patientId}:`, error);
+    console.error(`Error saving form data for patient ${patientId} to Supabase:`, error);
     throw error;
   }
 };
@@ -156,45 +402,101 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
 // Medication operations
 export const getMedications = async (): Promise<Medication[]> => {
   try {
-    const medications = localStorage.getItem(MEDICATIONS_KEY);
-    return medications ? JSON.parse(medications) : [];
+    const { data, error } = await supabase
+      .from('medications')
+      .select('*');
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Transform from database schema to application schema
+    const medications: Medication[] = (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      dosage: item.dosage,
+      frequency: item.frequency || '', // Handle NULL frequency
+      notes: item.notes,
+      type: item.type as 'medication' | 'supplement',
+      link: item.link
+    }));
+    
+    return medications;
   } catch (error) {
-    console.error("Error getting medications:", error);
-    return [];
+    console.error("Error getting medications from Supabase:", error);
+    
+    // Fallback to mock data
+    const { mockMedications } = await initializeFromMockData();
+    return mockMedications;
   }
 };
 
 export const addMedication = async (medication: Medication): Promise<Medication> => {
   try {
-    const medications = await getMedications();
-    const newMedications = [...medications, medication];
-    localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(newMedications));
-    return medication;
+    // Make sure medication has an ID if not provided
+    const medicationWithId = {
+      ...medication,
+      id: medication.id || uuidv4()
+    };
+    
+    const { error } = await supabase
+      .from('medications')
+      .insert([{
+        id: medicationWithId.id,
+        name: medicationWithId.name,
+        dosage: medicationWithId.dosage,
+        notes: medicationWithId.notes,
+        type: medicationWithId.type,
+        link: medicationWithId.link
+      }]);
+    
+    if (error) {
+      throw error;
+    }
+    
+    return medicationWithId;
   } catch (error) {
-    console.error("Error adding medication:", error);
+    console.error("Error adding medication to Supabase:", error);
     throw error;
   }
 };
 
 export const updateMedication = async (medication: Medication): Promise<Medication> => {
   try {
-    const medications = await getMedications();
-    const updatedMedications = medications.map(m => m.id === medication.id ? medication : m);
-    localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(updatedMedications));
+    const { error } = await supabase
+      .from('medications')
+      .update({
+        name: medication.name,
+        dosage: medication.dosage,
+        notes: medication.notes,
+        type: medication.type,
+        link: medication.link
+      })
+      .eq('id', medication.id);
+    
+    if (error) {
+      throw error;
+    }
+    
     return medication;
   } catch (error) {
-    console.error(`Error updating medication ${medication.id}:`, error);
+    console.error(`Error updating medication ${medication.id} in Supabase:`, error);
     throw error;
   }
 };
 
 export const deleteMedication = async (id: string): Promise<void> => {
   try {
-    const medications = await getMedications();
-    const filteredMedications = medications.filter(m => m.id !== id);
-    localStorage.setItem(MEDICATIONS_KEY, JSON.stringify(filteredMedications));
+    const { error } = await supabase
+      .from('medications')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      throw error;
+    }
   } catch (error) {
-    console.error(`Error deleting medication ${id}:`, error);
+    console.error(`Error deleting medication ${id} from Supabase:`, error);
     throw error;
   }
 };
@@ -202,114 +504,251 @@ export const deleteMedication = async (id: string): Promise<void> => {
 // User operations
 export const getUsers = async (): Promise<User[]> => {
   try {
-    const users = localStorage.getItem(USERS_KEY);
-    return users ? JSON.parse(users) : [];
+    const { data, error } = await supabase
+      .from('users')
+      .select('*');
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
   } catch (error) {
-    console.error("Error getting users:", error);
-    return [];
+    console.error("Error getting users from Supabase:", error);
+    
+    // Fallback to mock data
+    const { mockUsers } = await initializeFromMockData();
+    return mockUsers;
   }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const user = localStorage.getItem(CURRENT_USER_KEY);
-    return user ? JSON.parse(user) : null;
+    // Get authentication state
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session) {
+      return null;
+    }
+    
+    // Get user from our users table
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authData.session.user.id)
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data || null;
   } catch (error) {
-    console.error("Error getting current user:", error);
-    return null;
+    console.error("Error getting current user from Supabase:", error);
+    
+    // Fallback to first user in mock data
+    const { mockUsers } = await initializeFromMockData();
+    return mockUsers[0] || null;
   }
 };
 
 export const setCurrentUser = async (user: User): Promise<User> => {
   try {
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    // Check if user exists
+    const { data, error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id);
+      
+    if (checkError) {
+      throw checkError;
+    }
+    
+    // Insert or update
+    let error;
+    if (data && data.length > 0) {
+      // Update
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          name: user.name,
+          email: user.email,
+          role: user.role
+        })
+        .eq('id', user.id);
+        
+      error = updateError;
+    } else {
+      // Insert
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }]);
+        
+      error = insertError;
+    }
+    
+    if (error) {
+      throw error;
+    }
+    
     return user;
   } catch (error) {
-    console.error("Error setting current user:", error);
+    console.error("Error setting current user in Supabase:", error);
     throw error;
   }
 };
 
 export const logoutUser = async (): Promise<void> => {
   try {
-    // We don't completely remove the current user, just set to null
-    // so we can remember the last logged in user
-    localStorage.removeItem(CURRENT_USER_KEY);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw error;
+    }
   } catch (error) {
-    console.error("Error logging out user:", error);
+    console.error("Error logging out user from Supabase:", error);
     throw error;
   }
 };
 
 export const loginUser = async (email: string, password: string): Promise<User | null> => {
   try {
-    // In a real app, this would validate credentials against a backend
-    // For now, we'll just check if a user with this email exists
-    const users = await getUsers();
-    const user = users.find(u => u.email === email);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
     
-    if (user) {
-      await setCurrentUser(user);
-      return user;
+    if (error) {
+      throw error;
     }
     
-    return null;
+    if (!data.user) {
+      return null;
+    }
+    
+    // Get user from our users table
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+    
+    if (userError) {
+      throw userError;
+    }
+    
+    return userData || null;
   } catch (error) {
-    console.error("Error logging in user:", error);
+    console.error("Error logging in user with Supabase:", error);
     return null;
   }
 };
 
 // PDF file operations
-interface PDFFile {
-  id: string;
-  patientId: string;
-  fileName: string;
-  createdAt: string;
-  createdBy: string;
-  url: string;
-}
-
 export const savePDFReference = async (patientId: string, fileName: string): Promise<PDFFile> => {
   try {
-    const pdfFiles = await getPDFFiles();
+    const id = `pdf-${Date.now()}`;
     const currentUser = await getCurrentUser();
     
     const newPDFFile: PDFFile = {
-      id: `pdf-${Date.now()}`,
+      id,
       patientId,
       fileName,
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || "Unknown",
-      url: fileName // In a real app, this would be a URL to the file storage
+      url: fileName
     };
     
-    const updatedPDFFiles = [...pdfFiles, newPDFFile];
-    localStorage.setItem(PDF_FILES_KEY, JSON.stringify(updatedPDFFiles));
+    const { error } = await supabase
+      .from('pdf_files')
+      .insert([{
+        id: newPDFFile.id,
+        patient_id: newPDFFile.patientId,
+        file_name: newPDFFile.fileName,
+        created_at: newPDFFile.createdAt,
+        created_by: currentUser?.id || null,
+        url: newPDFFile.url
+      }]);
+    
+    if (error) {
+      throw error;
+    }
     
     return newPDFFile;
   } catch (error) {
-    console.error(`Error saving PDF reference for patient ${patientId}:`, error);
+    console.error(`Error saving PDF reference for patient ${patientId} to Supabase:`, error);
     throw error;
   }
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {
   try {
-    const pdfFiles = localStorage.getItem(PDF_FILES_KEY);
-    return pdfFiles ? JSON.parse(pdfFiles) : [];
+    const { data, error } = await supabase
+      .from('pdf_files')
+      .select(`
+        id,
+        patient_id,
+        file_name,
+        created_at,
+        url,
+        users (name)
+      `);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Transform from database schema to application schema
+    const pdfFiles: PDFFile[] = (data || []).map(item => ({
+      id: item.id,
+      patientId: item.patient_id,
+      fileName: item.file_name,
+      createdAt: item.created_at,
+      createdBy: item.users?.name || "Unknown",
+      url: item.url
+    }));
+    
+    return pdfFiles;
   } catch (error) {
-    console.error("Error getting PDF files:", error);
+    console.error("Error getting PDF files from Supabase:", error);
     return [];
   }
 };
 
 export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile[]> => {
   try {
-    const pdfFiles = await getPDFFiles();
-    return pdfFiles.filter(pdf => pdf.patientId === patientId);
+    const { data, error } = await supabase
+      .from('pdf_files')
+      .select(`
+        id,
+        patient_id,
+        file_name,
+        created_at,
+        url,
+        users (name)
+      `)
+      .eq('patient_id', patientId);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Transform from database schema to application schema
+    const pdfFiles: PDFFile[] = (data || []).map(item => ({
+      id: item.id,
+      patientId: item.patient_id,
+      fileName: item.file_name,
+      createdAt: item.created_at,
+      createdBy: item.users?.name || "Unknown",
+      url: item.url
+    }));
+    
+    return pdfFiles;
   } catch (error) {
-    console.error(`Error getting PDF files for patient ${patientId}:`, error);
+    console.error(`Error getting PDF files for patient ${patientId} from Supabase:`, error);
     return [];
   }
 };

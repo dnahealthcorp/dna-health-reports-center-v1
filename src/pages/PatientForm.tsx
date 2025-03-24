@@ -14,8 +14,7 @@ import {
   getCurrentUser, 
   getPatientFormData,
   savePatientFormData,
-  updatePatient,
-  savePDFReference
+  updatePatient
 } from "@/services/databaseService";
 import { 
   Patient, 
@@ -32,6 +31,7 @@ import { PatientInfoCard } from "@/components/patient-form/PatientInfoCard";
 import { VitalsTab } from "@/components/patient-form/VitalsTab";
 import { SummaryFindingsTab } from "@/components/patient-form/SummaryFindingsTab";
 import { MedicationsTab } from "@/components/patient-form/MedicationsTab";
+import { SupplementsTab } from "@/components/patient-form/SupplementsTab";
 import { NotesRecommendationsTab } from "@/components/patient-form/NotesRecommendationsTab";
 import { LoadingState } from "@/components/patient-form/LoadingState";
 import { NotFoundState } from "@/components/patient-form/NotFoundState";
@@ -40,6 +40,7 @@ import { InsulinResistanceTab } from "@/components/patient-form/InsulinResistanc
 import { CardiovascularRiskTab } from "@/components/patient-form/CardiovascularRiskTab";
 import { DoctorRecommendationsTab } from "@/components/patient-form/DoctorRecommendationsTab";
 import { FollowUpTab } from "@/components/patient-form/FollowUpTab";
+import { supabase } from "@/integrations/supabase/client";
 
 const PatientForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,6 +67,11 @@ const PatientForm = () => {
         ]);
         
         if (!patientData) {
+          toast({
+            title: "Patient not found",
+            description: "The patient you're looking for doesn't exist",
+            variant: "destructive"
+          });
           navigate("/patients");
           return;
         }
@@ -87,6 +93,25 @@ const PatientForm = () => {
     };
     
     fetchData();
+    
+    // Subscribe to realtime changes for the patient form data
+    const channel = supabase
+      .channel('form-data-changes')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'patient_form_data',
+        filter: `patient_id=eq.${id}`
+      }, (payload) => {
+        console.log('Form data updated:', payload);
+        // Refresh the form data
+        getPatientFormData(id as string).then(data => setFormData(data));
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id, navigate, toast]);
 
   const handleSave = async () => {
@@ -233,6 +258,61 @@ const PatientForm = () => {
       };
     });
   };
+  
+  const handleAddSupplement = () => {
+    if (!formData) return;
+    
+    const newSupplement = {
+      id: `temp-${Date.now()}`,
+      supplementId: "",
+      dosage: "",
+      source: "",
+    };
+    
+    setFormData(prev => {
+      if (!prev) return prev;
+      
+      return {
+        ...prev,
+        supplements: [...(prev.supplements || []), newSupplement]
+      };
+    });
+  };
+
+  const handleRemoveSupplement = (index: number) => {
+    if (!formData) return;
+    
+    setFormData(prev => {
+      if (!prev) return prev;
+      
+      const updatedSupplements = [...(prev.supplements || [])];
+      updatedSupplements.splice(index, 1);
+      
+      return {
+        ...prev,
+        supplements: updatedSupplements
+      };
+    });
+  };
+
+  const handleSupplementChange = (index: number, field: string, value: string) => {
+    if (!formData) return;
+    
+    setFormData(prev => {
+      if (!prev) return prev;
+      
+      const updatedSupplements = [...(prev.supplements || [])];
+      updatedSupplements[index] = {
+        ...updatedSupplements[index],
+        [field]: value
+      };
+      
+      return {
+        ...prev,
+        supplements: updatedSupplements
+      };
+    });
+  };
 
   const handleAddFollowUp = () => {
     if (!formData) return;
@@ -288,11 +368,8 @@ const PatientForm = () => {
     });
   };
 
-  const canEditNurseSection = currentUser?.role === "nurse" && 
-    (patient?.status === "nurse-pending" || patient?.status === "completed");
-  
-  const canEditDoctorSection = currentUser?.role === "doctor" && 
-    (patient?.status === "doctor-pending" || patient?.status === "completed");
+  // All users can now edit all sections
+  const canEdit = true;
 
   if (isLoading) {
     return (
@@ -323,7 +400,7 @@ const PatientForm = () => {
         <PatientInfoCard 
           formData={formData}
           handleInputChange={handleInputChange}
-          canEditNurseSection={canEditNurseSection}
+          canEditNurseSection={canEdit}
         />
 
         <Tabs defaultValue="vitals" className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
@@ -333,6 +410,7 @@ const PatientForm = () => {
             <TabsTrigger value="insulinResistance">Insulin Resistance</TabsTrigger>
             <TabsTrigger value="cardiovascularRisk">Cardiovascular Risk</TabsTrigger>
             <TabsTrigger value="medications">Medications</TabsTrigger>
+            <TabsTrigger value="supplements">Supplements</TabsTrigger>
             <TabsTrigger value="docRecommendations">Doctor Recommendations</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
             <TabsTrigger value="followUps">Follow-ups</TabsTrigger>
@@ -342,7 +420,7 @@ const PatientForm = () => {
             <VitalsTab 
               formData={formData}
               handleInputChange={handleInputChange}
-              canEditNurseSection={canEditNurseSection}
+              canEditNurseSection={canEdit}
               calculateAge={calculateAge}
               calculateBMI={calculateBMI}
             />
@@ -352,7 +430,7 @@ const PatientForm = () => {
             <SummaryFindingsTab 
               formData={formData}
               handleInputChange={handleInputChange}
-              canEditDoctorSection={canEditDoctorSection}
+              canEditDoctorSection={canEdit}
             />
           </TabsContent>
           
@@ -360,25 +438,36 @@ const PatientForm = () => {
             <InsulinResistanceTab
               formData={formData}
               handleInputChange={handleInputChange}
-              canEditDoctorSection={canEditDoctorSection}
+              canEditDoctorSection={canEdit}
             />
           </TabsContent>
           
           <TabsContent value="cardiovascularRisk" className="mt-0">
             <CardiovascularRiskTab
               formData={formData}
-              canEditDoctorSection={canEditDoctorSection}
+              canEditDoctorSection={canEdit}
             />
           </TabsContent>
           
           <TabsContent value="medications" className="mt-0">
             <MedicationsTab 
               formData={formData}
-              medications={medications}
+              medications={medications.filter(med => med.type === 'medication')}
               handleAddMedication={handleAddMedication}
               handleRemoveMedication={handleRemoveMedication}
               handleMedicationChange={handleMedicationChange}
-              canEditNurseSection={canEditNurseSection}
+              canEditNurseSection={canEdit}
+            />
+          </TabsContent>
+          
+          <TabsContent value="supplements" className="mt-0">
+            <SupplementsTab 
+              formData={formData}
+              medications={medications}
+              handleAddSupplement={handleAddSupplement}
+              handleRemoveSupplement={handleRemoveSupplement}
+              handleSupplementChange={handleSupplementChange}
+              canEdit={canEdit}
             />
           </TabsContent>
           
@@ -386,7 +475,7 @@ const PatientForm = () => {
             <DoctorRecommendationsTab
               formData={formData}
               handleInputChange={handleInputChange}
-              canEditDoctorSection={canEditDoctorSection}
+              canEditDoctorSection={canEdit}
             />
           </TabsContent>
           
@@ -394,8 +483,8 @@ const PatientForm = () => {
             <NotesRecommendationsTab 
               formData={formData}
               handleInputChange={handleInputChange}
-              canEditNurseSection={canEditNurseSection}
-              canEditDoctorSection={canEditDoctorSection}
+              canEditNurseSection={canEdit}
+              canEditDoctorSection={canEdit}
               handleSave={handleSave}
               isSaving={isSaving}
             />
@@ -407,7 +496,7 @@ const PatientForm = () => {
               handleFollowUpChange={handleFollowUpChange}
               handleAddFollowUp={handleAddFollowUp}
               handleRemoveFollowUp={handleRemoveFollowUp}
-              canEditDoctorSection={canEditDoctorSection}
+              canEditDoctorSection={canEdit}
             />
           </TabsContent>
         </Tabs>

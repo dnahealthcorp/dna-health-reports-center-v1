@@ -18,7 +18,7 @@ export const MedicationForm = ({ type, onAddMedication }: MedicationFormProps) =
   const [newMedication, setNewMedication] = useState<Omit<Medication, 'id'>>({
     name: '',
     dosage: '',
-    frequency: '',
+    frequency: '', // Keeping the field in the type but not using it in the UI
     notes: '',
     type: type,
     link: ''
@@ -82,15 +82,6 @@ export const MedicationForm = ({ type, onAddMedication }: MedicationFormProps) =
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor={`${type}-frequency`}>Frequency</Label>
-              <Input 
-                id={`${type}-frequency`} 
-                value={newMedication.frequency}
-                onChange={(e) => setNewMedication(prev => ({ ...prev, frequency: e.target.value }))}
-                placeholder={`e.g., ${type === 'medication' ? 'Twice daily' : 'Once daily'}`}
-              />
-            </div>
-            <div>
               <Label htmlFor={`${type}-link`}>Information Link (Optional)</Label>
               <Input 
                 id={`${type}-link`} 
@@ -99,15 +90,15 @@ export const MedicationForm = ({ type, onAddMedication }: MedicationFormProps) =
                 placeholder="URL to more information"
               />
             </div>
-          </div>
-          <div>
-            <Label htmlFor={`${type}-notes`}>Notes (Optional)</Label>
-            <Input 
-              id={`${type}-notes`} 
-              value={newMedication.notes || ''}
-              onChange={(e) => setNewMedication(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Additional notes"
-            />
+            <div>
+              <Label htmlFor={`${type}-notes`}>Notes (Optional)</Label>
+              <Input 
+                id={`${type}-notes`} 
+                value={newMedication.notes || ''}
+                onChange={(e) => setNewMedication(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Additional notes"
+              />
+            </div>
           </div>
           <Button onClick={handleAddMedication} className="w-full md:w-auto">
             <Plus className="h-4 w-4 mr-2" />

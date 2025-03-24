@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, ExternalLink } from "lucide-react";
 import { Medication, PatientFormData } from "@/types";
 
 interface MedicationsTabProps {
@@ -36,7 +36,7 @@ export const MedicationsTab = ({
         {formData.medications.length > 0 ? (
           <div className="space-y-6">
             {formData.medications.map((med, index) => (
-              <div key={med.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg relative">
+              <div key={med.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg relative">
                 <div className="space-y-2">
                   <Label htmlFor={`med-${index}-name`}>Medication</Label>
                   <Select 
@@ -66,15 +66,6 @@ export const MedicationsTab = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`med-${index}-frequency`}>Frequency</Label>
-                  <Input 
-                    id={`med-${index}-frequency`}
-                    value={med.frequency}
-                    onChange={(e) => handleMedicationChange(index, "frequency", e.target.value)}
-                    disabled={!canEditNurseSection}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor={`med-${index}-notes`}>Notes</Label>
                   <div className="flex items-center gap-2">
                     <Input 
@@ -97,6 +88,23 @@ export const MedicationsTab = ({
                     )}
                   </div>
                 </div>
+                
+                {/* Show medication information link if available */}
+                {med.medicationId && (
+                  <div className="col-span-full mt-2">
+                    {medications.find(m => m.id === med.medicationId)?.link && (
+                      <a 
+                        href={medications.find(m => m.id === med.medicationId)?.link || "#"} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary text-sm flex items-center gap-1"
+                      >
+                        <ExternalLink size={14} />
+                        View medication information
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
