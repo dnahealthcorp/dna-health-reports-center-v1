@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,25 +26,23 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/patients" element={<Patients />} />
-            <Route path="/patient/:id" element={<PatientForm />} />
-            
-            {/* Use the MedicationLayout for Medications and Supplements pages */}
-            <Route path="/medications" element={<MedicationLayout><Medications /></MedicationLayout>} />
-            <Route path="/supplements" element={<MedicationLayout><Supplements /></MedicationLayout>} />
-            
-            <Route path="/forms" element={<Forms />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-        <Toaster />
-      </Router>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/patients" element={<Patients />} />
+          <Route path="/patient/:id" element={<PatientForm />} />
+          
+          {/* Use the MedicationLayout for Medications and Supplements pages */}
+          <Route path="/medications" element={<MedicationLayout><Medications /></MedicationLayout>} />
+          <Route path="/supplements" element={<MedicationLayout><Supplements /></MedicationLayout>} />
+          
+          <Route path="/forms" element={<Forms />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+      <Toaster />
     </QueryClientProvider>
   );
 }
