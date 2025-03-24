@@ -13,30 +13,38 @@ const Layout = ({ children }: LayoutProps) => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [initRedirectDone, setInitRedirectDone] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    // Only check authentication when loading is finished
-    if (!isLoading) {
+    // Only handle redirect if not already redirecting and loading has completed
+    if (!redirecting && !isLoading) {
       if (!user && location.pathname !== "/login") {
         console.log("No user detected, redirecting to login");
-        // Redirect to login only if not already on login page
+        setRedirecting(true);
         navigate('/login');
       }
-      // Always update checkingAuth when loading is complete
-      setCheckingAuth(false);
-      setInitRedirectDone(true);
     }
-  }, [user, isLoading, navigate, location.pathname]);
+  }, [user, isLoading, navigate, location.pathname, redirecting]);
 
   // Show loading state during initial authentication check
-  if (isLoading || (checkingAuth && !initRedirectDone)) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If redirecting, show a minimal loading state to prevent flashing content
+  if (redirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Redirecting...</p>
         </div>
       </div>
     );
@@ -48,6 +56,12 @@ const Layout = ({ children }: LayoutProps) => {
     return null;
   }
 
+  // For login page, render just the content without sidebar
+  if (location.pathname === "/login") {
+    return <>{children}</>;
+  }
+
+  // For authenticated pages with user, render the full layout
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
