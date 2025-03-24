@@ -50,7 +50,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       
       // If the user doesn't exist in our table but is authenticated, create a record
       if (error.code === 'PGRST116') { // No rows returned
-        const newUser: Partial<User> = {
+        const newUser: User = {
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.email?.split('@')[0] || 'New User',
@@ -107,7 +107,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
     if (userError) {
       // If the user doesn't exist in our table but is authenticated, create a record
       if (userError.code === 'PGRST116') { // No rows returned
-        const newUser: Partial<User> = {
+        const newUser: User = {
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.email?.split('@')[0] || 'New User',
@@ -140,7 +140,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
 };
 
 // Register a new user with Supabase Auth
-export const registerUser = async (email: string, password: string, name: string, role: string = 'nurse'): Promise<User | null> => {
+export const registerUser = async (email: string, password: string, name: string, role: 'nurse' | 'doctor' | 'admin' = 'nurse'): Promise<User | null> => {
   try {
     // Register the user with Supabase Auth
     const { data: { user }, error } = await supabase.auth.signUp({
@@ -157,7 +157,7 @@ export const registerUser = async (email: string, password: string, name: string
     }
     
     // Create entry in our users table
-    const newUser: Partial<User> = {
+    const newUser: User = {
       id: user.id,
       email,
       name,
@@ -200,12 +200,17 @@ export const logoutUser = async (): Promise<void> => {
 // Add a new user
 export const addUser = async (user: Partial<User>): Promise<User> => {
   try {
+    // Ensure we have the required fields
+    if (!user.email) {
+      throw new Error('Email is required');
+    }
+
     // Generate a random password for the new user
     const password = Math.random().toString(36).slice(-8);
     
     // First, create the user in Supabase Auth
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: user.email!,
+      email: user.email,
       password,
       email_confirm: true, // Auto-confirm the email
     });
@@ -218,12 +223,18 @@ export const addUser = async (user: Partial<User>): Promise<User> => {
       throw new Error('User created in Auth but no user returned');
     }
     
+    // Ensure role is a valid enum value
+    const role: 'nurse' | 'doctor' | 'admin' = 
+      (user.role === 'nurse' || user.role === 'doctor' || user.role === 'admin') 
+        ? user.role 
+        : 'nurse';
+    
     // Then, create the user in our users table
-    const newUser = {
+    const newUser: User = {
       id: authUser.user.id,
       name: user.name || '',
-      email: user.email || '',
-      role: user.role || 'nurse'
+      email: user.email,
+      role: role
     };
     
     const { data, error } = await supabase
