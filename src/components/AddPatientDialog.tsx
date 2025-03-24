@@ -1,337 +1,166 @@
 
-import { format } from "date-fns";
-import { CalendarIcon, Loader2, Plus } from "lucide-react";
-import * as React from "react";
 import { useState } from "react";
-
-import { cn, formatDateForDatabase } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  addPatient, 
-  getPatientByMedicalRecordNumber,
-  generateMRN 
-} from "@/services/index";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { Patient } from "@/types";
+import { UserPlus } from "lucide-react";
+import * as databaseService from "@/services/databaseService";
 
 interface AddPatientDialogProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onPatientAdded?: (patient: Patient) => void;
+  onAddPatient: (patient: Patient) => void;
 }
 
-const addPatientFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Patient name must be at least 2 characters.",
-  }),
-  dateOfBirth: z.date({
-    required_error: "A date of birth is required.",
-  }),
-  gender: z.enum(["Male", "Female", "Other"], {
-    required_error: "Please select a gender.",
-  }),
-  medicalRecordNumber: z.string().regex(/^P\d{6}$/, {
-    message: "Medical Record Number must be in the format P followed by 6 digits (e.g., P123456)",
-  }),
-});
-
-type AddPatientFormValues = z.infer<typeof addPatientFormSchema>;
-
-export function AddPatientDialog({
-  open,
-  onOpenChange,
-  onPatientAdded,
-}: AddPatientDialogProps) {
+const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const form = useForm<AddPatientFormValues>({
-    resolver: zodResolver(addPatientFormSchema),
-    defaultValues: {
-      name: "",
-      dateOfBirth: undefined,
-      gender: "Male",
-      medicalRecordNumber: generateMRN(),
-    },
+  const [patientData, setPatientData] = useState({
+    name: "",
+    dateOfBirth: "",
+    gender: ""
   });
 
-  const handleOpenChange = (newOpenState: boolean) => {
-    if (onOpenChange) {
-      onOpenChange(newOpenState);
-    } else {
-      setDialogOpen(newOpenState);
-    }
-    
-    // Reset form when dialog is opened
-    if (newOpenState) {
-      form.reset({
-        name: "",
-        dateOfBirth: undefined,
-        gender: "Male",
-        medicalRecordNumber: generateMRN(),
-      });
-      setFormErrors({});
-    }
+  const handleChange = (field: string, value: string) => {
+    setPatientData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (data: AddPatientFormValues) => {
-    setIsLoading(true);
-    setFormErrors({});
-    
-    try {
-      // Validate medical record number format
-      if (!/^P\d{6}$/.test(data.medicalRecordNumber)) {
-        setFormErrors(prev => ({
-          ...prev,
-          medicalRecordNumber: "MRN must be in format P followed by 6 digits (e.g., P123456)"
-        }));
-        setIsLoading(false);
-        return;
-      }
-      
-      // Check if patient already exists
-      const existingPatient = await getPatientByMedicalRecordNumber(data.medicalRecordNumber);
-      if (existingPatient) {
-        setFormErrors(prev => ({
-          ...prev,
-          medicalRecordNumber: "A patient with this medical record number already exists"
-        }));
-        setIsLoading(false);
-        return;
-      }
-      
-      // Format date to be compatible with database
-      const formattedDate = formatDateForDatabase(data.dateOfBirth);
-      
-      // Create the patient with required fields for the Patient type
-      const newPatientData = {
-        name: data.name,
-        dateOfBirth: formattedDate,
-        gender: data.gender,
-        medicalRecordNumber: data.medicalRecordNumber,
-        status: "nurse-pending" as const,
-        // These will be generated server-side but are required in the type
-        id: "",
-        lastUpdated: new Date().toISOString()
-      };
-      
-      // Create the patient
-      const newPatient = await addPatient(newPatientData);
-      
-      // Show success notification
+  const handleSubmit = async () => {
+    // Validate
+    if (!patientData.name || !patientData.dateOfBirth || !patientData.gender) {
       toast({
-        title: "Patient Added",
-        description: `${data.name} has been added successfully.`,
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
       });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Auto-generate MRN
+      const medicalRecordNumber = databaseService.generateMRN();
+
+      // Create new patient
+      const newPatient: Patient = {
+        id: `p${Date.now()}`,
+        name: patientData.name,
+        dateOfBirth: patientData.dateOfBirth,
+        gender: patientData.gender,
+        medicalRecordNumber,
+        lastUpdated: new Date().toISOString(),
+        status: 'nurse-pending'
+      };
+
+      // Save patient to database
+      await databaseService.addPatient(newPatient);
+
+      // Initialize form data for the new patient
+      await databaseService.getPatientFormData(newPatient.id);
+
+      setIsLoading(false);
+      onAddPatient(newPatient);
+      setPatientData({
+        name: "",
+        dateOfBirth: "",
+        gender: ""
+      });
+      setOpen(false);
       
-      // Close dialog and refresh patient list
-      form.reset();
-      handleOpenChange(false);
-      if (onPatientAdded) {
-        onPatientAdded(newPatient);
-      }
+      toast({
+        title: "Patient added",
+        description: `${newPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
+      });
     } catch (error) {
       console.error("Error adding patient:", error);
-      
-      // Show more descriptive error message
-      let errorMessage = "Failed to add patient. Please check your connection and try again.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes("duplicate")) {
-          errorMessage = "This patient already exists in the system.";
-        } else if (error.message.includes("validation")) {
-          errorMessage = "Please check the patient information and try again.";
-        }
-      }
+      setIsLoading(false);
       
       toast({
         title: "Error",
-        description: errorMessage,
-        variant: "destructive",
+        description: "Failed to add patient. Please try again.",
+        variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const isControlled = open !== undefined && onOpenChange !== undefined;
-
   return (
-    <Dialog 
-      open={isControlled ? open : dialogOpen} 
-      onOpenChange={handleOpenChange}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Patient
+        <Button className="flex items-center gap-2">
+          <UserPlus size={16} />
+          <span>Add New Patient</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Patient</DialogTitle>
           <DialogDescription>
-            Enter the patient details to create a new record.
+            Enter the patient details to create a new record
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Patient Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Full Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input 
+              id="name" 
+              value={patientData.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              placeholder="Enter patient name"
             />
-            
-            <FormField
-              control={form.control}
-              name="dateOfBirth"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date of Birth</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(new Date(field.value), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="dob">Date of Birth</Label>
+            <Input 
+              id="dob" 
+              type="date"
+              value={patientData.dateOfBirth}
+              onChange={(e) => handleChange("dateOfBirth", e.target.value)}
             />
-            
-            <FormField
-              control={form.control}
-              name="gender"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gender</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="gender">Gender</Label>
+            <Select 
+              value={patientData.gender}
+              onValueChange={(value) => handleChange("gender", value)}
+            >
+              <SelectTrigger id="gender">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Male">Male</SelectItem>
+                <SelectItem value="Female">Female</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="mrn">Medical Record Number</Label>
+            <Input 
+              id="mrn" 
+              value="Will be auto-generated"
+              disabled
+              className="bg-gray-100"
             />
-            
-            <FormField
-              control={form.control}
-              name="medicalRecordNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Medical Record Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., P123456" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Format: P followed by 6 digits (e.g., P123456)
-                  </FormDescription>
-                  {formErrors.medicalRecordNumber && (
-                    <p className="text-sm font-medium text-destructive">
-                      {formErrors.medicalRecordNumber}
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add Patient"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? "Adding..." : "Add Patient"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default AddPatientDialog;

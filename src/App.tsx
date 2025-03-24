@@ -71,7 +71,7 @@ function App() {
       </Routes>
       <Toaster />
     </>
-  );
+  )
 }
 
-export default App;
+export default App

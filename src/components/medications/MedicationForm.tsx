@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { Medication } from "@/types";
 import { Save, Loader2 } from "lucide-react";
-import { addMedication, updateMedication } from "@/services";
+import { addMedication, updateMedication } from "@/services/databaseService";
 
 type MedicationFormProps = {
   medication?: Medication;

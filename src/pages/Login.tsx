@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { loginUser, getUsers } from "@/services";
+import { loginUser, getUsers } from "@/services/databaseService";
 import { User } from "@/types";
 
 const Login = () => {
@@ -18,14 +18,14 @@ const Login = () => {
   const { toast } = useToast();
   
   // Fetch demo users on mount
-  useEffect(() => {
+  useState(() => {
     const fetchUsers = async () => {
       const users = await getUsers();
       setDemoUsers(users || []);
     };
     
     fetchUsers();
-  }, []); // Added empty dependency array to only run once
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
