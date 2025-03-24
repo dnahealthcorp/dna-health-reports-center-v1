@@ -8,7 +8,9 @@ export function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, t
     return [];
   }
   
-  return jsonArray.filter(typeGuard);
+  // Use type guard to filter out invalid items
+  // This ensures we only return properly typed items
+  return jsonArray.filter(typeGuard) as T[];
 }
 
 // Initialize with mock data for fallback
