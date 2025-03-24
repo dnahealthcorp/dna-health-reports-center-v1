@@ -80,7 +80,8 @@ function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, typeGuar
     return [];
   }
   
-  return jsonArray.filter(typeGuard);
+  // Use type assertion to ensure proper typing
+  return jsonArray.filter((item): item is T => typeGuard(item));
 }
 
 // Patient operations

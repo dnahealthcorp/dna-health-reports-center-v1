@@ -25,6 +25,7 @@ export interface Medication {
   name: string;
   dosage: string;
   type: 'medication' | 'supplement';
+  frequency?: string;
   notes?: string;
   link?: string;
 }
