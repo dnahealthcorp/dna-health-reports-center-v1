@@ -12,8 +12,22 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     const currentUser = await getCurrentUser();
     
     // Make sure patient info is properly set in form data
-    if (patient && (!formData.patientInfo.name || formData.patientInfo.name.trim() === '')) {
-      formData.patientInfo.name = patient.name;
+    if (patient && formData.patientInfo) {
+      // Ensure patient name is properly set
+      if (!formData.patientInfo.name || formData.patientInfo.name.trim() === '') {
+        formData.patientInfo.name = patient.name;
+      }
+      
+      // Ensure other patient fields are properly set
+      if (!formData.patientInfo.dateOfBirth || formData.patientInfo.dateOfBirth.trim() === '') {
+        formData.patientInfo.dateOfBirth = patient.dateOfBirth;
+      }
+      if (!formData.patientInfo.gender || formData.patientInfo.gender.trim() === '') {
+        formData.patientInfo.gender = patient.gender;
+      }
+      if (!formData.patientInfo.medicalRecordNumber || formData.patientInfo.medicalRecordNumber.trim() === '') {
+        formData.patientInfo.medicalRecordNumber = patient.medicalRecordNumber;
+      }
     }
     
     // Generate the PDF
