@@ -12,7 +12,6 @@ export type Database = {
       medications: {
         Row: {
           dosage: string
-          frequency: string
           id: string
           link: string | null
           name: string
@@ -21,7 +20,6 @@ export type Database = {
         }
         Insert: {
           dosage: string
-          frequency: string
           id?: string
           link?: string | null
           name: string
@@ -30,7 +28,6 @@ export type Database = {
         }
         Update: {
           dosage?: string
-          frequency?: string
           id?: string
           link?: string | null
           name?: string

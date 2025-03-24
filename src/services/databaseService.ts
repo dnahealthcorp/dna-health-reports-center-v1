@@ -42,7 +42,8 @@ const mapPatientFromDB = (dbPatient: any): Patient => {
     gender: dbPatient.gender,
     medicalRecordNumber: dbPatient.medical_record_number,
     lastUpdated: dbPatient.last_updated,
-    status: dbPatient.status
+    status: dbPatient.status,
+    pdfFiles: dbPatient.pdfFiles || undefined
   };
 };
 
@@ -73,15 +74,14 @@ const mapMedicationFromDB = (dbMedication: any): Medication => {
   };
 };
 
-// Function to safely convert JSON values to typed arrays
-const safeJsonArrayConversion = <T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => item is T): T[] => {
+// Function to safely convert JSON values to typed arrays with improved type safety
+function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => item is T): T[] {
   if (!jsonArray || !Array.isArray(jsonArray)) {
     return [];
   }
   
-  // Filter out any items that don't match the type guard and cast the rest
   return jsonArray.filter(typeGuard);
-};
+}
 
 // Patient operations
 export const getPatients = async (): Promise<Patient[]> => {
@@ -480,7 +480,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       // Insert
       const { error: insertError } = await supabase
         .from('patient_form_data')
-        .insert(dbFormData);
+        .insert([dbFormData]);
         
       error = insertError;
     }

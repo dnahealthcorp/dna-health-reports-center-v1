@@ -47,14 +47,6 @@ export const MedicationEditModal = ({
               />
             </div>
             <div>
-              <Label htmlFor="edit-frequency">Frequency</Label>
-              <Input 
-                id="edit-frequency" 
-                value={medication.frequency}
-                onChange={(e) => onChange("frequency", e.target.value)}
-              />
-            </div>
-            <div>
               <Label htmlFor="edit-type">Type</Label>
               <Select 
                 value={medication.type}

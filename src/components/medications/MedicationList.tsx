@@ -29,7 +29,7 @@ export const MedicationList = ({
   onDuplicate, 
   onDelete 
 }: MedicationListProps) => {
-  const [sortField, setSortField] = useState<'name' | 'dosage' | 'frequency'>('name');
+  const [sortField, setSortField] = useState<'name' | 'dosage'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const filteredMeds = medications.filter(med => med.type === type);
@@ -64,7 +64,7 @@ export const MedicationList = ({
           <span className="text-sm text-muted-foreground">Sort by:</span>
           <Select
             value={sortField}
-            onValueChange={(value) => setSortField(value as 'name' | 'dosage' | 'frequency')}
+            onValueChange={(value) => setSortField(value as 'name' | 'dosage')}
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Sort by" />
@@ -72,7 +72,6 @@ export const MedicationList = ({
             <SelectContent>
               <SelectItem value="name">Name</SelectItem>
               <SelectItem value="dosage">Dosage</SelectItem>
-              <SelectItem value="frequency">Frequency</SelectItem>
             </SelectContent>
           </Select>
           <Button
@@ -97,7 +96,6 @@ export const MedicationList = ({
               <div className="flex-1">
                 <h3 className="font-medium">{med.name}</h3>
                 <p className="text-sm text-muted-foreground">Dosage: {med.dosage}</p>
-                {med.frequency && <p className="text-sm text-muted-foreground">Frequency: {med.frequency}</p>}
                 {med.notes && <p className="text-sm text-muted-foreground mt-1">Notes: {med.notes}</p>}
                 {med.link && (
                   <a 
