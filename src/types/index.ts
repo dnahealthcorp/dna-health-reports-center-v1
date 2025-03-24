@@ -1,4 +1,3 @@
-
 // Define interface for our application data model
 export interface Patient {
   id: string;
@@ -7,7 +6,7 @@ export interface Patient {
   gender: string;
   medicalRecordNumber: string;
   lastUpdated: string;
-  status: 'nurse-pending' | 'doctor-pending' | 'completed';
+  status: 'in-review' | 'nurse-pending' | 'doctor-pending' | 'completed';
   pdfFiles?: PDFFile[];
 }
 
