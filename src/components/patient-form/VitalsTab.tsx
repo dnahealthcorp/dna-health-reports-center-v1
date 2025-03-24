@@ -44,8 +44,8 @@ export const VitalsTab = ({
                     type="date"
                     value={formData.patientInfo.dateOfBirth}
                     onChange={(e) => handleInputChange("patientInfo", "dateOfBirth", e.target.value)}
-                    disabled={true} // Always disable the DOB field in this view
-                    className="border-0 p-0 h-auto bg-gray-50"
+                    disabled={!canEditNurseSection}
+                    className="border-0 p-0 h-auto"
                   />
                 </td>
                 <td className="px-4 py-2 border">-</td>

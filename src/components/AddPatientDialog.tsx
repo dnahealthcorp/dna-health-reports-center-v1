@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Patient } from "@/types";
 import { UserPlus } from "lucide-react";
 import * as databaseService from "@/services/databaseService";
-import { v4 as uuidv4 } from 'uuid';
 
 interface AddPatientDialogProps {
   onAddPatient: (patient: Patient) => void;
@@ -46,9 +45,9 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
       // Auto-generate MRN
       const medicalRecordNumber = databaseService.generateMRN();
 
-      // Create new patient with proper UUID
+      // Create new patient
       const newPatient: Patient = {
-        id: uuidv4(), // Using proper UUID format instead of a prefixed string
+        id: `p${Date.now()}`,
         name: patientData.name,
         dateOfBirth: patientData.dateOfBirth,
         gender: patientData.gender,

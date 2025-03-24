@@ -144,7 +144,7 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
               </AlertDialogContent>
             </AlertDialog>
 
-            <Link to={`/patient/${patient.id}`} className="text-primary flex items-center gap-1 font-medium ml-2">
+            <Link to={`/patients/${patient.id}`} className="text-primary flex items-center gap-1 font-medium ml-2">
               View
               <ArrowRight size={14} />
             </Link>

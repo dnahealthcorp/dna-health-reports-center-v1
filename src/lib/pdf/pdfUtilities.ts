@@ -1,6 +1,6 @@
 
 import { jsPDF } from "jspdf";
-import { Medication, MedicationItem, SupplementItem } from "@/types";
+import { Medication } from "@/types";
 
 /**
  * Calculates age from date of birth
@@ -74,7 +74,7 @@ export const drawStatBox = (doc: jsPDF, text: string, y: number, contentMargin: 
   // Add text
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("Montserrat", "bold");
   
   // Split text into lines and center
   const lines = doc.splitTextToSize(text, contentWidth - 20);
@@ -94,49 +94,4 @@ export const addPageNumber = (doc: jsPDF, pageNumber: number, pageWidth: number)
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
   doc.text(pageNumber.toString(), pageWidth / 2, 280, { align: "center" });
-};
-
-/**
- * Create a formatted list of medications for the PDF
- */
-export const createMedicationList = (
-  medications: Array<MedicationItem | SupplementItem>, 
-  allMedications: Medication[]
-): Array<{name: string; dosage: string; frequency?: string; source?: string}> => {
-  return medications.map(med => {
-    // Find the medication in the full list
-    const medicationId = 'medicationId' in med ? med.medicationId : 'supplementId' in med ? med.supplementId : '';
-    const medication = allMedications.find(m => m.id === medicationId);
-    
-    // Format based on medication/supplement
-    if ('supplementId' in med) {
-      return {
-        name: medication?.name || 'Unknown',
-        dosage: med.dosage || 'N/A',
-        source: med.source || 'N/A'
-      };
-    } else {
-      return {
-        name: medication?.name || 'Unknown',
-        dosage: med.dosage || 'N/A',
-        frequency: med.notes || 'N/A' // Using notes as frequency since MedicationItem doesn't have frequency
-      };
-    }
-  });
-};
-
-/**
- * Format medication section to include only items with data
- */
-export const formatMedicationSection = (medications: MedicationItem[], allMedications: Medication[]) => {
-  return medications
-    .filter(med => med.medicationId || med.dosage || med.notes)
-    .map(med => {
-      const medication = allMedications.find(m => m.id === med.medicationId);
-      return {
-        name: medication?.name || 'Unknown',
-        dosage: med.dosage || 'N/A',
-        frequency: med.notes || 'N/A'
-      };
-    });
 };
