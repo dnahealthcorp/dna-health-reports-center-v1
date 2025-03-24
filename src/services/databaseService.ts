@@ -1,6 +1,6 @@
 
 // Database service implementation using Supabase
-import { Patient, PatientFormData, Medication, User, PDFFile } from "@/types";
+import { Patient, PatientFormData, Medication, User, PDFFile, Json } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,6 +26,45 @@ const initializeFromMockData = async () => {
   }
 };
 
+// Helper function to convert snake_case database objects to camelCase application objects
+const mapPatientFromDB = (dbPatient: any): Patient => {
+  return {
+    id: dbPatient.id,
+    name: dbPatient.name,
+    dateOfBirth: dbPatient.date_of_birth,
+    gender: dbPatient.gender,
+    medicalRecordNumber: dbPatient.medical_record_number,
+    lastUpdated: dbPatient.last_updated,
+    status: dbPatient.status
+  };
+};
+
+const mapUserFromDB = (dbUser: any): User => {
+  // Ensure role is one of the allowed values
+  const role = dbUser.role === 'nurse' || dbUser.role === 'doctor' || dbUser.role === 'admin' 
+    ? dbUser.role as 'nurse' | 'doctor' | 'admin'
+    : 'user' as 'nurse' | 'doctor' | 'admin'; // Default fallback
+
+  return {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    role: role
+  };
+};
+
+const mapMedicationFromDB = (dbMedication: any): Medication => {
+  return {
+    id: dbMedication.id,
+    name: dbMedication.name,
+    dosage: dbMedication.dosage,
+    frequency: dbMedication.frequency || '', // Handle potentially missing frequency
+    notes: dbMedication.notes || undefined,
+    type: dbMedication.type as 'medication' | 'supplement',
+    link: dbMedication.link || undefined
+  };
+};
+
 // Patient operations
 export const getPatients = async (): Promise<Patient[]> => {
   try {
@@ -37,7 +76,8 @@ export const getPatients = async (): Promise<Patient[]> => {
       throw error;
     }
     
-    return data || [];
+    // Map database format to application format
+    return (data || []).map(mapPatientFromDB);
   } catch (error) {
     console.error("Error getting patients from Supabase:", error);
     
@@ -71,7 +111,7 @@ export const getPatientById = async (id: string): Promise<Patient | null> => {
       data = mrnData;
     }
     
-    return data || null;
+    return data ? mapPatientFromDB(data) : null;
   } catch (error) {
     console.error(`Error getting patient by ID ${id} from Supabase:`, error);
     
@@ -254,7 +294,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       return null;
     }
     
-    // Transform the data from database format to application format
+    // Transform the data from database format to application format with proper type handling
     const formData: PatientFormData = {
       patientInfo: {
         name: '',
@@ -262,7 +302,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
         gender: '',
         medicalRecordNumber: ''
       },
-      vitals: data.vitals || {
+      vitals: typeof data.vitals === 'object' ? data.vitals as any : {
         bloodPressure: '',
         height: '',
         weight: '',
@@ -271,7 +311,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
         respiratoryRate: '',
         oxygenSaturation: ''
       },
-      summaryFindings: data.summary_findings || {
+      summaryFindings: typeof data.summary_findings === 'object' ? data.summary_findings as any : {
         glucoseMetabolism: '',
         lipidProfile: '',
         inflammation: '',
@@ -282,31 +322,31 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
         renalLiverFunction: '',
         cancerMarkers: ''
       },
-      medications: data.medications || [],
-      supplements: data.supplements || [],
+      medications: Array.isArray(data.medications) ? data.medications : [],
+      supplements: Array.isArray(data.supplements) ? data.supplements : [],
       exerciseRecommendations: data.exercise_recommendations || '',
       nurseNotes: data.nurse_notes || '',
       doctorNotes: data.doctor_notes || '',
       diagnosis: data.diagnosis || '',
       treatmentPlan: data.treatment_plan || '',
-      showInsulinResistance: data.show_insulin_resistance || false,
-      nutritionRecommendations: data.nutrition_recommendations || {
+      showInsulinResistance: Boolean(data.show_insulin_resistance),
+      nutritionRecommendations: typeof data.nutrition_recommendations === 'object' ? data.nutrition_recommendations as any : {
         nutritionalPlan: '',
         proteinConsumption: '',
         omissions: '',
         additionalConsiderations: ''
       },
-      exerciseDetail: data.exercise_detail || {
+      exerciseDetail: typeof data.exercise_detail === 'object' ? data.exercise_detail as any : {
         focusOn: '',
         walking: '',
         avoid: '',
         tracking: ''
       },
-      sleepStressRecommendations: data.sleep_stress_recommendations || {
+      sleepStressRecommendations: typeof data.sleep_stress_recommendations === 'object' ? data.sleep_stress_recommendations as any : {
         sleep: '',
         stress: ''
       },
-      followUps: data.follow_ups || []
+      followUps: Array.isArray(data.follow_ups) ? data.follow_ups : []
     };
     
     // Get patient info
@@ -376,7 +416,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       // Insert
       const { error: insertError } = await supabase
         .from('patient_form_data')
-        .insert([dbFormData]);
+        .insert(dbFormData);
         
       error = insertError;
     }
@@ -411,15 +451,7 @@ export const getMedications = async (): Promise<Medication[]> => {
     }
     
     // Transform from database schema to application schema
-    const medications: Medication[] = (data || []).map(item => ({
-      id: item.id,
-      name: item.name,
-      dosage: item.dosage,
-      frequency: item.frequency || '', // Handle NULL frequency
-      notes: item.notes,
-      type: item.type as 'medication' | 'supplement',
-      link: item.link
-    }));
+    const medications: Medication[] = (data || []).map(mapMedicationFromDB);
     
     return medications;
   } catch (error) {
@@ -441,14 +473,15 @@ export const addMedication = async (medication: Medication): Promise<Medication>
     
     const { error } = await supabase
       .from('medications')
-      .insert([{
+      .insert({
         id: medicationWithId.id,
         name: medicationWithId.name,
         dosage: medicationWithId.dosage,
+        frequency: medicationWithId.frequency || '', // Ensure frequency is provided
         notes: medicationWithId.notes,
         type: medicationWithId.type,
         link: medicationWithId.link
-      }]);
+      });
     
     if (error) {
       throw error;
@@ -468,6 +501,7 @@ export const updateMedication = async (medication: Medication): Promise<Medicati
       .update({
         name: medication.name,
         dosage: medication.dosage,
+        frequency: medication.frequency || '', // Ensure frequency is provided
         notes: medication.notes,
         type: medication.type,
         link: medication.link
@@ -512,7 +546,7 @@ export const getUsers = async (): Promise<User[]> => {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(mapUserFromDB);
   } catch (error) {
     console.error("Error getting users from Supabase:", error);
     
@@ -541,7 +575,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       throw error;
     }
     
-    return data || null;
+    return data ? mapUserFromDB(data) : null;
   } catch (error) {
     console.error("Error getting current user from Supabase:", error);
     
@@ -640,7 +674,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
       throw userError;
     }
     
-    return userData || null;
+    return userData ? mapUserFromDB(userData) : null;
   } catch (error) {
     console.error("Error logging in user with Supabase:", error);
     return null;

@@ -8,6 +8,7 @@ import PatientCard from "@/components/PatientCard";
 import AddPatientDialog from "@/components/AddPatientDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getPatients } from "@/services/databaseService";
 import { 
   Table,
   TableBody,
@@ -32,15 +33,8 @@ const Patients = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const { data, error } = await supabase
-          .from('patients')
-          .select('*');
-        
-        if (error) {
-          throw error;
-        }
-        
-        setPatients(data || []);
+        const patientsData = await getPatients();
+        setPatients(patientsData);
       } catch (error) {
         console.error("Error fetching patients:", error);
         toast({

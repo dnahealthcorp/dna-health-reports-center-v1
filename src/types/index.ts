@@ -1,3 +1,4 @@
+
 export interface Patient {
   id: string;
   name: string;
@@ -132,3 +133,12 @@ export type FormField = {
   options?: string[];
   section: 'patient' | 'vitals' | 'medications' | 'nurse' | 'doctor' | 'summaryFindings';
 };
+
+// Add a Json type to handle Supabase JSON data
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
