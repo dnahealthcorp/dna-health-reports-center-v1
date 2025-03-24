@@ -1,4 +1,5 @@
 
+// Define interface for our application data model
 export interface Patient {
   id: string;
   name: string;
@@ -23,9 +24,8 @@ export interface Medication {
   id: string;
   name: string;
   dosage: string;
-  frequency: string;
-  notes?: string;
   type: 'medication' | 'supplement';
+  notes?: string;
   link?: string;
 }
 
@@ -76,6 +76,20 @@ export interface FollowUp {
   date: string;
 }
 
+export interface MedicationItem {
+  id: string;
+  medicationId: string;
+  dosage: string;
+  notes?: string;
+}
+
+export interface SupplementItem {
+  id: string;
+  supplementId: string;
+  dosage: string;
+  source: string;
+}
+
 export interface PatientFormData {
   patientInfo: {
     name: string;
@@ -85,19 +99,8 @@ export interface PatientFormData {
   };
   vitals: Vital;
   summaryFindings: SummaryFinding;
-  medications: {
-    id: string;
-    medicationId: string;
-    dosage: string;
-    frequency: string;
-    notes?: string;
-  }[];
-  supplements?: {
-    id: string;
-    supplementId: string;
-    dosage: string;
-    source: string;
-  }[];
+  medications: MedicationItem[];
+  supplements?: SupplementItem[];
   exerciseRecommendations: string;
   nurseNotes: string;
   doctorNotes: string;
@@ -140,10 +143,10 @@ export type Json =
   | number
   | boolean
   | null
-  | { [key: string]: Json }
+  | { [key: string]: Json | undefined }
   | Json[];
 
-// Type guard functions to check if a JSON value matches a specific type
+// Type guard functions with improved type safety
 export function isVital(json: any): json is Vital {
   return (
     json &&
@@ -200,7 +203,7 @@ export function isFollowUp(json: any): json is FollowUp {
   );
 }
 
-export function isMedicationItem(json: any): json is { id: string; medicationId: string; dosage: string; frequency: string; notes?: string } {
+export function isMedicationItem(json: any): json is MedicationItem {
   return (
     json &&
     typeof json === 'object' &&
@@ -210,7 +213,7 @@ export function isMedicationItem(json: any): json is { id: string; medicationId:
   );
 }
 
-export function isSupplementItem(json: any): json is { id: string; supplementId: string; dosage: string; source: string } {
+export function isSupplementItem(json: any): json is SupplementItem {
   return (
     json &&
     typeof json === 'object' &&
@@ -219,4 +222,14 @@ export function isSupplementItem(json: any): json is { id: string; supplementId:
     'dosage' in json &&
     'source' in json
   );
+}
+
+// Helper function to safely cast to JSON for Supabase
+export function toJson<T>(value: T): Json {
+  return value as unknown as Json;
+}
+
+// Helper function to safely cast arrays for JSON
+export function safeJsonArray<T>(values: T[]): Json {
+  return values as unknown as Json;
 }

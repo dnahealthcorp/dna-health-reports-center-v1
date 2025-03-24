@@ -3,7 +3,10 @@
 import { 
   Patient, PatientFormData, Medication, User, PDFFile, Json,
   isVital, isSummaryFinding, isNutritionRecommendation, isExerciseRecommendation,
-  isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem
+  isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem,
+  MedicationItem, SupplementItem, Vital, SummaryFinding, FollowUp,
+  NutritionRecommendation, ExerciseRecommendation, SleepStressRecommendation,
+  toJson, safeJsonArray
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
@@ -64,7 +67,6 @@ const mapMedicationFromDB = (dbMedication: any): Medication => {
     id: dbMedication.id,
     name: dbMedication.name,
     dosage: dbMedication.dosage,
-    frequency: dbMedication.frequency || '', // Handle potentially missing frequency
     notes: dbMedication.notes || undefined,
     type: dbMedication.type as 'medication' | 'supplement',
     link: dbMedication.link || undefined
@@ -72,9 +74,9 @@ const mapMedicationFromDB = (dbMedication: any): Medication => {
 };
 
 // Function to safely convert JSON values to typed arrays
-const safeJsonArrayConversion = <T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => item is T, defaultValue: T[]): T[] => {
+const safeJsonArrayConversion = <T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => item is T): T[] => {
   if (!jsonArray || !Array.isArray(jsonArray)) {
-    return defaultValue;
+    return [];
   }
   
   // Filter out any items that don't match the type guard and cast the rest
@@ -310,8 +312,8 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       return null;
     }
     
-    // Transform the data from database format to application format with proper type handling
-    const defaultVitals = {
+    // Set up default values
+    const defaultVitals: Vital = {
       bloodPressure: '',
       height: '',
       weight: '',
@@ -321,7 +323,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       oxygenSaturation: ''
     };
     
-    const defaultSummaryFindings = {
+    const defaultSummaryFindings: SummaryFinding = {
       glucoseMetabolism: '',
       lipidProfile: '',
       inflammation: '',
@@ -333,26 +335,26 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       cancerMarkers: ''
     };
     
-    const defaultNutritionRecs = {
+    const defaultNutritionRecs: NutritionRecommendation = {
       nutritionalPlan: '',
       proteinConsumption: '',
       omissions: '',
       additionalConsiderations: ''
     };
     
-    const defaultExerciseDetail = {
+    const defaultExerciseDetail: ExerciseRecommendation = {
       focusOn: '',
       walking: '',
       avoid: '',
       tracking: ''
     };
     
-    const defaultSleepStressRecs = {
+    const defaultSleepStressRecs: SleepStressRecommendation = {
       sleep: '',
       stress: ''
     };
     
-    // Safely check and convert the JSON fields
+    // Safely check and convert the JSON fields with proper type handling
     const vitals = data.vitals && typeof data.vitals === 'object' && isVital(data.vitals)
       ? data.vitals
       : defaultVitals;
@@ -361,16 +363,14 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       ? data.summary_findings
       : defaultSummaryFindings;
     
-    const medications = safeJsonArrayConversion(
+    const medications = safeJsonArrayConversion<MedicationItem>(
       data.medications as Json, 
-      isMedicationItem,
-      []
+      isMedicationItem
     );
     
-    const supplements = safeJsonArrayConversion(
+    const supplements = safeJsonArrayConversion<SupplementItem>(
       data.supplements as Json,
-      isSupplementItem,
-      []
+      isSupplementItem
     );
     
     const nutritionRecommendations = data.nutrition_recommendations && typeof data.nutrition_recommendations === 'object' && isNutritionRecommendation(data.nutrition_recommendations)
@@ -385,10 +385,9 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       ? data.sleep_stress_recommendations
       : defaultSleepStressRecs;
     
-    const followUps = safeJsonArrayConversion(
+    const followUps = safeJsonArrayConversion<FollowUp>(
       data.follow_ups as Json,
-      isFollowUp,
-      []
+      isFollowUp
     );
     
     const formData: PatientFormData = {
@@ -447,23 +446,23 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       throw checkError;
     }
     
-    // Convert form data to database format - making sure to convert complex objects to JSON
+    // Convert form data to database format - casting complex objects to JSON
     const dbFormData = {
       patient_id: patientId,
-      vitals: formData.vitals as Json,
-      summary_findings: formData.summaryFindings as Json,
-      medications: formData.medications as Json,
-      supplements: formData.supplements as Json,
+      vitals: toJson(formData.vitals),
+      summary_findings: toJson(formData.summaryFindings),
+      medications: safeJsonArray(formData.medications),
+      supplements: safeJsonArray(formData.supplements || []),
       exercise_recommendations: formData.exerciseRecommendations,
       nurse_notes: formData.nurseNotes,
       doctor_notes: formData.doctorNotes,
       diagnosis: formData.diagnosis,
       treatment_plan: formData.treatmentPlan,
       show_insulin_resistance: formData.showInsulinResistance,
-      nutrition_recommendations: formData.nutritionRecommendations as Json,
-      exercise_detail: formData.exerciseDetail as Json,
-      sleep_stress_recommendations: formData.sleepStressRecommendations as Json,
-      follow_ups: formData.followUps as Json,
+      nutrition_recommendations: toJson(formData.nutritionRecommendations),
+      exercise_detail: toJson(formData.exerciseDetail),
+      sleep_stress_recommendations: toJson(formData.sleepStressRecommendations),
+      follow_ups: safeJsonArray(formData.followUps),
       last_updated: new Date().toISOString()
     };
     
@@ -542,7 +541,6 @@ export const addMedication = async (medication: Medication): Promise<Medication>
         id: medicationWithId.id,
         name: medicationWithId.name,
         dosage: medicationWithId.dosage,
-        frequency: medicationWithId.frequency || '', // Ensure frequency is provided
         notes: medicationWithId.notes,
         type: medicationWithId.type,
         link: medicationWithId.link
@@ -566,7 +564,6 @@ export const updateMedication = async (medication: Medication): Promise<Medicati
       .update({
         name: medication.name,
         dosage: medication.dosage,
-        frequency: medication.frequency || '', // Ensure frequency is provided
         notes: medication.notes,
         type: medication.type,
         link: medication.link
