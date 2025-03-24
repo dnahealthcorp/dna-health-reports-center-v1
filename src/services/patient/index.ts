@@ -1,7 +1,8 @@
 
 // Export all patient-related services from one central location
 export { 
-  getPatients, 
+  getPatients,
+  getRecentPatients,
   getPatientById, 
   addPatient, 
   updatePatient, 

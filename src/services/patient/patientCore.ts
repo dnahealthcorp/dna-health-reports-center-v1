@@ -1,4 +1,3 @@
-
 import { supabase } from "../baseService";
 import { Patient } from "@/types";
 import { v4 as uuidv4 } from "uuid";
@@ -27,6 +26,35 @@ export const getPatients = async (): Promise<Patient[]> => {
     }));
   } catch (error) {
     console.error("Error getting patients:", error);
+    return [];
+  }
+};
+
+// Get recent patients (limited to 5)
+export const getRecentPatients = async (limit = 5): Promise<Patient[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .order('last_updated', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Map database fields to Patient type
+    return data.map(record => ({
+      id: record.id,
+      name: record.name,
+      dateOfBirth: record.date_of_birth,
+      gender: record.gender,
+      medicalRecordNumber: record.medical_record_number,
+      lastUpdated: record.last_updated,
+      status: record.status as 'nurse-pending' | 'doctor-pending' | 'completed'
+    }));
+  } catch (error) {
+    console.error("Error getting recent patients:", error);
     return [];
   }
 };

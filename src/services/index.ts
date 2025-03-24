@@ -7,6 +7,7 @@ export { safeJsonArrayConversion, toJson, safeJsonArray } from './baseService';
 // Patient service exports
 export { 
   getPatients, 
+  getRecentPatients,
   getPatientById, 
   addPatient, 
   updatePatient, 
