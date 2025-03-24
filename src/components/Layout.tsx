@@ -2,7 +2,7 @@
 import { Sidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/components/AuthProvider";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 interface LayoutProps {
@@ -12,16 +12,20 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
+    // Only check authentication when loading is finished
     if (!isLoading) {
-      if (!user && window.location.pathname !== "/login") {
+      if (!user && location.pathname !== "/login") {
+        // Redirect to login only if not already on login page
         navigate('/login');
       }
+      // Always update checkingAuth when loading is complete
       setCheckingAuth(false);
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, location.pathname]);
 
   if (isLoading || checkingAuth) {
     return (

@@ -29,11 +29,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
+        // First check if we have a session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Only try to get the current user if we have a session
+        if (session) {
+          try {
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+          } catch (error) {
+            console.error("Error fetching user:", error);
+            // Don't clear the user on error, as this could lead to redirect loops
+          }
+        } else {
+          // No session, so no user
+          setUser(null);
+        }
       } catch (error) {
-        console.error("Error fetching user:", error);
-        // Don't set user to null here, just log the error
+        console.error("Error checking session:", error);
       } finally {
         setIsLoading(false);
       }
