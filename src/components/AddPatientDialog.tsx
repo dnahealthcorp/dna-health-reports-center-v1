@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Patient } from "@/types";
-import { UserPlus } from "lucide-react";
-import * as databaseService from "@/services/databaseService";
+import { addPatient, generateMRN } from "@/services/databaseService";
 
 interface AddPatientDialogProps {
   onAddPatient: (patient: Patient) => void;
@@ -18,10 +22,12 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [date, setDate] = useState<Date | undefined>();
+  
   const [patientData, setPatientData] = useState({
     name: "",
-    dateOfBirth: "",
-    gender: ""
+    gender: "",
+    medicalRecordNumber: generateMRN()
   });
 
   const handleChange = (field: string, value: string) => {
@@ -29,11 +35,29 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
   };
 
   const handleSubmit = async () => {
-    // Validate
-    if (!patientData.name || !patientData.dateOfBirth || !patientData.gender) {
+    // Validate form
+    if (!patientData.name) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields",
+        description: "Please enter the patient's name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!patientData.gender) {
+      toast({
+        title: "Missing information",
+        description: "Please select the patient's gender",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!date) {
+      toast({
+        title: "Missing information",
+        description: "Please select the patient's date of birth",
         variant: "destructive"
       });
       return;
@@ -42,64 +66,59 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
     setIsLoading(true);
 
     try {
-      // Auto-generate MRN
-      const medicalRecordNumber = databaseService.generateMRN();
-
-      // Create new patient
+      // Format date as ISO string yyyy-MM-dd
+      const formattedDate = date.toISOString().split('T')[0];
+      
       const newPatient: Patient = {
-        id: `p${Date.now()}`,
+        id: "", // Will be set by addPatient
         name: patientData.name,
-        dateOfBirth: patientData.dateOfBirth,
+        dateOfBirth: formattedDate,
         gender: patientData.gender,
-        medicalRecordNumber,
-        lastUpdated: new Date().toISOString(),
-        status: 'nurse-pending'
+        medicalRecordNumber: patientData.medicalRecordNumber,
+        status: "nurse-pending",
+        lastUpdated: new Date().toISOString()
       };
 
-      // Save patient to database
-      await databaseService.addPatient(newPatient);
-
-      // Initialize form data for the new patient
-      await databaseService.getPatientFormData(newPatient.id);
-
-      setIsLoading(false);
-      onAddPatient(newPatient);
+      // Add patient to database
+      const addedPatient = await addPatient(newPatient);
+      
+      setOpen(false);
+      onAddPatient(addedPatient);
+      
+      // Reset form
       setPatientData({
         name: "",
-        dateOfBirth: "",
-        gender: ""
+        gender: "",
+        medicalRecordNumber: generateMRN()
       });
-      setOpen(false);
+      setDate(undefined);
       
       toast({
         title: "Patient added",
-        description: `${newPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
+        description: `${addedPatient.name} has been added successfully`
       });
     } catch (error) {
       console.error("Error adding patient:", error);
-      setIsLoading(false);
-      
       toast({
-        title: "Error",
-        description: "Failed to add patient. Please try again.",
+        title: "Failed to add patient",
+        description: "There was an error adding the patient. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <UserPlus size={16} />
-          <span>Add New Patient</span>
-        </Button>
+        <Button>Add Patient</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Patient</DialogTitle>
           <DialogDescription>
-            Enter the patient details to create a new record
+            Enter the patient's information below
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -115,12 +134,30 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
           
           <div className="grid gap-2">
             <Label htmlFor="dob">Date of Birth</Label>
-            <Input 
-              id="dob" 
-              type="date"
-              value={patientData.dateOfBirth}
-              onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                  disabled={(date) => date > new Date()}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           
           <div className="grid gap-2">
@@ -144,7 +181,7 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
             <Label htmlFor="mrn">Medical Record Number</Label>
             <Input 
               id="mrn" 
-              value="Will be auto-generated"
+              value={patientData.medicalRecordNumber}
               disabled
               className="bg-gray-100"
             />

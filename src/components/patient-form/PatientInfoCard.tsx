@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PatientFormData } from "@/types";
+import { format } from "date-fns";
 
 interface PatientInfoCardProps {
   formData: PatientFormData;
@@ -16,6 +17,16 @@ export const PatientInfoCard = ({
   handleInputChange,
   canEditNurseSection
 }: PatientInfoCardProps) => {
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+      return format(new Date(dateString), "PPP");
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   return (
     <Card className="animate-fade-in-up mb-6">
       <CardHeader>
@@ -40,10 +51,9 @@ export const PatientInfoCard = ({
               <Label htmlFor="dob">Date of Birth</Label>
               <Input 
                 id="dob"
-                type="date"
-                value={formData.patientInfo.dateOfBirth}
-                onChange={(e) => handleInputChange("patientInfo", "dateOfBirth", e.target.value)}
-                disabled={!canEditNurseSection}
+                value={formatDate(formData.patientInfo.dateOfBirth)}
+                disabled={true}
+                className="bg-muted/30"
               />
             </div>
           </div>
@@ -70,8 +80,8 @@ export const PatientInfoCard = ({
               <Input 
                 id="mrn"
                 value={formData.patientInfo.medicalRecordNumber}
-                onChange={(e) => handleInputChange("patientInfo", "medicalRecordNumber", e.target.value)}
-                disabled={!canEditNurseSection}
+                disabled={true}
+                className="bg-muted/30"
               />
             </div>
           </div>

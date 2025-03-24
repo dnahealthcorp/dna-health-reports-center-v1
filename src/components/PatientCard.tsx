@@ -62,7 +62,7 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
       await deletePatient(patient.id);
       toast({
         title: "Patient deleted",
-        description: `${patient.name} has been removed from the system.`,
+        description: `${patient.name} and all related data have been removed from the system.`,
       });
       if (onDelete) {
         onDelete(patient.id);
@@ -132,7 +132,7 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Patient</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete {patient.name}'s record? This action cannot be undone.
+                    Are you sure you want to delete {patient.name}'s record? This action will permanently remove the patient, all form data, and PDF records. This cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

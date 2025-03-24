@@ -8,7 +8,7 @@ import MedicationForm from "@/components/medications/MedicationForm";
 import { MedicationList } from "@/components/medications/MedicationList";
 import { MedicationEditModal } from "@/components/medications/MedicationEditModal";
 import { Medication, User } from "@/types";
-import { Plus, ArrowUpAZ, ArrowDownAZ } from "lucide-react";
+import { Plus, ArrowUpAZ, ArrowDownAZ, Home, FileText, User as UserIcon, Pill } from "lucide-react";
 import { 
   getMedications, 
   addMedication, 
@@ -16,6 +16,7 @@ import {
   deleteMedication, 
   getCurrentUser 
 } from "@/services/databaseService";
+import { Link } from "react-router-dom";
 
 const Medications = () => {
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -163,77 +164,105 @@ const Medications = () => {
   }
   
   return (
-    <div className="container py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Medications & Supplements</h1>
-        {isAdmin && (
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add New
-          </Button>
-        )}
+    <div className="flex h-screen overflow-hidden">
+      {/* Left Side Navigation Menu */}
+      <div className="w-64 bg-background border-r border-border p-4 flex flex-col">
+        <div className="text-xl font-bold mb-6">DNA Health</div>
+        <nav className="space-y-2 flex-1">
+          <Link to="/" className="flex items-center gap-2 p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md">
+            <Home size={18} />
+            <span>Dashboard</span>
+          </Link>
+          <Link to="/patients" className="flex items-center gap-2 p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md">
+            <UserIcon size={18} />
+            <span>Patients</span>
+          </Link>
+          <Link to="/medications" className="flex items-center gap-2 p-2 text-primary font-medium bg-accent/50 rounded-md">
+            <Pill size={18} />
+            <span>Medications</span>
+          </Link>
+          <Link to="/forms" className="flex items-center gap-2 p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md">
+            <FileText size={18} />
+            <span>Forms</span>
+          </Link>
+        </nav>
       </div>
-      
-      {showForm ? (
-        <div className="mb-8" id="medication-form">
-          <MedicationForm
-            onSave={handleSaveMedication}
-            onCancel={() => setShowForm(false)}
-          />
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="container py-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Medications & Supplements</h1>
+            {isAdmin && (
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add New
+              </Button>
+            )}
+          </div>
+          
+          {showForm ? (
+            <div className="mb-8" id="medication-form">
+              <MedicationForm
+                onSave={handleSaveMedication}
+                onCancel={() => setShowForm(false)}
+              />
+            </div>
+          ) : (
+            <Tabs defaultValue="medications" className="mb-8">
+              <TabsList className="mb-4">
+                <TabsTrigger value="medications">Medications</TabsTrigger>
+                <TabsTrigger value="supplements">Supplements</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="medications">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Medications</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MedicationList
+                      medications={medications}
+                      type="medication"
+                      isAdmin={isAdmin}
+                      onEdit={handleMedicationEdit}
+                      onDuplicate={handleDuplicateMedication}
+                      onDelete={handleDeleteMedication}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="supplements">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Supplements</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MedicationList
+                      medications={medications}
+                      type="supplement"
+                      isAdmin={isAdmin}
+                      onEdit={handleMedicationEdit}
+                      onDuplicate={handleDuplicateMedication}
+                      onDelete={handleDeleteMedication}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          )}
+          
+          {selectedMedication && (
+            <MedicationEditModal
+              medication={selectedMedication}
+              onClose={() => setSelectedMedication(null)}
+              onUpdate={handleUpdateMedication}
+              onChange={handleEditChange}
+            />
+          )}
         </div>
-      ) : (
-        <Tabs defaultValue="medications" className="mb-8">
-          <TabsList className="mb-4">
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="supplements">Supplements</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="medications">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Medications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MedicationList
-                  medications={medications}
-                  type="medication"
-                  isAdmin={isAdmin}
-                  onEdit={handleMedicationEdit}
-                  onDuplicate={handleDuplicateMedication}
-                  onDelete={handleDeleteMedication}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="supplements">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Supplements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MedicationList
-                  medications={medications}
-                  type="supplement"
-                  isAdmin={isAdmin}
-                  onEdit={handleMedicationEdit}
-                  onDuplicate={handleDuplicateMedication}
-                  onDelete={handleDeleteMedication}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
-      
-      {selectedMedication && (
-        <MedicationEditModal
-          medication={selectedMedication}
-          onClose={() => setSelectedMedication(null)}
-          onUpdate={handleUpdateMedication}
-          onChange={handleEditChange}
-        />
-      )}
+      </div>
     </div>
   );
 };

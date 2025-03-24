@@ -204,6 +204,16 @@ export const updatePatient = async (patient: Patient): Promise<Patient> => {
 
 export const deletePatient = async (id: string): Promise<void> => {
   try {
+    // Delete all PDF file references for this patient
+    const { error: pdfError } = await supabase
+      .from('pdf_files')
+      .delete()
+      .eq('patient_id', id);
+      
+    if (pdfError) {
+      console.warn(`Error deleting PDF files for patient ${id}:`, pdfError);
+    }
+    
     // Delete patient form data first
     const { error: formError } = await supabase
       .from('patient_form_data')

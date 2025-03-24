@@ -8,6 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Patient } from "@/types";
 import { updatePatient } from "@/services/databaseService";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EditPatientDialogProps {
   patient: Patient | null;
@@ -24,6 +29,7 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
     dateOfBirth: "",
     gender: ""
   });
+  const [date, setDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (patient) {
@@ -32,6 +38,9 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender
       });
+      if (patient.dateOfBirth) {
+        setDate(new Date(patient.dateOfBirth));
+      }
     }
   }, [patient, open]);
 
@@ -43,7 +52,7 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
     if (!patient) return;
     
     // Validate
-    if (!patientData.name || !patientData.dateOfBirth || !patientData.gender) {
+    if (!patientData.name || !date || !patientData.gender) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -55,10 +64,13 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
     setIsLoading(true);
 
     try {
+      // Format date as ISO string yyyy-MM-dd
+      const formattedDate = date.toISOString().split('T')[0];
+      
       const updatedPatient: Patient = {
         ...patient,
         name: patientData.name || patient.name,
-        dateOfBirth: patientData.dateOfBirth || patient.dateOfBirth,
+        dateOfBirth: formattedDate,
         gender: patientData.gender || patient.gender,
         lastUpdated: new Date().toISOString()
       };
@@ -108,12 +120,31 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
           
           <div className="grid gap-2">
             <Label htmlFor="edit-dob">Date of Birth</Label>
-            <Input 
-              id="edit-dob" 
-              type="date"
-              value={patientData.dateOfBirth || ""}
-              onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="edit-dob"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                  disabled={(date) => date > new Date()}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           
           <div className="grid gap-2">
