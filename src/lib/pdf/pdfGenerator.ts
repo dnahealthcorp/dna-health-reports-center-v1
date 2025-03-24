@@ -409,30 +409,41 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   const displayedMedications = filterEmptyRows(medicationRows);
   
   // Medications table with optimized spacing
-  const medicationsTableResult = autoTable(doc, {
-    startY: 55,
-    head: [
-      [
-        { content: 'Medications', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Dosage', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Type', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
-      ]
-    ],
-    body: displayedMedications.length > 0 ? displayedMedications : [['No medications prescribed', '', '']],
-    theme: 'grid',
-    styles: {
-      fontSize: 10,
-      cellPadding: 4,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
-    },
-    columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: 90 },
-      2: { cellWidth: 30 }
-    },
-    margin: { left: contentMargin, right: contentMargin }
-  });
+  // Store the finalY position in a variable
+  let finalYAfterMedicationsTable = 130; // Default fallback position
+  
+  try {
+    autoTable(doc, {
+      startY: 55,
+      head: [
+        [
+          { content: 'Medications', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: 'Dosage', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: 'Type', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        ]
+      ],
+      body: displayedMedications.length > 0 ? displayedMedications : [['No medications prescribed', '', '']],
+      theme: 'grid',
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+        font: 'helvetica',
+        textColor: [60, 60, 60]
+      },
+      columnStyles: {
+        0: { cellWidth: 50, fillColor: [240, 250, 230] },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 30 }
+      },
+      margin: { left: contentMargin, right: contentMargin },
+      didDrawPage: (data) => {
+        // Capture the finalY position directly in the callback
+        finalYAfterMedicationsTable = data.cursor.y;
+      }
+    });
+  } catch (error) {
+    console.error("Error drawing medications table:", error);
+  }
   
   // Get supplements data
   const supplementRows = formData.supplements.map(sup => {
@@ -452,39 +463,36 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
   
-  // Fix for determining the Y position after the medications table
-  // Instead of accessing a property on the result, calculate a fallback position
-  let finalY = 130; // Default position if we can't determine it
-  if (medicationsTableResult && typeof medicationsTableResult === 'object' && 'lastAutoTable' in medicationsTableResult) {
-    finalY = (medicationsTableResult.lastAutoTable as any).finalY || finalY;
+  doc.text("Supplements", contentMargin, finalYAfterMedicationsTable + 30);
+  
+  try {
+    autoTable(doc, {
+      startY: finalYAfterMedicationsTable + 40,
+      head: [
+        [
+          { content: 'Supplements', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: 'Dosage', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: 'Source', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        ]
+      ],
+      body: displayedSupplements.length > 0 ? displayedSupplements : [['No supplements prescribed', '', '']],
+      theme: 'grid',
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+        font: 'helvetica',
+        textColor: [60, 60, 60]
+      },
+      columnStyles: {
+        0: { cellWidth: 50, fillColor: [240, 250, 230] },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 30 }
+      },
+      margin: { left: contentMargin, right: contentMargin }
+    });
+  } catch (error) {
+    console.error("Error drawing supplements table:", error);
   }
-  
-  doc.text("Supplements", contentMargin, finalY + 30);
-  
-  autoTable(doc, {
-    startY: finalY + 40,
-    head: [
-      [
-        { content: 'Supplements', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Dosage', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Source', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
-      ]
-    ],
-    body: displayedSupplements.length > 0 ? displayedSupplements : [['No supplements prescribed', '', '']],
-    theme: 'grid',
-    styles: {
-      fontSize: 10,
-      cellPadding: 4,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
-    },
-    columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: 90 },
-      2: { cellWidth: 30 }
-    },
-    margin: { left: contentMargin, right: contentMargin }
-  });
   
   // Add page number
   addPageNumber(doc, 7, pageWidth);
@@ -514,44 +522,48 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // Filter out empty follow-up rows
   const displayedFollowUps = filterEmptyRows(followUpRows);
   
-  const followUpsTableResult = autoTable(doc, {
-    startY: 55,
-    head: [
-      [
-        { content: 'With', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'For', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Date', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
-      ]
-    ],
-    body: displayedFollowUps.length > 0 ? displayedFollowUps : [['No follow-ups scheduled', '', '']],
-    theme: 'grid',
-    styles: {
-      fontSize: 10,
-      cellPadding: 4,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
-    },
-    columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: 90 },
-      2: { cellWidth: 30 }
-    },
-    margin: { left: contentMargin, right: contentMargin }
-  });
+  // Store the finalY position in a variable
+  let finalYAfterFollowUpsTable = 100; // Default fallback position
   
-  // Fix for determining the Y position after the follow-ups table
-  // Instead of accessing a property on the result, calculate a fallback position
-  let finalY = 100; // Default position if we can't determine it
-  if (followUpsTableResult && typeof followUpsTableResult === 'object' && 'lastAutoTable' in followUpsTableResult) {
-    finalY = (followUpsTableResult.lastAutoTable as any).finalY || finalY;
+  try {
+    autoTable(doc, {
+      startY: 55,
+      head: [
+        [
+          { content: 'With', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: 'For', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
+          { content: 'Date', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        ]
+      ],
+      body: displayedFollowUps.length > 0 ? displayedFollowUps : [['No follow-ups scheduled', '', '']],
+      theme: 'grid',
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+        font: 'helvetica',
+        textColor: [60, 60, 60]
+      },
+      columnStyles: {
+        0: { cellWidth: 50, fillColor: [240, 250, 230] },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 30 }
+      },
+      margin: { left: contentMargin, right: contentMargin },
+      didDrawPage: (data) => {
+        // Capture the finalY position directly in the callback
+        finalYAfterFollowUpsTable = data.cursor.y;
+      }
+    });
+  } catch (error) {
+    console.error("Error drawing follow-ups table:", error);
   }
   
   // Closing and signature with optimized spacing
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.text("Kind Regards,", contentMargin, finalY + 30);
+  doc.text("Kind Regards,", contentMargin, finalYAfterFollowUpsTable + 30);
   doc.setFont("helvetica", "bold");
-  doc.text("Dr Eslam Yakout", contentMargin, finalY + 40);
+  doc.text("Dr Eslam Yakout", contentMargin, finalYAfterFollowUpsTable + 40);
   
   // Add page number
   addPageNumber(doc, 8, pageWidth);
