@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { loginUser, getUsers } from "@/services/databaseService";
+import { loginUser, getUsers } from "@/services";
 import { User } from "@/types";
 
 const Login = () => {

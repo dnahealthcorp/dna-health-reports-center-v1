@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,14 +7,14 @@ import MedicationForm from "@/components/medications/MedicationForm";
 import { MedicationList } from "@/components/medications/MedicationList";
 import { MedicationEditModal } from "@/components/medications/MedicationEditModal";
 import { Medication, User } from "@/types";
-import { Plus, ArrowUpAZ, ArrowDownAZ } from "lucide-react";
+import { Plus } from "lucide-react";
 import { 
   getMedications, 
   addMedication, 
   updateMedication, 
   deleteMedication, 
   getCurrentUser 
-} from "@/services/databaseService";
+} from "@/services";
 
 const Medications = () => {
   const [medications, setMedications] = useState<Medication[]>([]);

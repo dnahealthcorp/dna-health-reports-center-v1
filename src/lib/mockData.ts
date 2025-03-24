@@ -1,252 +1,231 @@
 
-import { Medication, Patient, User, SummaryFinding, NutritionRecommendation, ExerciseRecommendation, SleepStressRecommendation, FollowUp } from "@/types";
+import { Medication, Patient, PatientFormData, User } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
 
+// Mock medications data
 export const mockMedications: Medication[] = [
   {
     id: "med1",
-    name: "Amoxicillin",
-    dosage: "500mg",
-    frequency: "3 times daily",
-    notes: "Take with food",
-    type: "medication"
+    name: "Metformin",
+    dosage: "500mg twice daily",
+    type: "medication",
+    notes: "Take with food"
   },
   {
     id: "med2",
     name: "Lisinopril",
-    dosage: "10mg",
-    frequency: "Once daily",
-    notes: "Take in the morning",
-    type: "medication"
+    dosage: "10mg daily",
+    type: "medication",
+    notes: "Take in the morning"
   },
   {
     id: "med3",
-    name: "Metformin",
-    dosage: "1000mg",
-    frequency: "Twice daily",
-    notes: "Take with meals",
-    type: "medication"
+    name: "Atorvastatin",
+    dosage: "20mg daily",
+    type: "medication",
+    notes: "Take in the evening"
   },
   {
     id: "med4",
-    name: "Atorvastatin",
-    dosage: "20mg",
-    frequency: "Once daily at bedtime",
-    type: "medication"
+    name: "Aspirin",
+    dosage: "81mg daily",
+    type: "medication",
+    notes: "Take with food"
   },
   {
-    id: "med5",
-    name: "Albuterol",
-    dosage: "2 puffs",
-    frequency: "Every 4-6 hours as needed",
-    type: "medication"
-  },
-  {
-    id: "med6",
-    name: "Sertraline",
-    dosage: "50mg",
-    frequency: "Once daily",
-    notes: "Take in the morning",
-    type: "medication"
-  },
-  {
-    id: "med7",
-    name: "Ibuprofen",
-    dosage: "400mg",
-    frequency: "Every 6 hours as needed",
-    notes: "Take with food",
-    type: "medication"
-  },
-  {
-    id: "med8",
-    name: "Levothyroxine",
-    dosage: "75mcg",
-    frequency: "Once daily on empty stomach",
-    type: "medication"
-  },
-  {
-    id: "sup1",
-    name: "Biogena Multispektrum",
-    dosage: "2 capsules once daily in the morning (am)",
-    frequency: "Once daily",
-    notes: "",
+    id: "supp1",
+    name: "Vitamin D",
+    dosage: "2000 IU daily",
     type: "supplement"
   },
   {
-    id: "sup2",
-    name: "Biogena Omni Lactis",
-    dosage: "2 capsules once daily with food (any time)",
-    frequency: "Once daily",
-    notes: "",
+    id: "supp2",
+    name: "Omega-3 Fish Oil",
+    dosage: "1000mg daily",
     type: "supplement"
+  },
+  {
+    id: "supp3",
+    name: "Magnesium Glycinate",
+    dosage: "400mg before bed",
+    type: "supplement",
+    notes: "Good for sleep"
+  },
+  {
+    id: "supp4",
+    name: "Zinc",
+    dosage: "15mg daily",
+    type: "supplement",
+    notes: "Take with food"
+  },
+  {
+    id: "supp5",
+    name: "Vitamin B Complex",
+    dosage: "1 tablet daily",
+    type: "supplement"
+  },
+  {
+    id: "supp6",
+    name: "Berberine",
+    dosage: "500mg three times daily",
+    type: "supplement",
+    notes: "Take with meals for blood sugar management"
   }
 ];
 
+// Mock patients data
 export const mockPatients: Patient[] = [
   {
-    id: "p1",
-    name: "Jane Smith",
-    dateOfBirth: "1985-04-12",
-    gender: "Female",
-    medicalRecordNumber: "MRN78901",
-    lastUpdated: "2023-11-15T09:30:00",
-    status: "nurse-pending"
-  },
-  {
-    id: "p2",
+    id: "patient1",
     name: "John Doe",
-    dateOfBirth: "1978-08-23",
+    dateOfBirth: "1970-05-15",
     gender: "Male",
-    medicalRecordNumber: "MRN12345",
-    lastUpdated: "2023-11-14T14:45:00",
-    status: "doctor-pending"
-  },
-  {
-    id: "p3",
-    name: "Emily Johnson",
-    dateOfBirth: "1992-01-30",
-    gender: "Female",
-    medicalRecordNumber: "MRN45678",
-    lastUpdated: "2023-11-13T11:15:00",
-    status: "completed"
-  },
-  {
-    id: "p4",
-    name: "Michael Chen",
-    dateOfBirth: "1965-11-08",
-    gender: "Male",
-    medicalRecordNumber: "MRN34567",
-    lastUpdated: "2023-11-15T16:20:00",
+    medicalRecordNumber: "MRN-12345678",
+    lastUpdated: new Date().toISOString(),
     status: "nurse-pending"
   },
   {
-    id: "p5",
-    name: "Sarah Wilson",
-    dateOfBirth: "1990-07-17",
+    id: "patient2",
+    name: "Jane Smith",
+    dateOfBirth: "1985-08-22",
     gender: "Female",
-    medicalRecordNumber: "MRN23456",
-    lastUpdated: "2023-11-14T10:10:00",
+    medicalRecordNumber: "MRN-23456789",
+    lastUpdated: new Date().toISOString(),
     status: "doctor-pending"
+  },
+  {
+    id: "patient3",
+    name: "Michael Johnson",
+    dateOfBirth: "1965-01-10",
+    gender: "Male",
+    medicalRecordNumber: "MRN-34567890",
+    lastUpdated: new Date().toISOString(),
+    status: "completed"
   }
 ];
 
+// Mock users data
 export const mockUsers: User[] = [
   {
-    id: "u1",
-    name: "Dr. Elizabeth Taylor",
-    role: "doctor",
-    email: "elizabeth.taylor@hospital.com"
+    id: "user1",
+    name: "Nurse Nancy",
+    email: "nurse@example.com",
+    role: "nurse"
   },
   {
-    id: "u2",
-    name: "Nurse Richard Brown",
-    role: "nurse",
-    email: "richard.brown@hospital.com"
+    id: "user2",
+    name: "Dr. Smith",
+    email: "doctor@example.com",
+    role: "doctor"
   },
   {
-    id: "u3",
-    name: "Admin User",
-    role: "admin",
-    email: "admin@hospital.com"
+    id: "user3",
+    name: "Admin Alex",
+    email: "admin@example.com",
+    role: "admin"
   }
 ];
 
-export const getPatients = () => {
-  return Promise.resolve(mockPatients);
-};
-
-export const getPatientById = (id: string) => {
-  const patient = mockPatients.find(p => p.id === id);
-  return Promise.resolve(patient);
-};
-
-export const getMedications = () => {
-  return Promise.resolve(mockMedications);
-};
-
-export const getCurrentUser = () => {
-  // For demo purposes, we'll default to nurse
-  return Promise.resolve(mockUsers[1]);
-};
-
-export const getPatientFormData = (patientId: string) => {
-  // Initialize empty SummaryFinding object
-  const emptySummaryFinding: SummaryFinding = {
-    glucoseMetabolism: '',
-    lipidProfile: '',
-    inflammation: '',
-    uricAcid: '',
-    vitamins: '',
-    minerals: '',
-    sexHormones: '',
-    renalLiverFunction: '',
-    cancerMarkers: ''
-  };
-
-  const emptyNutritionRecommendation: NutritionRecommendation = {
-    nutritionalPlan: '',
-    proteinConsumption: '',
-    omissions: '',
-    additionalConsiderations: ''
-  };
-
-  const emptyExerciseRecommendation: ExerciseRecommendation = {
-    focusOn: '',
-    walking: '',
-    avoid: '',
-    tracking: ''
-  };
-
-  const emptySleepStressRecommendation: SleepStressRecommendation = {
-    sleep: '',
-    stress: ''
-  };
-
-  const emptyFollowUp: FollowUp = {
-    withDoctor: 'Dr Nas',
-    forReason: 'Follow up',
-    date: '23/10/2025'
-  };
-
-  // Mock form data for a patient
-  return Promise.resolve({
+// Mock patient form data function
+export const getPatientFormData = (patientId: string): Promise<PatientFormData | null> => {
+  const patient = mockPatients.find(p => p.id === patientId);
+  
+  if (!patient) {
+    return Promise.resolve(null);
+  }
+  
+  const patientMedications = [
+    {
+      id: uuidv4(),
+      medicationId: "med1",
+      dosage: "500mg twice daily"
+    },
+    {
+      id: uuidv4(),
+      medicationId: "med2",
+      dosage: "20mg at night"
+    }
+  ];
+  
+  const supplements = [
+    {
+      id: uuidv4(),
+      supplementId: "supp1",
+      dosage: "2000 IU",
+      source: "Thorne"
+    },
+    {
+      id: uuidv4(),
+      supplementId: "supp2",
+      dosage: "1000mg",
+      source: "Nordic Naturals"
+    }
+  ];
+  
+  const mockFormData: PatientFormData = {
     patientInfo: {
-      name: mockPatients.find(p => p.id === patientId)?.name || "",
-      dateOfBirth: mockPatients.find(p => p.id === patientId)?.dateOfBirth || "",
-      gender: mockPatients.find(p => p.id === patientId)?.gender || "",
-      medicalRecordNumber: mockPatients.find(p => p.id === patientId)?.medicalRecordNumber || ""
+      name: patient.name,
+      dateOfBirth: patient.dateOfBirth,
+      gender: patient.gender,
+      medicalRecordNumber: patient.medicalRecordNumber
     },
     vitals: {
       bloodPressure: "120/80",
-      height: "5'10\"",
-      weight: "170"
+      height: "172",
+      weight: "70",
+      heartRate: "78",
+      temperature: "36.6",
+      respiratoryRate: "16",
+      oxygenSaturation: "98"
     },
-    summaryFindings: emptySummaryFinding,
-    medications: [
-      {
-        id: "pm1",
-        medicationId: "med1",
-        dosage: "500mg",
-        frequency: "3 times daily",
-        notes: "Take with food"
-      }
-    ],
-    supplements: [
-      {
-        id: "ps1",
-        supplementId: "sup1",
-        dosage: "2 capsules once daily in the morning (am)",
-        source: "Clinic"
-      }
-    ],
-    exerciseRecommendations: "30 minutes of moderate activity 5 days per week",
-    nurseNotes: "Patient reports occasional headaches in the morning",
-    doctorNotes: "",
-    diagnosis: "",
-    treatmentPlan: "",
+    summaryFindings: {
+      glucoseMetabolism: "Normal fasting glucose. HbA1c is 5.4%.",
+      lipidProfile: "Total cholesterol: 180 mg/dL, LDL: 100 mg/dL, HDL: 55 mg/dL, Triglycerides: 120 mg/dL",
+      inflammation: "CRP: 1.2 mg/L, ESR: 10 mm/hr",
+      uricAcid: "5.2 mg/dL",
+      vitamins: "Vitamin D: 35 ng/mL, B12: 450 pg/mL",
+      minerals: "Iron: 85 μg/dL, Magnesium: 2.1 mg/dL, Zinc: 90 μg/dL",
+      sexHormones: "Normal for age",
+      renalLiverFunction: "BUN: 15 mg/dL, Creatinine: 0.9 mg/dL, eGFR: >90 mL/min, AST: 22 U/L, ALT: 25 U/L",
+      cancerMarkers: "Within normal limits"
+    },
+    medications: patientMedications,
+    supplements: supplements,
+    exerciseRecommendations: "30 minutes of moderate activity 5 times per week",
+    nurseNotes: "Patient reports occasional headaches, otherwise feeling well",
+    doctorNotes: "Patient is in good health. Continue current management plan.",
+    diagnosis: "Essential hypertension, well-controlled",
+    treatmentPlan: "Continue current medications. Follow up in 6 months.",
     showInsulinResistance: false,
-    nutritionRecommendations: emptyNutritionRecommendation,
-    exerciseDetail: emptyExerciseRecommendation,
-    sleepStressRecommendations: emptySleepStressRecommendation,
-    followUps: [emptyFollowUp]
-  });
+    nutritionRecommendations: {
+      nutritionalPlan: "Mediterranean diet with emphasis on whole foods",
+      proteinConsumption: "1g per kg of body weight daily",
+      omissions: "Limit processed foods and added sugars",
+      additionalConsiderations: "Patient has lactose intolerance - recommend plant-based alternatives"
+    },
+    exerciseDetail: {
+      focusOn: "Aerobic exercise and strength training",
+      walking: "10,000 steps daily",
+      avoid: "High-impact activities due to knee pain",
+      tracking: "Recommend using fitness tracker app"
+    },
+    sleepStressRecommendations: {
+      sleep: "Aim for 7-8 hours of sleep. Practice good sleep hygiene.",
+      stress: "Daily meditation for 10 minutes. Consider yoga."
+    },
+    followUps: [
+      {
+        withDoctor: "Dr. Smith",
+        forReason: "Blood pressure check",
+        date: "2023-09-15"
+      },
+      {
+        withDoctor: "Dr. Jones",
+        forReason: "Annual physical",
+        date: "2023-12-10"
+      }
+    ]
+  };
+  
+  return Promise.resolve(mockFormData);
 };

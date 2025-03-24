@@ -2,7 +2,7 @@
 // Entry point for PDF service - redirects to the new modular implementation
 import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
-import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
+import { getPatientById, getCurrentUser, savePDFReference } from "@/services";
 import { supabase } from "@/integrations/supabase/client";
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {

@@ -15,7 +15,7 @@ import {
   getPatientFormData,
   savePatientFormData,
   updatePatient
-} from "@/services/databaseService";
+} from "@/services";
 import { 
   Patient, 
   Medication, 

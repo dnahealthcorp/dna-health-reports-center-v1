@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getPatients, getCurrentUser, getPDFFilesByPatientId } from "@/services/databaseService";
+import { getPatients, getCurrentUser, getPDFFilesByPatientId } from "@/services";
 import { Patient, User } from "@/types";
 import { ClipboardList, Users, FileText, Clock, Download } from "lucide-react";
 import PatientCard from "@/components/PatientCard";
