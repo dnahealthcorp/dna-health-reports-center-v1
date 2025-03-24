@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Index from './pages/Index'
 import Patients from './pages/Patients'
@@ -56,7 +57,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
       <Routes>
         <Route path="/login" element={<Login />} />
         
@@ -69,7 +70,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
-    </BrowserRouter>
+    </>
   );
 }
 
