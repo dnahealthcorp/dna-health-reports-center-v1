@@ -1,8 +1,9 @@
+
 import Layout from "@/components/Layout";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { getMedications, addMedication, updateMedication } from "@/services/databaseService";
+import { Plus, Trash2 } from "lucide-react";
+import { getMedications, addMedication, updateMedication, deleteMedication } from "@/services/databaseService";
 import { Medication } from "@/types";
 import { MedicationList } from "@/components/medications/MedicationList";
 import { MedicationEditModal } from "@/components/medications/MedicationEditModal";
@@ -42,6 +43,36 @@ const Medications = () => {
     setIsEditDialogOpen(true);
   };
 
+  const handleDuplicateMedication = (medication: Medication) => {
+    const duplicatedMedication: Omit<Medication, "id"> = {
+      name: `${medication.name} (Copy)`,
+      dosage: medication.dosage,
+      type: medication.type,
+      notes: medication.notes,
+      link: medication.link
+    };
+    
+    handleSaveMedication(duplicatedMedication as Medication);
+  };
+
+  const handleDeleteMedication = async (id: string) => {
+    try {
+      await deleteMedication(id);
+      toast({
+        title: "Success",
+        description: "Medication deleted successfully",
+      });
+      fetchMedications();
+    } catch (error) {
+      console.error("Error deleting medication:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete medication",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCloseDialog = () => {
     setIsCreateDialogOpen(false);
     setIsEditDialogOpen(false);
@@ -76,6 +107,25 @@ const Medications = () => {
       });
     }
   };
+
+  const handleUpdateMedication = async (updatedMedication: Medication) => {
+    try {
+      await updateMedication(updatedMedication);
+      toast({
+        title: "Success",
+        description: "Medication updated successfully",
+      });
+      fetchMedications();
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error updating medication:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update medication",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <Layout>
@@ -93,19 +143,41 @@ const Medications = () => {
           </div>
         </div>
         
-        {/* Medication List Component */}
+        {/* Display Medications Section */}
+        <h2 className="text-xl font-semibold mt-8 mb-4">Medications</h2>
         <MedicationList 
           medications={medications} 
+          type="medication"
+          isAdmin={true}
           onEdit={handleEditMedication}
+          onDuplicate={handleDuplicateMedication}
+          onDelete={handleDeleteMedication}
         />
         
-        {/* Add/Edit Medication Dialog */}
-        <MedicationEditModal 
-          isOpen={isCreateDialogOpen || isEditDialogOpen}
-          onClose={handleCloseDialog}
-          medication={selectedMedication}
-          onSave={handleSaveMedication}
+        {/* Display Supplements Section */}
+        <h2 className="text-xl font-semibold mt-8 mb-4">Supplements</h2>
+        <MedicationList 
+          medications={medications} 
+          type="supplement"
+          isAdmin={true}
+          onEdit={handleEditMedication}
+          onDuplicate={handleDuplicateMedication}
+          onDelete={handleDeleteMedication}
         />
+        
+        {/* Create a new Medication Edit Modal component */}
+        {(isCreateDialogOpen || isEditDialogOpen) && selectedMedication && (
+          <MedicationEditModal 
+            medication={selectedMedication}
+            onClose={handleCloseDialog}
+            onUpdate={handleUpdateMedication}
+            onChange={(field, value) => {
+              setSelectedMedication(prev => 
+                prev ? { ...prev, [field]: value } : null
+              );
+            }}
+          />
+        )}
       </div>
     </Layout>
   );

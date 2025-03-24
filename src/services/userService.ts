@@ -16,7 +16,7 @@ export const getUsers = async (): Promise<User[]> => {
     return data as User[];
   } catch (error) {
     console.error("Error getting users:", error);
-    throw error;
+    return [];
   }
 };
 
@@ -139,24 +139,6 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
-export const getUsers = async (): Promise<User[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('name');
-    
-    if (error) {
-      throw error;
-    }
-    
-    return data as User[];
-  } catch (error) {
-    console.error("Error getting users:", error);
-    return [];
-  }
-};
-
 export const logoutUser = async (): Promise<void> => {
   try {
     const { error } = await supabase.auth.signOut();
@@ -167,5 +149,40 @@ export const logoutUser = async (): Promise<void> => {
   } catch (error) {
     console.error("Error signing out:", error);
     throw error;
+  }
+};
+
+// Added the missing function
+export const loginUser = async (email: string, password: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (!data.user) {
+      return null;
+    }
+    
+    // Get user data from users table
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+    
+    if (userError) {
+      console.error("Error getting user data:", userError);
+      return null;
+    }
+    
+    return userData as User;
+  } catch (error) {
+    console.error("Error during login:", error);
+    return null;
   }
 };

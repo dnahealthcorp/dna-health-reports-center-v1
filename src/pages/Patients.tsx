@@ -5,7 +5,7 @@ import { Patient } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import PatientCard from "@/components/PatientCard";
-import AddPatientDialog from "@/components/AddPatientDialog";
+import { AddPatientDialog } from "@/components/AddPatientDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatients } from "@/services/databaseService";

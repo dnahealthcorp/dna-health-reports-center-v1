@@ -1,9 +1,10 @@
+
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatDateForDatabase } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -37,16 +38,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { addPatient, getPatientByMedicalRecordNumber } from "@/services/databaseService";
-import { formatDateForDatabase } from "@/lib/utils";
+import { 
+  addPatient, 
+  getPatientByMedicalRecordNumber 
+} from "@/services/index";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Patient } from "@/types";
 
 interface AddPatientDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onPatientAdded?: (patient: Patient) => void;
 }
 
@@ -115,14 +118,20 @@ export function AddPatientDialog({
       // Format date to be compatible with database
       const formattedDate = formatDateForDatabase(data.dateOfBirth);
       
-      // Create the patient
-      const newPatient = await addPatient({
+      // Create the patient with required fields for the Patient type
+      const newPatientData = {
         name: data.name,
         dateOfBirth: formattedDate,
         gender: data.gender,
         medicalRecordNumber: data.medicalRecordNumber,
-        status: "nurse-pending",
-      });
+        status: "nurse-pending" as const,
+        // These will be generated server-side but are required in the type
+        id: "",
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // Create the patient
+      const newPatient = await addPatient(newPatientData);
       
       // Show success notification
       toast({
@@ -132,7 +141,7 @@ export function AddPatientDialog({
       
       // Close dialog and refresh patient list
       form.reset();
-      onOpenChange(false);
+      if (onOpenChange) onOpenChange(false);
       if (onPatientAdded) {
         onPatientAdded(newPatient);
       }

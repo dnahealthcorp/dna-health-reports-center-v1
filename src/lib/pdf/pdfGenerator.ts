@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -446,17 +447,17 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   // Filter out empty supplement rows
   const displayedSupplements = filterEmptyRows(supplementRows);
   
-  // Calculate the position after the medications table
-  const supplementsY = medicationsTable.finalY + 20;
-  
   // Supplements title and table with optimized spacing
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Supplements", contentMargin, supplementsY);
+  
+  // Fix for lastAutoTable property - get the finalY position
+  const finalY = medicationsTable ? (medicationsTable as any).finalY : 130;
+  doc.text("Supplements", contentMargin, finalY + 30);
   
   autoTable(doc, {
-    startY: supplementsY + 5,
+    startY: finalY + 40,
     head: [
       [
         { content: 'Supplements', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -533,14 +534,15 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     margin: { left: contentMargin, right: contentMargin }
   });
   
+  // Fix for lastAutoTable property - get the finalY position
+  const finalY = followUpsTable ? (followUpsTable as any).finalY : 100;
+  
   // Closing and signature with optimized spacing
-  const signatureY = followUpsTable.finalY + 20;
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "normal");
-  doc.text("Kind Regards,", contentMargin, signatureY);
+  doc.text("Kind Regards,", contentMargin, finalY + 30);
   doc.setFont("helvetica", "bold");
-  doc.text("Dr Eslam Yakout", contentMargin, signatureY + 10);
+  doc.text("Dr Eslam Yakout", contentMargin, finalY + 40);
   
   // Add page number
   addPageNumber(doc, 8, pageWidth);

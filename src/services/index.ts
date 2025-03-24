@@ -13,7 +13,8 @@ export {
   deletePatient, 
   getPatientFormData, 
   savePatientFormData,
-  generateMRN 
+  generateMRN,
+  getPatientByMedicalRecordNumber 
 } from './patient';
 
 // Medication service exports
@@ -28,9 +29,11 @@ export {
 export { 
   getUsers, 
   getCurrentUser, 
-  setCurrentUser, 
   logoutUser, 
-  loginUser 
+  loginUser,
+  addUser,
+  updateUser,
+  deleteUser
 } from './userService';
 
 // PDF service exports

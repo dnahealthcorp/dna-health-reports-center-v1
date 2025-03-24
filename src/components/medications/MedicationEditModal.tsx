@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Medication } from "@/types";
+import { Textarea } from "@/components/ui/textarea";
 
 interface MedicationEditModalProps {
   medication: Medication;
@@ -63,7 +64,7 @@ export const MedicationEditModal = ({
             </div>
             <div>
               <Label htmlFor="edit-notes">Notes</Label>
-              <Input 
+              <Textarea 
                 id="edit-notes" 
                 value={medication.notes || ''}
                 onChange={(e) => onChange("notes", e.target.value)}
