@@ -96,7 +96,7 @@ export const generatePDF = async (
       y = 20;
     }
 
-    // Supplements
+    // Supplements - now using the modified formatMedication that accepts both types
     if (data.supplements && data.supplements.length > 0) {
       formatMedication(doc, "Supplements", data.supplements, medications, margin, y);
       y += 70;

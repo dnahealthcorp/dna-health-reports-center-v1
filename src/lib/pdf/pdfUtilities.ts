@@ -1,6 +1,6 @@
 
 import { jsPDF } from "jspdf";
-import { Medication, FollowUp } from "@/types";
+import { Medication, FollowUp, MedicationItem, SupplementItem } from "@/types";
 import autoTable from "jspdf-autotable";
 
 /**
@@ -131,7 +131,7 @@ export const formatSection = (
 export const formatMedication = (
   doc: jsPDF,
   title: string,
-  medications: { medicationId: string; dosage: string; frequency?: string; notes?: string; supplementId?: string; source?: string }[],
+  medications: MedicationItem[] | SupplementItem[] | any[], // Accept both types
   allMedications: Medication[],
   margin: number,
   y: number
@@ -150,9 +150,10 @@ export const formatMedication = (
   const tableRows: string[][] = [];
   
   medications.forEach(med => {
-    const medication = allMedications.find(m => 
-      m.id === (med.medicationId || med.supplementId)
-    );
+    // Check if it's a medication or supplement by looking at the properties
+    const itemId = med.medicationId || med.supplementId;
+    
+    const medication = allMedications.find(m => m.id === itemId);
     
     if (medication) {
       const dosage = med.dosage || "-";
