@@ -29,14 +29,14 @@ export const PatientHeader = ({
           <ArrowLeft className="h-4 w-4 mr-1" />
           <span className="text-sm">Back</span>
         </button>
-        <h1 className="text-3xl font-semibold tracking-tight">{patient.name}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{patient?.name || "Patient"}</h1>
         <div className="flex items-center gap-3 mt-1">
           <p className="text-muted-foreground">
-            MRN: {patient.medicalRecordNumber}
+            MRN: {patient?.medicalRecordNumber || "N/A"}
           </p>
           <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
           <p className="text-muted-foreground">
-            DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}
+            DOB: {patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : "N/A"}
           </p>
         </div>
       </div>

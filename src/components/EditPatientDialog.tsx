@@ -33,7 +33,7 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
         gender: patient.gender
       });
     }
-  }, [patient]);
+  }, [patient, open]);
 
   const handleChange = (field: string, value: string) => {
     setPatientData(prev => ({ ...prev, [field]: value }));

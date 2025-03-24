@@ -11,8 +11,13 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     const patient = await getPatientById(formData.patientInfo.medicalRecordNumber);
     const currentUser = await getCurrentUser();
     
+    // Make sure patient info is properly set in form data
+    if (patient && (!formData.patientInfo.name || formData.patientInfo.name.trim() === '')) {
+      formData.patientInfo.name = patient.name;
+    }
+    
     // Generate the PDF
-    const pdfOutput = generatePDFImpl(formData, medications);
+    const pdfOutput = await generatePDFImpl(formData, medications);
     
     // Save PDF reference to database if we have a patient
     let fileName = "";

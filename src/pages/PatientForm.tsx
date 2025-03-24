@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -135,6 +136,14 @@ const PatientForm = () => {
     setIsSaving(true);
     
     try {
+      // Make sure patient info is properly set in form data
+      formData.patientInfo = {
+        name: patient.name,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        medicalRecordNumber: patient.medicalRecordNumber
+      };
+      
       // Save form data
       await savePatientFormData(patient.id, formData);
       
@@ -178,6 +187,14 @@ const PatientForm = () => {
     if (!formData || !patient) return;
     
     try {
+      // Ensure patient info is set correctly before generating PDF
+      formData.patientInfo = {
+        name: patient.name,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        medicalRecordNumber: patient.medicalRecordNumber
+      };
+      
       // Generate the PDF
       const fileName = await generatePDF(formData, medications);
       
