@@ -20,6 +20,15 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// Helper function to validate roles
+const validateRole = (role: string): "nurse" | "doctor" | "admin" => {
+  if (role === "nurse" || role === "doctor" || role === "admin") {
+    return role;
+  }
+  // Default to "nurse" if an invalid role is provided
+  return "nurse";
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,11 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               } else {
                 // Create user in users table if they don't exist yet
                 console.log("User authenticated but not found in users table, creating user record");
-                const newUser = {
+                const newUser: User = {
                   id: session.user.id,
                   name: session.user.email?.split('@')[0] || 'New User',
                   email: session.user.email || '',
-                  role: 'nurse' // Default role is set to 'nurse'
+                  role: validateRole(session.user.user_metadata.role || "nurse")
                 };
                 
                 // Create the user in the database
@@ -63,11 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching user after auth change:", error);
             // Don't sign out on error, just set a basic user if we have a session
             if (session) {
+              const fallbackRole = validateRole(session.user.user_metadata.role || "nurse");
               setUser({
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: 'nurse' // Default role is set to 'nurse'
+                role: fallbackRole
               });
             }
           } finally {
@@ -107,11 +117,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } else if (isMounted) {
               // User is authenticated but not in our users table
               console.log("User authenticated but not found in users table, creating fallback user");
-              const newUser = {
+              const newUser: User = {
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: 'nurse' // Default role is set to 'nurse'
+                role: validateRole(session.user.user_metadata.role || "nurse")
               };
               
               // Try to create the user in the database
@@ -127,11 +137,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching user:", error);
             // Use session data as fallback if we have a session
             if (session.user && isMounted) {
+              const fallbackRole = validateRole(session.user.user_metadata.role || "nurse");
               setUser({
                 id: session.user.id,
                 name: session.user.email?.split('@')[0] || 'New User',
                 email: session.user.email || '',
-                role: 'nurse' // Default role is set to 'nurse'
+                role: fallbackRole
               });
             }
           }
