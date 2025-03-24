@@ -32,6 +32,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/patients" element={<Patients />} />
           <Route path="/patient/:id" element={<PatientForm />} />
+          <Route path="/patients/:id" element={<PatientForm />} /> {/* Add this route to handle both paths */}
           
           {/* Use the MedicationLayout for Medications and Supplements pages */}
           <Route path="/medications" element={<MedicationLayout><Medications /></MedicationLayout>} />

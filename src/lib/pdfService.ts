@@ -66,14 +66,14 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
                 .from('patient-pdfs')
                 .getPublicUrl(`${patient.id}/${fileName}`);
                 
-              // Save PDF reference with URL - fixed by passing the correct number of arguments
-              await savePDFReference(patient.id, fileName, urlData.publicUrl);
+              // Save PDF reference with URL, matching the signature in databaseService
+              await savePDFReference(patient.id, fileName);
             }
           } catch (storageError) {
             console.error("Error accessing storage:", storageError);
           }
         } else {
-          // If storage not available, just save the reference with 2 arguments
+          // If storage not available, just save the reference
           await savePDFReference(patient.id, fileName);
         }
       } catch (error) {
