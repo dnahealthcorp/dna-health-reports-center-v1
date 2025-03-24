@@ -62,7 +62,8 @@ export const getPDFFiles = async (): Promise<PDFFile[]> => {
       patientId: item.patient_id,
       fileName: item.file_name,
       createdAt: item.created_at,
-      createdBy: item.users?.name || "Unknown",
+      // Fix the property access - access the name from the users object properly
+      createdBy: item.users ? item.users.name : "Unknown",
       url: item.url
     }));
     
@@ -97,7 +98,8 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
       patientId: item.patient_id,
       fileName: item.file_name,
       createdAt: item.created_at,
-      createdBy: item.users?.name || "Unknown",
+      // Fix the property access - access the name from the users object properly
+      createdBy: item.users ? item.users.name : "Unknown",
       url: item.url
     }));
     
