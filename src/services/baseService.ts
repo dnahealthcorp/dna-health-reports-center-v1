@@ -1,6 +1,7 @@
+
 import { Json } from "@/types";
 import { createClient } from '@supabase/supabase-js';
-import { getMockData } from "@/lib/mockData";
+import { mockMedications, mockPatients, getPatientFormData as getMockPatientFormData } from "@/lib/mockData";
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -8,23 +9,30 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Initialize mock data
-let mockPatients: any[] = [];
-let mockMedications: any[] = [];
-let mockPatientFormData: any = {};
+let mockPatientsData: any[] = [];
+let mockMedicationsData: any[] = [];
 
 export const initializeFromMockData = async () => {
-  if (mockPatients.length === 0 && mockMedications.length === 0) {
-    const mockData = await getMockData();
-    mockPatients = mockData.patients;
-    mockMedications = mockData.medications;
-    mockPatientFormData = mockData.patientFormData;
+  if (mockPatientsData.length === 0 && mockMedicationsData.length === 0) {
+    // Use the directly imported mock data
+    mockPatientsData = mockPatients;
+    mockMedicationsData = mockMedications;
   }
   
   return {
-    mockPatients,
-    mockMedications,
-    getPatientFormData: (patientId: string) => mockPatientFormData[patientId] || null
+    mockPatients: mockPatientsData,
+    mockMedications: mockMedicationsData,
+    getPatientFormData: getMockPatientFormData
   };
+};
+
+// Add the missing utility functions for JSON conversion
+export const toJson = <T>(value: T): Json => {
+  return value as unknown as Json;
+};
+
+export const safeJsonArray = <T>(values: T[]): Json => {
+  return values as unknown as Json;
 };
 
 // Utility function to convert JSON string to array safely
@@ -33,5 +41,5 @@ export const safeJsonArrayConversion = <T>(json: Json, typeGuard: (item: any) =>
     return [];
   }
   
-  return json.filter(typeGuard);
+  return json.filter(typeGuard) as T[];
 };

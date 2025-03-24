@@ -1,5 +1,8 @@
 
 // Patient-related type definitions
+import { PDFFile } from './pdf';
+import { MedicationItem, SupplementItem } from './medication';
+
 export interface Patient {
   id: string;
   name: string;

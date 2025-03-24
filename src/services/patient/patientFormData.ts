@@ -6,7 +6,8 @@ import {
   isSummaryFinding, isNutritionRecommendation, isExerciseRecommendation, 
   isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem 
 } from "@/types";
-import { supabase, initializeFromMockData, safeJsonArrayConversion, toJson, safeJsonArray } from "../baseService";
+import { supabase, initializeFromMockData, safeJsonArrayConversion } from "../baseService";
+import { toJson, safeJsonArray } from "@/types/common";
 import { getPatientById, updatePatient } from './patientCore';
 
 // Create empty form data for a new patient

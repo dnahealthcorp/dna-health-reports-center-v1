@@ -1,6 +1,6 @@
-
 import { User } from "@/types";
 import { supabase, initializeFromMockData } from "./baseService";
+import { mockUsers } from "@/lib/mockData";
 
 const mapUserFromDB = (dbUser: any): User => {
   // Ensure role is one of the allowed values
@@ -32,8 +32,7 @@ export const getUsers = async (): Promise<User[]> => {
   } catch (error) {
     console.error("Error getting users from Supabase:", error);
     
-    // Fallback to mock data
-    const { mockUsers } = await initializeFromMockData();
+    // Fallback to mock data - directly import mockUsers
     return mockUsers;
   }
 };
@@ -62,7 +61,6 @@ export const getCurrentUser = async (): Promise<User | null> => {
     console.error("Error getting current user from Supabase:", error);
     
     // Fallback to first user in mock data
-    const { mockUsers } = await initializeFromMockData();
     return mockUsers[0] || null;
   }
 };
