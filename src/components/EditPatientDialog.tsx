@@ -1,34 +1,47 @@
 
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Patient } from "@/types";
-import { UserPlus } from "lucide-react";
-import * as databaseService from "@/services/databaseService";
+import { updatePatient } from "@/services/databaseService";
 
-interface AddPatientDialogProps {
-  onAddPatient: (patient: Patient) => void;
+interface EditPatientDialogProps {
+  patient: Patient | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUpdate: (patient: Patient) => void;
 }
 
-const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
+const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatientDialogProps) => {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [patientData, setPatientData] = useState({
+  const [patientData, setPatientData] = useState<Partial<Patient>>({
     name: "",
     dateOfBirth: "",
     gender: ""
   });
+
+  useEffect(() => {
+    if (patient) {
+      setPatientData({
+        name: patient.name,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender
+      });
+    }
+  }, [patient]);
 
   const handleChange = (field: string, value: string) => {
     setPatientData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async () => {
+    if (!patient) return;
+    
     // Validate
     if (!patientData.name || !patientData.dateOfBirth || !patientData.gender) {
       toast({
@@ -42,94 +55,74 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
     setIsLoading(true);
 
     try {
-      // Auto-generate MRN
-      const medicalRecordNumber = databaseService.generateMRN();
-
-      // Create new patient
-      const newPatient: Patient = {
-        id: `p${Date.now()}`,
-        name: patientData.name,
-        dateOfBirth: patientData.dateOfBirth,
-        gender: patientData.gender,
-        medicalRecordNumber,
-        lastUpdated: new Date().toISOString(),
-        status: 'nurse-pending'
+      const updatedPatient: Patient = {
+        ...patient,
+        name: patientData.name || patient.name,
+        dateOfBirth: patientData.dateOfBirth || patient.dateOfBirth,
+        gender: patientData.gender || patient.gender,
+        lastUpdated: new Date().toISOString()
       };
 
-      // Save patient to database
-      await databaseService.addPatient(newPatient);
-
-      // Initialize form data for the new patient
-      await databaseService.getPatientFormData(newPatient.id);
+      // Update patient in database
+      await updatePatient(updatedPatient);
 
       setIsLoading(false);
-      onAddPatient(newPatient);
-      setPatientData({
-        name: "",
-        dateOfBirth: "",
-        gender: ""
-      });
-      setOpen(false);
+      onUpdate(updatedPatient);
+      onOpenChange(false);
       
       toast({
-        title: "Patient added",
-        description: `${newPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
+        title: "Patient updated",
+        description: `${updatedPatient.name}'s information has been updated successfully`
       });
     } catch (error) {
-      console.error("Error adding patient:", error);
+      console.error("Error updating patient:", error);
       setIsLoading(false);
       
       toast({
         title: "Error",
-        description: "Failed to add patient. Please try again.",
+        description: "Failed to update patient. Please try again.",
         variant: "destructive"
       });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <UserPlus size={16} />
-          <span>Add New Patient</span>
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add New Patient</DialogTitle>
+          <DialogTitle>Edit Patient</DialogTitle>
           <DialogDescription>
-            Enter the patient details to create a new record
+            Update the patient's information
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="edit-name">Full Name</Label>
             <Input 
-              id="name" 
-              value={patientData.name}
+              id="edit-name" 
+              value={patientData.name || ""}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Enter patient name"
             />
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="dob">Date of Birth</Label>
+            <Label htmlFor="edit-dob">Date of Birth</Label>
             <Input 
-              id="dob" 
+              id="edit-dob" 
               type="date"
-              value={patientData.dateOfBirth}
+              value={patientData.dateOfBirth || ""}
               onChange={(e) => handleChange("dateOfBirth", e.target.value)}
             />
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="gender">Gender</Label>
+            <Label htmlFor="edit-gender">Gender</Label>
             <Select 
-              value={patientData.gender}
+              value={patientData.gender || ""}
               onValueChange={(value) => handleChange("gender", value)}
             >
-              <SelectTrigger id="gender">
+              <SelectTrigger id="edit-gender">
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
               <SelectContent>
@@ -141,21 +134,21 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="mrn">Medical Record Number</Label>
+            <Label htmlFor="edit-mrn">Medical Record Number</Label>
             <Input 
-              id="mrn" 
-              value="Will be auto-generated"
+              id="edit-mrn" 
+              value={patient?.medicalRecordNumber || ""}
               disabled
               className="bg-gray-100"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? "Adding..." : "Add Patient"}
+            {isLoading ? "Updating..." : "Update Patient"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -163,4 +156,4 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
   );
 };
 
-export default AddPatientDialog;
+export default EditPatientDialog;

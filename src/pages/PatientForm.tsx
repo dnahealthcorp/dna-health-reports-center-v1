@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -22,7 +21,7 @@ import {
   User, 
   PatientFormData 
 } from "@/types";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { generatePDF } from "@/lib/pdfService";
 
 // Import refactored components
@@ -109,8 +108,24 @@ const PatientForm = () => {
       })
       .subscribe();
       
+    // Subscribe to patient changes
+    const patientChannel = supabase
+      .channel('patient-changes')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'patients',
+        filter: `id=eq.${id}`
+      }, (payload) => {
+        console.log('Patient data updated:', payload);
+        // Refresh the patient data
+        getPatientById(id as string).then(data => setPatient(data));
+      })
+      .subscribe();
+      
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(patientChannel);
     };
   }, [id, navigate, toast]);
 
@@ -135,7 +150,8 @@ const PatientForm = () => {
       if (updatedStatus !== patient.status) {
         const updatedPatient = {
           ...patient,
-          status: updatedStatus
+          status: updatedStatus,
+          lastUpdated: new Date().toISOString()
         };
         
         await updatePatient(updatedPatient);

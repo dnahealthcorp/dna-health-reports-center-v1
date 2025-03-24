@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import PatientCard from "@/components/PatientCard";
 import AddPatientDialog from "@/components/AddPatientDialog";
-import { useToast } from "@/components/ui/use-toast";
+import EditPatientDialog from "@/components/EditPatientDialog";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatients } from "@/services/databaseService";
 import { 
@@ -27,6 +28,8 @@ const Patients = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -69,6 +72,24 @@ const Patients = () => {
 
   const handleAddPatient = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
+  };
+
+  const handleDeletePatient = (patientId: string) => {
+    setPatients(prev => prev.filter(patient => patient.id !== patientId));
+  };
+
+  const handleEditPatient = (patient: Patient) => {
+    setEditingPatient(patient);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdatePatient = (updatedPatient: Patient) => {
+    setPatients(prev => 
+      prev.map(patient => 
+        patient.id === updatedPatient.id ? updatedPatient : patient
+      )
+    );
+    setEditingPatient(null);
   };
 
   // Filter patients based on search query
@@ -141,7 +162,12 @@ const Patients = () => {
           viewMode === 'cards' ? (
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {filteredPatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
+                <PatientCard 
+                  key={patient.id} 
+                  patient={patient} 
+                  onDelete={handleDeletePatient}
+                  onEdit={handleEditPatient}
+                />
               ))}
             </div>
           ) : (
@@ -168,9 +194,21 @@ const Patients = () => {
                       <TableCell>{getStatusBadge(patient.status)}</TableCell>
                       <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
-                          View
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleEditPatient(patient)}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => navigate(`/patients/${patient.id}`)}
+                          >
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -194,6 +232,14 @@ const Patients = () => {
             )}
           </div>
         )}
+        
+        {/* Edit Patient Dialog */}
+        <EditPatientDialog 
+          patient={editingPatient}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onUpdate={handleUpdatePatient}
+        />
       </div>
     </Layout>
   );
