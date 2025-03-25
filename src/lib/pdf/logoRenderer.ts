@@ -5,7 +5,7 @@ import { jsPDF } from "jspdf";
  */
 export const addLogoToPage = (doc: jsPDF): void => {
   try {
-    const margin = 5; // Margin from the page edge
+    const margin = 10; // Margin from the page edge
     const pageWidth = doc.internal.pageSize.getWidth();
     const logoWidth = 20;
     const logoHeight = 59.5;
