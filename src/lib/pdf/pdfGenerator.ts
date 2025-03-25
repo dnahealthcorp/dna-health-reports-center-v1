@@ -47,26 +47,58 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.addPage();
   addLogoToPage(doc);
   
-  // Title and introduction
-  doc.setTextColor(100, 100, 100);
-  doc.setFontSize(14);
-  doc.text("Your step towards ", 70, 45);
-  doc.setTextColor(153, 188, 68); // #99bc44
+ // Set overall font style for the introduction text.
   doc.setFont("helvetica", "bold");
-  doc.text("optimal health", 125, 45);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "normal");
-  doc.text(".", 164, 45);
-  
-  doc.setFontSize(12);
-  doc.text("Our approach is proactive, rather than reactive,", contentMargin, 60);
-  doc.text("giving you ", contentMargin, 67);
-  doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("helvetica", "bold");
-  doc.text("control of your health", 45, 67);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "normal");
-  doc.text(" throughout your life.", 95, 67);
+  doc.setFontSize(22);
+
+  const startX = contentMargin;
+  let currentY = 60; // starting y-position for our text block
+
+  // --- First Line: "Your step towards optimal health." ---
+  // Segment 1: "Your step towards "
+  const line1Part1 = "Your step towards ";
+  doc.setTextColor(0, 0, 0); // default black
+  doc.text(line1Part1, startX, currentY);
+
+  // Calculate x-position for the next segment
+  const widthPart1 = doc.getTextWidth(line1Part1);
+
+  // Segment 2 (green): "optimal health"
+  const line1Green = "optimal health";
+  doc.setTextColor(153, 188, 68); // green (#99bc44)
+  doc.text(line1Green, startX + widthPart1, currentY);
+
+  // Calculate x-position for the final segment of line 1
+  const widthGreen1 = doc.getTextWidth(line1Green);
+
+  // Segment 3: "."
+  const line1Part3 = ".";
+  doc.setTextColor(0, 0, 0);
+  doc.text(line1Part3, startX + widthPart1 + widthGreen1, currentY);
+
+  // --- Second Line: "Our approach is proactive, rather than reactive, giving you control of your health throughout your life." ---
+  currentY += 10; // move to next line (adjust spacing as needed)
+
+  // Segment 1: "Our approach is proactive, rather than reactive, giving you "
+  const line2Part1 = "Our approach is proactive, rather than reactive, giving you ";
+  doc.setTextColor(0, 0, 0);
+  doc.text(line2Part1, startX, currentY);
+  const widthLine2Part1 = doc.getTextWidth(line2Part1);
+
+  // Segment 2 (green): "control of your health"
+  const line2Green = "control of your health";
+  doc.setTextColor(153, 188, 68);
+  doc.text(line2Green, startX + widthLine2Part1, currentY);
+  const widthLine2Green = doc.getTextWidth(line2Green);
+
+  // Segment 3: " throughout your life."
+  const line2Part2 = " throughout your life.";
+  doc.setTextColor(0, 0, 0);
+  doc.text(line2Part2, startX + widthLine2Part1 + widthLine2Green, currentY);
+
+  // (Continue with other parts of the page such as greeting, etc.)
+};
+
   
   // Greeting
   doc.setFontSize(10);
