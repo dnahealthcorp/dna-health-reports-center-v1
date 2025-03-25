@@ -174,7 +174,7 @@ doc.text(greeting, contentMargin, 95);
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: 0}
   });
   
   // Add page number
