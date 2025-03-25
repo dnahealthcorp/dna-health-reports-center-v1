@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI, drawStatBox, addPageNumber } from "./pdfUtilities";
-import { addLogoToPage } from "./logoRenderer"; 
+import { addLogoToPage } from "./logoRenderer";
 import * as databaseService from "@/services/databaseService"; 
 
 /**
@@ -176,8 +176,21 @@ doc.text(greeting, contentMargin, 80);
     },
     margin: { left: 30, right: 0}
   });
+  
+  // Add page number
+  addPageNumber(doc, 2, pageWidth);
+};
 
-    // Summary of findings
+/**
+ * Generates the third page with summary findings
+ */
+const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+  const { summaryFindings } = formData;
+  
+  doc.addPage();
+  addLogoToPage(doc);
+  
+  // Summary of findings
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
@@ -217,46 +230,10 @@ doc.text(greeting, contentMargin, 80);
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-
-  
-  // Add page number
-  addPageNumber(doc, 2, pageWidth);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Generates the third page with summary findings
- */
-const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  const { summaryFindings } = formData;
-  
-  doc.addPage();
-  addLogoToPage(doc);
-  
-
-
-
   
   // Add page number
   addPageNumber(doc, 3, pageWidth);
 };
-
-
-
-
-
 
 /**
  * Generates the fourth page with Insulin Resistance and Cardiovascular risk
