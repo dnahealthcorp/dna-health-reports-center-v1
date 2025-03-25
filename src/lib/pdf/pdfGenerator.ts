@@ -47,44 +47,59 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.addPage();
   addLogoToPage(doc);
   
-  // Title and introduction
-  doc.setTextColor(100, 100, 100);
-  doc.setFontSize(18);
-  doc.text("Your step towards ", 70, 45);
-  doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("calibri", "bold");
-  doc.text("optimal health", 125, 45);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("calibri", "bold");
-  doc.text(".", 164, 45);
+  // Title and introduction - centered with specific styling per the design
+  const centerX = pageWidth / 2;
   
-  doc.setFontSize(12);
-  doc.text("Our approach is proactive, rather than reactive,", contentMargin, 60);
-  doc.text("giving you ", contentMargin, 67);
-  doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("helvetica", "bold");
-  doc.text("control of your health", 45, 67);
+  // First part of title: "Your step towards"
   doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "normal");
-  doc.text(" throughout your life.", 95, 67);
+  doc.setFontSize(22);
+  doc.setFont("calibri", "bold");
+  doc.text("Your step towards ", centerX, 45, { align: "center" });
+  
+  // "optimal health" in green
+  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setFont("calibri", "bold");
+  const textWidth = doc.getTextWidth("Your step towards ");
+  doc.text("optimal health", centerX, 45, { align: "center" });
+  
+  // Period at the end
+  doc.setTextColor(100, 100, 100);
+  doc.text(".", centerX + (doc.getTextWidth("optimal health") / 2), 45);
+  
+  // Second line: "Our approach is proactive..."
+  doc.setTextColor(100, 100, 100);
+  doc.setFont("calibri", "bold");
+  doc.text("Our approach is proactive, rather than reactive,", centerX, 55, { align: "center" });
+  
+  // Third line: "giving you control of your health..."
+  doc.text("giving you ", centerX - 15, 65, { align: "right" });
+  
+  // "control of your health" in green
+  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.text("control of your health", centerX + 30, 65);
+  
+  // "throughout your life" in gray
+  doc.setTextColor(100, 100, 100);
+  doc.text(" throughout", centerX + 30 + doc.getTextWidth("control of your health"), 65);
+  doc.text("your life.", centerX, 75, { align: "center" });
   
   // Greeting
   doc.setFontSize(10);
-  doc.text("Dear", contentMargin, 20);
-  doc.text(`${patientInfo.name || "Patient"},`, 35, 80);
+  doc.text("Dear", contentMargin, 95);
+  doc.text(`${patientInfo.name || "Patient"},`, 35, 95);
   
-  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels", contentMargin, 90);
-  doc.text("privileged to be a part of your journey to wellness and longevity.", contentMargin, 97);
+  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels", contentMargin, 105);
+  doc.text("privileged to be a part of your journey to wellness and longevity.", contentMargin, 112);
   
   // Key vital signs table
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Key vital signs", contentMargin, 115);
+  doc.text("Key vital signs", contentMargin, 130);
   
   // Vital signs table with proper width
   autoTable(doc, {
-    startY: 120,
+    startY: 135,
     head: [
       [
         { content: 'Vitals', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
