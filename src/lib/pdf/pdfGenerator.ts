@@ -163,13 +163,11 @@ doc.text(greeting, contentMargin, 95);
       ['Body Mass Index', calculateBMI(vitals.height, vitals.weight), '18.5 – 25.9']
     ],
     theme: 'grid',
-    tableWidth: 'wrap',
     styles: {
       fontSize: 10,
       cellPadding: 5,
       font: 'helvetica',
       textColor: [60, 60, 60],
-      halign:'center'
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
