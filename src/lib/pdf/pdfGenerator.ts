@@ -135,8 +135,8 @@ doc.setFontSize(10);
 const greeting = `Dear ${patientInfo.name || "Patient"},`;
 doc.text(greeting, contentMargin, 95);
   
-  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be", contentMargin, 105);
-  doc.text("a part of your journey to wellness and longevity.", contentMargin, 112);
+  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be a", contentMargin, 105);
+  doc.text("part of your journey to wellness and longevity.", contentMargin, 112);
   
   // Key vital signs table
   doc.setFontSize(12);
