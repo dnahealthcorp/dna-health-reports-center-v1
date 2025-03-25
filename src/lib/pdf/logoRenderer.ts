@@ -13,7 +13,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
     const x = pageWidth - logoWidth - margin;
     const y = margin;
     // Use a PNG logo for better compatibility
-    doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
+    doc.addImage("/assets/picture1.png", "PNG", x, y, logoWidth, logoHeight);
     console.log("Logo added to PDF successfully at the top right corner");
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
