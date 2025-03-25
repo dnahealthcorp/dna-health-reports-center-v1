@@ -7,7 +7,7 @@ import * as databaseService from "@/services/databaseService";
 
 /**
  * Checks if there’s enough vertical space on the current page.
- * If not, adds a new page (and logo) and resets currentY.
+ * If not, adds a new page (and logo as header) and resets currentY.
  */
 function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMargin = 20): number {
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -21,8 +21,8 @@ function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMarg
 }
 
 /**
- * Section 1: Adds image content (first page).
- * This section always stays on the first page.
+ * Section 1: Images on the first page.
+ * This section displays the 3 images and then forces a page break.
  */
 function generateImagesSection(
   doc: jsPDF,
@@ -31,8 +31,7 @@ function generateImagesSection(
   contentMargin: number,
   contentWidth: number
 ): number {
-  // Estimate block height for images (adjust as needed)
-  const blockHeight = 150;
+  const blockHeight = 150; // estimated height for images section
   currentY = ensureSpace(doc, currentY, blockHeight, 20);
   const imageWidth = 100;
   const imageHeight = 66;
@@ -42,7 +41,7 @@ function generateImagesSection(
     // First image: 6 out of 10 causes
     doc.addImage("/assets/picture1.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
     currentY += imageHeight + 10;
-    // Second image: 3% healthcare expenditure 
+    // Second image: 3% healthcare expenditure
     doc.addImage("/assets/picture2.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
     currentY += imageHeight + 10;
     // Third image: 90% healthcare expenditure
@@ -50,7 +49,7 @@ function generateImagesSection(
     currentY += imageHeight + 10;
   } catch (error) {
     console.error("Error adding images to PDF:", error);
-    // Optionally fallback to text using drawStatBox
+    // Optionally fallback to text using an alternative method if images fail
   }
 
   // Add page number on the first page
@@ -59,8 +58,8 @@ function generateImagesSection(
 }
 
 /**
- * Section 2: Adds the Introduction & Greeting.
- * This will now start on a new page.
+ * Section 2: Introduction & Greeting.
+ * This section starts on a new page.
  */
 function generateIntroductionSection(
   doc: jsPDF,
@@ -70,7 +69,7 @@ function generateIntroductionSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Centered title: "Your step towards optimal health."
+  // Title: "Your step towards optimal health."
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(18);
   const line1Part1 = "Your step towards ";
@@ -82,20 +81,17 @@ function generateIntroductionSection(
   const line1StartX = centerX - (line1Width / 2);
   const line1Y = currentY + 15;
   let currentX = line1StartX;
-  // Part 1 (gray)
   doc.setTextColor(100, 100, 100);
   doc.text(line1Part1, currentX, line1Y);
   currentX += doc.getTextWidth(line1Part1);
-  // Part 2 (green)
   doc.setTextColor(153, 188, 68);
   doc.text(line1Part2, currentX, line1Y);
   currentX += doc.getTextWidth(line1Part2);
-  // Part 3 (gray)
   doc.setTextColor(100, 100, 100);
   doc.text(line1Part3, currentX, line1Y);
   currentY = line1Y + 10;
 
-  // Greeting and introduction text
+  // Greeting & introduction text
   doc.setFontSize(10);
   const greeting = `Dear ${formData.patientInfo.name || "Patient"},`;
   doc.text(greeting, contentMargin, currentY);
@@ -160,7 +156,6 @@ function generateVitalsSection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -214,7 +209,6 @@ function generateSummarySection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -285,7 +279,6 @@ function generateInsulinCardioSection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -335,7 +328,6 @@ function generateDoctorsRecommendationsSection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -379,7 +371,6 @@ function generateExerciseSleepSection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   
   // Sleep and Stress recommendations table
@@ -408,7 +399,6 @@ function generateExerciseSleepSection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -605,36 +595,36 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Start at a top margin (e.g., 30 mm)
   let currentY = 30;
   
-  // Section 1: Images (first page)
+  // Section 1: Images on the first page.
   currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
   
-  // Force a page break after the images
+  // Force a page break after images so Section 2 starts on a new page.
   doc.addPage();
   addLogoToPage(doc);
-  currentY = 30; // Reset vertical position for new page
+  currentY = 30; // reset vertical position
   
-  // Section 2: Introduction & Greeting (second page)
+  // Section 2: Introduction & Greeting.
   currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  // Section 3: Vital Signs
+  // Section 3: Vital Signs.
   currentY = generateVitalsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  // Section 4: Summary Findings
+  // Section 4: Summary Findings.
   currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  // Section 5: Insulin Resistance & Cardiovascular Risk
+  // Section 5: Insulin Resistance & Cardiovascular Risk.
   currentY = generateInsulinCardioSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  // Section 6: Doctor's Recommendations (Nutrition)
+  // Section 6: Doctor's Recommendations (Nutrition).
   currentY = generateDoctorsRecommendationsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  // Section 7: Exercise and Sleep/Stress Recommendations
+  // Section 7: Exercise and Sleep/Stress Recommendations.
   currentY = generateExerciseSleepSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  // Section 8: Medications and Supplements
+  // Section 8: Medications and Supplements.
   currentY = generateMedicationsSupplementsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications);
   
-  // Section 9: Follow-ups and Referrals
+  // Section 9: Follow-ups and Referrals.
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
   const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
