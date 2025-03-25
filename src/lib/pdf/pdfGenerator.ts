@@ -142,7 +142,7 @@ doc.text(greeting, contentMargin, 95);
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Key vital signs", contentMargin, 130);
+  doc.text("Key vital signs", 80, 130);
   
   // Vital signs table with proper width
   autoTable(doc, {
@@ -174,7 +174,7 @@ doc.text(greeting, contentMargin, 95);
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: 20, right: 0}
+    margin: { left: 25, right: 0}
   });
   
   // Add page number
