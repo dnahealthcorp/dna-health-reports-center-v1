@@ -165,7 +165,7 @@ doc.text(greeting, contentMargin, 95);
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
+      cellPadding: 2,
       font: 'helvetica',
       textColor: [60, 60, 60],
     },
