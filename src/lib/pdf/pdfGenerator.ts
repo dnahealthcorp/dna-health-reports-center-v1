@@ -40,6 +40,7 @@ const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number,
 
 /**
  * Generates the second page with introduction and vital signs
+ * Returns the current Y position after the vital signs table for dynamic content flow
  */
 const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   const { patientInfo, vitals } = formData;
@@ -47,16 +48,9 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.addPage();
   addLogoToPage(doc);
   
- 
-  // We'll use a center alignment approach: 
-  // 1. Build a full string for each line
-  // 2. Measure its total width
-  // 3. Compute the starting x so it’s centered
-  // 4. Print each segment (gray or green) in sequence
-
   // Common settings
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFont("Calibri", "bold");
+  doc.setFontSize(22);
 
   // --------------------
   // LINE 1: "Your step towards optimal health."
@@ -131,9 +125,9 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.text(line3Part3, currentX3, line3Y);
 
   // Greeting
-doc.setFontSize(10);
-const greeting = `Dear ${patientInfo.name || "Patient"},`;
-doc.text(greeting, contentMargin, 95);
+  doc.setFontSize(10);
+  const greeting = `Dear ${patientInfo.name || "Patient"},`;
+  doc.text(greeting, contentMargin, 95);
   
   doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be a", contentMargin, 105);
   doc.text("part of your journey to wellness and longevity.", contentMargin, 112);
@@ -145,6 +139,7 @@ doc.text(greeting, contentMargin, 95);
   doc.text("Key vital signs", contentMargin, 130);
   
   // Vital signs table with proper width
+  let finalY = 0;
   autoTable(doc, {
     startY: 135,
     head: [
@@ -174,31 +169,46 @@ doc.text(greeting, contentMargin, 95);
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: 30, right: 0}
+    margin: { left: 30, right: 0},
+    didDrawPage: (data) => {
+      // Add page number
+      addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 2, pageWidth);
+  // Return the current Y position after the table for dynamic flow
+  return finalY + 10; // Add some padding after the table
 };
 
 /**
- * Generates the third page with summary findings
+ * Generates the summary findings section
+ * Returns the current Y position after the section for dynamic content flow
  */
-const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateSummaryFindings = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
   const { summaryFindings } = formData;
+  const minRequiredHeight = 200; // Estimated minimum height needed for this section
   
-  doc.addPage();
-  addLogoToPage(doc);
+  // Check if there's enough space on the current page
+  if (startY + minRequiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  }
   
   // Summary of findings
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Summary of findings", contentMargin, 45);
+  doc.text("Summary of findings", contentMargin, startY);
   
   // Summary findings table with proper width
+  let finalY = 0;
   autoTable(doc, {
-    startY: 50,
+    startY: startY + 5,
     head: [
       [
         { content: 'Parameters', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -228,40 +238,73 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 3, pageWidth);
+  // Return the current Y position after the table for dynamic flow
+  return finalY + 10; // Add some padding after the table
 };
 
 /**
- * Generates the fourth page with Insulin Resistance and Cardiovascular risk
+ * Generates the Insulin Resistance section
+ * Returns the current Y position after the section for dynamic content flow
  */
-const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateInsulinResistance = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
   const showInsulinResistance = formData.showInsulinResistance === true;
   
-  doc.addPage();
-  addLogoToPage(doc);
+  // Skip if not enabled
+  if (!showInsulinResistance) return startY;
   
-  let startY = 45;
+  const requiredHeight = 120; // Estimated height needed for this section
   
-  // Only add Insulin Resistance section if enabled
-  if (showInsulinResistance) {
-    // Insulin Resistance section
-    doc.setFontSize(12);
-    doc.setTextColor(153, 188, 68); // #99bc44
-    doc.setFont("helvetica", "bold");
-    doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, startY);
-    
-    // Add the specified insulin resistance image
-    doc.addImage("/assets/insulin resistance.jpg", "JPEG", contentMargin, startY + 10, contentWidth, 60);
-    
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, startY + 75, { align: "center" });
-    
-    startY = startY + 85; // Adjust start position for next section
+  // Check if there's enough space on the current page
+  if (startY + requiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  }
+  
+  // Insulin Resistance section
+  doc.setFontSize(12);
+  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setFont("helvetica", "bold");
+  doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, startY);
+  
+  // Add the specified insulin resistance image
+  doc.addImage("/assets/insulin resistance.jpg", "JPEG", contentMargin, startY + 10, contentWidth, 60);
+  
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, startY + 75, { align: "center" });
+  
+  // Return the current Y position after the section for dynamic flow
+  return startY + 85;
+};
+
+/**
+ * Generates the Cardiovascular risk section
+ * Returns the current Y position after the section for dynamic content flow
+ */
+const generateCardiovascularRisk = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
+  const requiredHeight = 100; // Estimated height needed for this section
+  
+  // Check if there's enough space on the current page
+  if (startY + requiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
   }
   
   // Cardiovascular risk table
@@ -273,6 +316,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // Determine which row to highlight based on gender
   const isMale = formData.patientInfo.gender === 'Male';
   
+  let finalY = 0;
   autoTable(doc, {
     startY: startY + 5,
     head: [
@@ -318,29 +362,48 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
         }
       }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 4, pageWidth);
+  // Return the current Y position after the table for dynamic flow
+  return finalY + 10;
 };
 
 /**
- * Generates the fifth page with Doctor's Recommendations (Nutrition)
+ * Generates the Nutrition Recommendations section
+ * Returns the current Y position after the section for dynamic content flow
  */
-const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
+const generateNutritionRecommendations = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
+  const requiredHeight = 150; // Estimated height needed for this section
+  
+  // Check if there's enough space on the current page
+  if (startY + requiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  }
   
   // Doctor's Recommendations
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Doctors Recommendations", contentMargin, 45);
+  doc.text("Doctors Recommendations", contentMargin, startY);
   
   // Nutrition recommendations table
+  let finalY = 0;
   autoTable(doc, {
-    startY: 55,
+    startY: startY + 10,
     head: [
       [
         { content: 'Nutrition', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -366,23 +429,42 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 5, pageWidth);
+  // Return the current Y position after the table for dynamic flow
+  return finalY + 10;
 };
 
 /**
- * Generates the sixth page with Exercise and Sleep/Stress recommendations
+ * Generates the Exercise and Sleep/Stress recommendations sections
+ * Returns the current Y position after the section for dynamic content flow
  */
-const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
+const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
+  const requiredHeight = 200; // Estimated height needed for both sections
+  
+  // Check if there's enough space on the current page
+  if (startY + requiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  }
   
   // Exercise recommendations table
+  let exerciseTableEndY = 0;
   autoTable(doc, {
-    startY: 45,
+    startY: startY,
     head: [
       [
         { content: 'Exercise', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -408,12 +490,36 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      exerciseTableEndY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Sleep and stress recommendations table with improved spacing
+  // Add some spacing between tables
+  const sleepStartY = exerciseTableEndY + 15;
+  
+  // Check if there's enough space for the sleep/stress table
+  if (sleepStartY + 100 > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  } else {
+    startY = sleepStartY;
+  }
+  
+  // Sleep and stress recommendations table
+  let finalY = 0;
   autoTable(doc, {
-    startY: 140,
+    startY: startY,
     head: [
       [
         { content: 'Sleep and Stress', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -437,25 +543,43 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 6, pageWidth);
+  // Return the current Y position after the table for dynamic flow
+  return finalY + 10;
 };
 
 /**
- * Generates the seventh page with Medications and Supplements
+ * Generates the Medications and Supplements sections
+ * Returns the current Y position after the section for dynamic content flow
  */
-const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
+const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData, medications: Medication[], startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
+  const requiredHeight = 200; // Estimated height needed for both sections
+  
+  // Check if there's enough space on the current page
+  if (startY + requiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  }
   
   // Medications title
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Medications", contentMargin, 45);
+  doc.text("Medications", contentMargin, startY);
   
   // Medications table with actual patient medications - only include non-empty rows
   const medicationRows = formData.medications
@@ -476,8 +600,9 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
     );
   }
   
+  let medicationsTableEndY = 0;
   autoTable(doc, {
-    startY: 55,
+    startY: startY + 10,
     head: [
       [
         { content: 'Medications', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -498,14 +623,37 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      medicationsTableEndY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Supplements title with improved spacing
+  // Add some spacing between tables
+  const supplementsStartY = medicationsTableEndY + 15;
+  
+  // Check if there's enough space for the supplements table
+  if (supplementsStartY + 100 > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  } else {
+    startY = supplementsStartY;
+  }
+  
+  // Supplements title
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Supplements", contentMargin, 110);
+  doc.text("Supplements", contentMargin, startY);
   
   // Get supplements from formData or use defaults - only include non-empty rows
   const supplementRows = (formData.supplements || [])
@@ -526,9 +674,9 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
     );
   }
   
-  // Supplements table with specific dosages
+  let finalY = 0;
   autoTable(doc, {
-    startY: 120,
+    startY: startY + 10,
     head: [
       [
         { content: 'Supplements', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -549,25 +697,43 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 7, pageWidth);
+  // Return the current Y position after the table for dynamic flow
+  return finalY + 10;
 };
 
 /**
- * Generates the eighth page with Follow-ups
+ * Generates the Follow-ups section
+ * Returns the current Y position after the section for dynamic content flow
  */
-const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
+const generateFollowUps = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
+  const requiredHeight = 150; // Estimated height needed for this section
+  
+  // Check if there's enough space on the current page
+  if (startY + requiredHeight > maxY) {
+    doc.addPage();
+    addLogoToPage(doc);
+    startY = 45; // Reset Y position for new page
+    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  }
   
   // Follow-ups and referrals
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Follow-ups and referrals", contentMargin, 45);
+  doc.text("Follow-ups and referrals", contentMargin, startY);
   
   // Get follow-ups from form data or use defaults - only include non-empty rows
   const followUpRows = (formData.followUps || [])
@@ -585,8 +751,9 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     );
   }
   
+  let finalY = 0;
   autoTable(doc, {
-    startY: 55,
+    startY: startY + 10,
     head: [
       [
         { content: 'With', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -607,23 +774,33 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and page number when a new page starts
+      if (data.pageNumber > 1 && data.pageCount > 1) {
+        addLogoToPage(doc);
+        addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
   // Closing and signature
+  finalY += 20;
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "normal");
-  doc.text("Kind Regards,", contentMargin, 120);
+  doc.text("Kind Regards,", contentMargin, finalY);
   doc.setFont("helvetica", "bold");
-  doc.text("Dr Eslam Yakout", contentMargin, 130);
+  doc.text("Dr Eslam Yakout", contentMargin, finalY + 10);
   
-  // Add page number
-  addPageNumber(doc, 8, pageWidth);
+  return finalY + 20;
 };
 
 /**
- * Generate a complete PDF report for a patient
+ * Generate a complete PDF report for a patient with dynamic pagination
  */
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
   const { patientInfo } = formData;
@@ -642,16 +819,22 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   const pageWidth = 210;
   const contentMargin = 20; // Margin on both sides
   const contentWidth = pageWidth - (contentMargin * 2);
+  const maxY = 270; // Maximum Y position before needing a new page, leaving space for footer
   
-  // Generate each page of the report
+  // Generate first page with statistics
   generateFirstPage(doc, pageWidth, contentMargin, contentWidth);
-  generateSecondPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateThirdPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateFourthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateFifthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateSixthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateSeventhPage(doc, formData, medications, pageWidth, contentMargin, contentWidth);
-  generateEighthPage(doc, formData, pageWidth, contentMargin, contentWidth);
+  
+  // Generate second page with intro and vital signs - returns current Y position
+  let currentY = generateSecondPage(doc, formData, pageWidth, contentMargin, contentWidth);
+  
+  // Now dynamically flow content based on available space
+  currentY = generateSummaryFindings(doc, formData, currentY, contentMargin, contentWidth, pageWidth, maxY);
+  currentY = generateInsulinResistance(doc, formData, currentY, contentMargin, contentWidth, pageWidth, maxY);
+  currentY = generateCardiovascularRisk(doc, formData, currentY, contentMargin, contentWidth, pageWidth, maxY);
+  currentY = generateNutritionRecommendations(doc, formData, currentY, contentMargin, contentWidth, pageWidth, maxY);
+  currentY = generateExerciseAndSleepRecommendations(doc, formData, currentY, contentMargin, contentWidth, pageWidth, maxY);
+  currentY = generateMedicationsAndSupplements(doc, formData, medications, currentY, contentMargin, contentWidth, pageWidth, maxY);
+  currentY = generateFollowUps(doc, formData, currentY, contentMargin, contentWidth, pageWidth, maxY);
   
   // Generate file name
   const fileName = `${patientInfo.name?.replace(/\s+/g, '_') || 'Patient'}_Medical_Report.pdf`;
