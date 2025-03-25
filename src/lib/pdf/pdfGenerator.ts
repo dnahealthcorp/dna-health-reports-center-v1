@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI, drawStatBox, addPageNumber } from "./pdfUtilities";
-import { addLogoToPage } from "./logoRenderer";
+import { addLogoToPage } from "./logoRenderer";  
 import * as databaseService from "@/services/databaseService"; 
 
 /**
