@@ -13,8 +13,8 @@ const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number,
   addLogoToPage(doc);
   
   // Add images instead of statistic boxes - centered on page
-  const imageWidth = 598;
-  const imageHeight = 500; // Set a fixed height to maintain aspect ratio
+  const imageWidth = 299;
+  const imageHeight = 194; // Set a fixed height to maintain aspect ratio
   const imageStartX = (pageWidth - imageWidth) / 2;
   
   try {
