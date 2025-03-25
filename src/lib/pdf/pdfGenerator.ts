@@ -55,8 +55,8 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // 4. Print each segment (gray or green) in sequence
 
   // Common settings
-  doc.setFont("calibri", "bold");
-  doc.setFontSize(22);
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(18);
 
   // --------------------
   // LINE 1: "Your step towards optimal health."
