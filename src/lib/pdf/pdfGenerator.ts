@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -49,7 +48,7 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   addLogoToPage(doc);
   
   // Common settings
-  doc.setFont("Calibri", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
 
   // --------------------
@@ -297,15 +296,13 @@ const generateInsulinResistance = (doc: jsPDF, formData: PatientFormData, startY
  * Returns the current Y position after the section for dynamic content flow
  */
 const generateCardiovascularRisk = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
-  const requiredHeight = 100; // Estimated height needed for this section
+  const requiredHeight = 120; // Increased height estimate for this section
   
-  // Check if there's enough space on the current page
-  if (startY + requiredHeight > maxY) {
-    doc.addPage();
-    addLogoToPage(doc);
-    startY = 45; // Reset Y position for new page
-    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
-  }
+  // IMPORTANT: Force a new page for cardiovascular risk to avoid overlapping
+  doc.addPage();
+  addLogoToPage(doc);
+  startY = 45; // Reset Y position for new page
+  addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
   
   // Cardiovascular risk table
   doc.setFontSize(12);
@@ -376,7 +373,7 @@ const generateCardiovascularRisk = (doc: jsPDF, formData: PatientFormData, start
   });
   
   // Return the current Y position after the table for dynamic flow
-  return finalY + 10;
+  return finalY + 20; // Add more padding after the table
 };
 
 /**
@@ -384,10 +381,10 @@ const generateCardiovascularRisk = (doc: jsPDF, formData: PatientFormData, start
  * Returns the current Y position after the section for dynamic content flow
  */
 const generateNutritionRecommendations = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
-  const requiredHeight = 150; // Estimated height needed for this section
+  const requiredHeight = 180; // Increased height estimate
   
-  // Check if there's enough space on the current page
-  if (startY + requiredHeight > maxY) {
+  // Force a new page if less than 200px available to ensure clean layout
+  if (startY + requiredHeight > maxY - 20) {
     doc.addPage();
     addLogoToPage(doc);
     startY = 45; // Reset Y position for new page
@@ -443,7 +440,7 @@ const generateNutritionRecommendations = (doc: jsPDF, formData: PatientFormData,
   });
   
   // Return the current Y position after the table for dynamic flow
-  return finalY + 10;
+  return finalY + 20; // Add more padding after the table
 };
 
 /**
@@ -451,15 +448,11 @@ const generateNutritionRecommendations = (doc: jsPDF, formData: PatientFormData,
  * Returns the current Y position after the section for dynamic content flow
  */
 const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
-  const requiredHeight = 200; // Estimated height needed for both sections
-  
-  // Check if there's enough space on the current page
-  if (startY + requiredHeight > maxY) {
-    doc.addPage();
-    addLogoToPage(doc);
-    startY = 45; // Reset Y position for new page
-    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
-  }
+  // Always start exercise recommendations on a new page
+  doc.addPage();
+  addLogoToPage(doc);
+  startY = 45; // Reset Y position for new page
+  addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
   
   // Exercise recommendations table
   let exerciseTableEndY = 0;
@@ -504,7 +497,7 @@ const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFo
   });
   
   // Add some spacing between tables
-  const sleepStartY = exerciseTableEndY + 15;
+  const sleepStartY = exerciseTableEndY + 25;
   
   // Check if there's enough space for the sleep/stress table
   if (sleepStartY + 100 > maxY) {
@@ -557,7 +550,7 @@ const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFo
   });
   
   // Return the current Y position after the table for dynamic flow
-  return finalY + 10;
+  return finalY + 20; // Add more padding after the table
 };
 
 /**
@@ -565,15 +558,11 @@ const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFo
  * Returns the current Y position after the section for dynamic content flow
  */
 const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData, medications: Medication[], startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
-  const requiredHeight = 200; // Estimated height needed for both sections
-  
-  // Check if there's enough space on the current page
-  if (startY + requiredHeight > maxY) {
-    doc.addPage();
-    addLogoToPage(doc);
-    startY = 45; // Reset Y position for new page
-    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
-  }
+  // Always start medications on a new page
+  doc.addPage();
+  addLogoToPage(doc);
+  startY = 45; // Reset Y position for new page
+  addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
   
   // Medications title
   doc.setFontSize(12);
@@ -619,8 +608,8 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
       textColor: [60, 60, 60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: 90 },
+      0: { cellWidth: 60, fillColor: [240, 250, 230] },
+      1: { cellWidth: 80 },
       2: { cellWidth: 30 }
     },
     margin: { left: contentMargin, right: contentMargin },
@@ -637,7 +626,7 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
   });
   
   // Add some spacing between tables
-  const supplementsStartY = medicationsTableEndY + 15;
+  const supplementsStartY = medicationsTableEndY + 30;
   
   // Check if there's enough space for the supplements table
   if (supplementsStartY + 100 > maxY) {
@@ -693,8 +682,8 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
       textColor: [60, 60, 60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: 90 },
+      0: { cellWidth: 60, fillColor: [240, 250, 230] },
+      1: { cellWidth: 80 },
       2: { cellWidth: 30 }
     },
     margin: { left: contentMargin, right: contentMargin },
@@ -711,7 +700,7 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
   });
   
   // Return the current Y position after the table for dynamic flow
-  return finalY + 10;
+  return finalY + 20; // Add more padding after the table
 };
 
 /**
@@ -719,15 +708,11 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
  * Returns the current Y position after the section for dynamic content flow
  */
 const generateFollowUps = (doc: jsPDF, formData: PatientFormData, startY: number, contentMargin: number, contentWidth: number, pageWidth: number, maxY: number) => {
-  const requiredHeight = 150; // Estimated height needed for this section
-  
-  // Check if there's enough space on the current page
-  if (startY + requiredHeight > maxY) {
-    doc.addPage();
-    addLogoToPage(doc);
-    startY = 45; // Reset Y position for new page
-    addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
-  }
+  // Always start follow-ups on a new page
+  doc.addPage();
+  addLogoToPage(doc);
+  startY = 45; // Reset Y position for new page
+  addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
   
   // Follow-ups and referrals
   doc.setFontSize(12);
@@ -844,8 +829,14 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   
   // Save the PDF reference to the database
   if (patientInfo.medicalRecordNumber) {
-    await databaseService.savePDFReference(patientInfo.medicalRecordNumber, fileName);
+    try {
+      await databaseService.savePDFReference(patientInfo.medicalRecordNumber, fileName);
+    } catch (error) {
+      console.error("Error saving PDF reference:", error);
+      // Continue even if saving reference fails
+    }
   }
   
   return fileName;
 };
+
