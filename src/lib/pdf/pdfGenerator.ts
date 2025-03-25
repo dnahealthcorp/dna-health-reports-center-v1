@@ -220,7 +220,7 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
+      cellPadding: 3,
       font: 'helvetica',
       overflow: 'linebreak',
       textColor: [60, 60, 60]
@@ -321,19 +321,12 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
-  // Add page number
-  addPageNumber(doc, 4, pageWidth);
-};
 
-/**
- * Generates the fifth page with Doctor's Recommendations (Nutrition)
- */
-const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Doctor's Recommendations
+
+
+
+
+   // Doctor's Recommendations
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
@@ -369,10 +362,17 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     },
     margin: { left: contentMargin, right: contentMargin }
   });
+
+
+
+
+  
   
   // Add page number
-  addPageNumber(doc, 5, pageWidth);
+  addPageNumber(doc, 4, pageWidth);
 };
+
+
 
 /**
  * Generates the sixth page with Exercise and Sleep/Stress recommendations
@@ -399,7 +399,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
+      cellPadding: 2,
       overflow: 'linebreak',
       minCellHeight: 20,
       font: 'helvetica',
@@ -428,7 +428,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
+      cellPadding: 2,
       overflow: 'linebreak',
       minCellHeight: 20,
       font: 'helvetica',
@@ -440,19 +440,8 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
-  // Add page number
-  addPageNumber(doc, 6, pageWidth);
-};
 
-/**
- * Generates the seventh page with Medications and Supplements
- */
-const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Medications title
+ // Medications title
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
@@ -501,6 +490,29 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
     },
     margin: { left: contentMargin, right: contentMargin }
   });
+
+
+
+
+
+  
+  // Add page number
+  addPageNumber(doc, 6, pageWidth);
+};
+
+/**
+ * Generates the seventh page with Medications and Supplements
+ */
+const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
+  doc.addPage();
+  addLogoToPage(doc);
+  
+
+
+
+
+
+  
   
   // Supplements title with improved spacing
   doc.setFontSize(12);
