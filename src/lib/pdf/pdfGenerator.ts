@@ -219,7 +219,7 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 5,
+      cellPadding: 2,
       font: 'helvetica',
       overflow: 'linebreak',
       textColor: [60, 60, 60]
