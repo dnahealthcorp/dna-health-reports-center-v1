@@ -50,7 +50,7 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // Title and introduction
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(22);
-  doc.text("Your step towards ", 70, 45);
+  doc.text("Your step towardss ", 70, 45);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
   doc.text("optimal health", 125, 45);
