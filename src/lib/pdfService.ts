@@ -20,10 +20,6 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     // Generate the PDF - this returns the blob
     const pdfBlob = await generatePDFImpl(formData, medications);
     
-    // Create a URL for the blob and trigger the download
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement('a');
-    
     // Generate file name
     let fileName = "";
     if (patient) {
@@ -39,6 +35,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       fileName = `Patient_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
     }
     
+    // Create a URL for the blob and trigger the download
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
     document.body.appendChild(link);

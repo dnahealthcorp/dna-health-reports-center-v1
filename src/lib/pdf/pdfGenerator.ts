@@ -39,7 +39,7 @@ const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number,
 };
 
 /**
- * Generates the second page with introduction, vital signs, and summary findings
+ * Generates the second page with introduction, vital signs, and starts summary findings
  */
 const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   const { patientInfo, vitals, summaryFindings } = formData;
@@ -186,13 +186,13 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     }
   });
   
-  // Summary of findings - Adding directly to page 2 after vitals
+  // Summary of findings - Starting on page 2 with proper spacing after vitals
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
   doc.text("Summary of findings", contentMargin, finalY + 15);
   
-  // Summary findings table with proper width
+  // Summary findings table with proper width, allowing continued to next page if needed
   autoTable(doc, {
     startY: finalY + 20,
     head: [
@@ -222,23 +222,43 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 50 }
+      1: { cellWidth: contentWidth - 55 }
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
-      // Add logo to any new pages created by the table
-      if (data.pageNumber > 1) {
+      // Add logo and page number to any new pages created by the table
+      if (data.pageNumber > 2) {
         addLogoToPage(doc);
+        addPageNumber(doc, data.pageNumber, pageWidth);
+      }
+    },
+    willDrawCell: (data) => {
+      // Ensure we're preventing the overlapping of cells 
+      // by checking available space on the page
+      if (data.row.index === 0 && data.section === 'body') {
+        // Calculate if there's enough space for at least 2 rows on current page
+        const availableSpace = doc.internal.pageSize.height - data.cursor.y - 40; // 40mm margin
+        if (availableSpace < 25) { // If less than 25mm available, force new page
+          data.cursor.y = 40; // Reset y position on new page
+          doc.addPage();
+          addLogoToPage(doc);
+          doc.setFontSize(12);
+          doc.setTextColor(153, 188, 68); // #99bc44
+          doc.setFont("helvetica", "bold");
+          doc.text("Summary of findings (continued)", contentMargin, 30);
+          data.cursor.y = 40; // Set cursor for table to continue
+        }
       }
     }
   });
   
-  // Add page number
+  // Add page number for page 2
   addPageNumber(doc, 2, pageWidth);
 };
 
 /**
  * Generates the third page with Insulin Resistance and Cardiovascular risk
+ * Note: This is now page 3 as Summary of Findings may extend to this page
  */
 const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   const showInsulinResistance = formData.showInsulinResistance === true;
@@ -323,12 +343,13 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
+  // Add page number - this is now page 3
   addPageNumber(doc, 3, pageWidth);
 };
 
 /**
  * Generates the fourth page with Doctor's Recommendations (Nutrition)
+ * Note: This is now page 4 
  */
 const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -371,12 +392,13 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
+  // Add page number - this is now page 4
   addPageNumber(doc, 4, pageWidth);
 };
 
 /**
  * Generates the fifth page with Exercise and Sleep/Stress recommendations
+ * Note: This is now page 5
  */
 const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -442,12 +464,13 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
+  // Add page number - this is now page 5
   addPageNumber(doc, 5, pageWidth);
 };
 
 /**
  * Generates the sixth page with Medications and Supplements
+ * Note: This is now page 6
  */
 const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -554,12 +577,13 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: M
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
+  // Add page number - this is now page 6
   addPageNumber(doc, 6, pageWidth);
 };
 
 /**
  * Generates the seventh page with Follow-ups
+ * Note: This is now page 7
  */
 const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -620,7 +644,7 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, pageWidth: n
   doc.setFont("helvetica", "bold");
   doc.text("Dr Eslam Yakout", contentMargin, 130);
   
-  // Add page number
+  // Add page number - this is now page 7
   addPageNumber(doc, 7, pageWidth);
 };
 
