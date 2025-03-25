@@ -7,8 +7,8 @@ export const addLogoToPage = (doc: jsPDF): void => {
   try {
     const margin = 5; // Margin from the page edge
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoWidth = 159;
-    const logoHeight = 113;
+    const logoWidth = 79.5;
+    const logoHeight = 59.5;
     // Calculate x-coordinate so that the logo appears at the top right
     const x = pageWidth - logoWidth - margin;
     const y = margin;
