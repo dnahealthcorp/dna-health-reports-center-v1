@@ -135,8 +135,8 @@ doc.setFontSize(10);
 const greeting = `Dear ${patientInfo.name || "Patient"},`;
 doc.text(greeting, contentMargin, 95);
   
-  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels", contentMargin, 105);
-  doc.text("privileged to be a part of your journey to wellness and longevity.", contentMargin, 112);
+  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be", contentMargin, 105);
+  doc.text("a part of your journey to wellness and longevity.", contentMargin, 112);
   
   // Key vital signs table
   doc.setFontSize(12);
@@ -163,18 +163,20 @@ doc.text(greeting, contentMargin, 95);
       ['Body Mass Index', calculateBMI(vitals.height, vitals.weight), '18.5 – 25.9']
     ],
     theme: 'grid',
+    tableWidth: 'wrap',
     styles: {
       fontSize: 10,
       cellPadding: 5,
       font: 'helvetica',
-      textColor: [60, 60, 60]
+      textColor: [60, 60, 60],
+      halign:'center'
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: 20, right: 20}
+    margin: { left: 0, right: 0}
   });
   
   // Add page number
