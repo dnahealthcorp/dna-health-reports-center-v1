@@ -142,7 +142,7 @@ doc.text(greeting, contentMargin, 95);
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Key vital signs", contentMargin , 130);
+  doc.text("Key vital signs", contentMargin, 130);
   
   // Vital signs table with proper width
   autoTable(doc, {
