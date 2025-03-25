@@ -241,7 +241,7 @@ const generateSummaryFindings = (doc: jsPDF, formData: PatientFormData, startY: 
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -365,7 +365,7 @@ const generateCardiovascularRisk = (doc: jsPDF, formData: PatientFormData, start
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -432,7 +432,7 @@ const generateNutritionRecommendations = (doc: jsPDF, formData: PatientFormData,
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -493,7 +493,7 @@ const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFo
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -546,7 +546,7 @@ const generateExerciseAndSleepRecommendations = (doc: jsPDF, formData: PatientFo
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -626,7 +626,7 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -700,7 +700,7 @@ const generateMedicationsAndSupplements = (doc: jsPDF, formData: PatientFormData
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
@@ -777,7 +777,7 @@ const generateFollowUps = (doc: jsPDF, formData: PatientFormData, startY: number
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number when a new page starts
-      if (data.pageNumber > 1 && data.pageCount > 1) {
+      if (data.pageNumber > 1) {
         addLogoToPage(doc);
         addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
       }
