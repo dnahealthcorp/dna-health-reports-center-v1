@@ -14,17 +14,18 @@ const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number,
   
   // Add images instead of statistic boxes - centered on page
   const imageWidth = 120;
+  const imageHeight = 60; // Set a fixed height to maintain aspect ratio
   const imageStartX = (pageWidth - imageWidth) / 2;
   
   try {
     // First image: 6 out of 10 causes
-    doc.addImage("/assets/picture1.png", "PNG", imageStartX, 50, imageWidth, 50);
+    doc.addImage("/assets/picture1.png", "PNG", imageStartX, 50, imageWidth, imageHeight);
     
     // Second image: 3% healthcare expenditure 
-    doc.addImage("/assets/picture2.png", "PNG", imageStartX, 110, imageWidth, 50);
+    doc.addImage("/assets/picture2.png", "PNG", imageStartX, 120, imageWidth, imageHeight);
     
     // Third image: 90% healthcare expenditure
-    doc.addImage("/assets/picture3.png", "PNG", imageStartX, 170, imageWidth, 50);
+    doc.addImage("/assets/picture3.png", "PNG", imageStartX, 190, imageWidth, imageHeight);
   } catch (error) {
     console.error("Error adding images to PDF:", error);
     // Fallback to text if images fail to load
