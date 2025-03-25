@@ -70,7 +70,7 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   
   // Greeting
   doc.setFontSize(10);
-  doc.text("Dear", contentMargin, 80);
+  doc.text("Dear", contentMargin, 20);
   doc.text(`${patientInfo.name || "Patient"},`, 35, 80);
   
   doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels", contentMargin, 90);
