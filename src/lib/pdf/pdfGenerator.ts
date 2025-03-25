@@ -1,667 +1,640 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
-import { calculateAge, convertToKg, calculateBMI, drawStatBox, addPageNumber } from "./pdfUtilities";
+import { calculateAge, convertToKg, calculateBMI, addPageNumber } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
-import * as databaseService from "@/services/databaseService"; 
+import * as databaseService from "@/services/databaseService";
 
 /**
- * Generates the first page of the PDF with health statistics
+ * Checks if there’s enough vertical space on the current page.
+ * If not, adds a new page (and logo) and resets currentY.
  */
-const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  addLogoToPage(doc);
-  
-  // Add images instead of statistic boxes - centered on page
+function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMargin = 20): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 15; // adjust as needed
+  if (currentY + neededHeight > pageHeight - bottomMargin) {
+    doc.addPage();
+    addLogoToPage(doc);
+    return topMargin;
+  }
+  return currentY;
+}
+
+/**
+ * Section 1: Adds image content (first section)
+ */
+function generateImagesSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number
+): number {
+  // Estimate block height for images (adjust as needed)
+  const blockHeight = 150;
+  currentY = ensureSpace(doc, currentY, blockHeight, 20);
   const imageWidth = 100;
-  const imageHeight = 66;  // Set a fixed height to maintain aspect ratio
-  const imageStartX = (pageWidth - imageWidth) / 2;  
-  
+  const imageHeight = 66;
+  const imageStartX = (pageWidth - imageWidth) / 2;
+
   try {
-    // First image: 6 out of 10 causes
-    doc.addImage("/assets/picture1.png", "PNG", imageStartX, 50, imageWidth, imageHeight);
-    
-    // Second image: 3% healthcare expenditure 
-    doc.addImage("/assets/picture2.png", "PNG", imageStartX, 120, imageWidth, imageHeight);
-    
-    // Third image: 90% healthcare expenditure
-    doc.addImage("/assets/picture3.png", "PNG", imageStartX, 190, imageWidth, imageHeight);
+    // First image
+    doc.addImage("/assets/picture1.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
+    currentY += imageHeight + 10;
+    // Second image
+    doc.addImage("/assets/picture2.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
+    currentY += imageHeight + 10;
+    // Third image
+    doc.addImage("/assets/picture3.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
+    currentY += imageHeight + 10;
   } catch (error) {
     console.error("Error adding images to PDF:", error);
-    // Fallback to text if images fail to load
-    drawStatBox(doc, "6 out of 10 causes\nof death are\npreventable", 60, contentMargin, contentWidth, pageWidth);
-    drawStatBox(doc, "We only spend 3%\nof our health care\nexpenditure on\nprevention", 110, contentMargin, contentWidth, pageWidth);
-    drawStatBox(doc, "90% of our health\ncare expenditure\noccurs in the last 3\nyears of our lives", 160, contentMargin, contentWidth, pageWidth);
+    // Optionally fallback to text using your drawStatBox utility here
   }
-  
-  // Add page number
-  addPageNumber(doc, 1, pageWidth);
-};
+  // Optionally add a page number (if this is the first content block)
+  addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
+  return currentY;
+}
 
 /**
- * Generates the second page with introduction and vital signs
+ * Section 2: Adds the centered title and greeting text.
  */
-const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  const { patientInfo, vitals } = formData;
-  
-  doc.addPage();
-  addLogoToPage(doc);
-  
- 
-  // We'll use a center alignment approach: 
-  // 1. Build a full string for each line
-  // 2. Measure its total width
-  // 3. Compute the starting x so it’s centered
-  // 4. Print each segment (gray or green) in sequence
-
-  // Common settings
+function generateIntroductionSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  // Centered title: "Your step towards optimal health."
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(18);
-
-  // --------------------
-  // LINE 1: "Your step towards optimal health."
-  // --------------------
   const line1Part1 = "Your step towards ";
   const line1Part2 = "optimal health";
   const line1Part3 = ".";
-
   const line1Full = line1Part1 + line1Part2 + line1Part3;
   const line1Width = doc.getTextWidth(line1Full);
-
-  // Center horizontally
   const centerX = pageWidth / 2;
-  // The left edge of the text is half the total width to the left of center
-  const line1StartX = centerX - (line1Width / 2);
-  const line1Y = 45; // vertical position
-
+  const line1StartX = centerX - line1Width / 2;
+  const line1Y = currentY + 15;
   let currentX = line1StartX;
-
   // Part 1 (gray)
-  doc.setTextColor(100, 100, 100);  // gray
+  doc.setTextColor(100, 100, 100);
   doc.text(line1Part1, currentX, line1Y);
   currentX += doc.getTextWidth(line1Part1);
-
   // Part 2 (green)
-  doc.setTextColor(153, 188, 68);   // #99bc44
+  doc.setTextColor(153, 188, 68);
   doc.text(line1Part2, currentX, line1Y);
   currentX += doc.getTextWidth(line1Part2);
-
   // Part 3 (gray)
   doc.setTextColor(100, 100, 100);
   doc.text(line1Part3, currentX, line1Y);
+  currentY = line1Y + 10;
 
-  // --------------------
-  // LINE 2: "Our approach is proactive, rather than reactive,"
-  // --------------------
-  const line2 = "Our approach is proactive, rather than reactive,";
-  const line2Width = doc.getTextWidth(line2);
-  const line2StartX = centerX - (line2Width / 2);
-  const line2Y = 55;
+  // Greeting and introductory text
+  doc.setFontSize(10);
+  const greeting = `Dear ${formData.patientInfo.name || "Patient"},`;
+  doc.text(greeting, contentMargin, currentY);
+  currentY += 6;
+  const introLines = [
+    "It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged",
+    "to be a part of your journey to wellness and longevity."
+  ];
+  introLines.forEach(line => {
+    doc.text(line, contentMargin, currentY, { maxWidth: contentWidth, align: "left" });
+    currentY += 6;
+  });
+  return currentY + 10;
+}
 
-  doc.setTextColor(100, 100, 100);
-  doc.text(line2, line2StartX, line2Y);
-
-  // --------------------
-  // LINE 3: "giving you control of your health throughout your life."
-  // (with "control of your health" in green)
-  // --------------------
-  const line3Part1 = "giving you ";
-  const line3Part2 = "control of your health";
-  const line3Part3 = " throughout your life.";
-
-  const line3Full = line3Part1 + line3Part2 + line3Part3;
-  const line3Width = doc.getTextWidth(line3Full);
-  const line3StartX = centerX - (line3Width / 2);
-  const line3Y = 65;
-
-  let currentX3 = line3StartX;
-
-  // Part 1 (gray)
-  doc.setTextColor(100, 100, 100);
-  doc.text(line3Part1, currentX3, line3Y);
-  currentX3 += doc.getTextWidth(line3Part1);
-
-  // Part 2 (green)
-  doc.setTextColor(153, 188, 68); // #99bc44
-  doc.text(line3Part2, currentX3, line3Y);
-  currentX3 += doc.getTextWidth(line3Part2);
-
-  // Part 3 (gray)
-  doc.setTextColor(100, 100, 100);
-  doc.text(line3Part3, currentX3, line3Y); 
-
-  // Greeting
-doc.setFontSize(10);
-const greeting = `Dear ${patientInfo.name || "Patient"},`;
-doc.text(greeting, contentMargin, 80);
-  
-  doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be a", contentMargin, 90);
-  doc.text("part of your journey to wellness and longevity.", contentMargin, 95);
-  
-  // Key vital signs table
+/**
+ * Section 3: Adds the Vital Signs table.
+ */
+function generateVitalsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
-  doc.text("Key vital signs", contentMargin, 105);
-  
-  // Vital signs table with proper width
+  currentY = ensureSpace(doc, currentY, 15, 20);
+  doc.text("Key vital signs", contentMargin, currentY);
+  currentY += 8;
+
   autoTable(doc, {
-    startY: 110,
+    startY: currentY,
     head: [
       [
-        { content: 'Vitals', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Value', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Target Range', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Vitals", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
+        { content: "Value", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Target Range", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      ['Date of Birth', patientInfo.dateOfBirth ? new Date(patientInfo.dateOfBirth).toLocaleDateString() : '-', '-'],
-      ['Age (years)', calculateAge(patientInfo.dateOfBirth), '-'],
-      ['Blood Pressure', vitals.bloodPressure || '-', '120/60-140/85'],
-      ['Height (cm)', vitals.height || '-', '-'],
-      ['Weight (Kg)', convertToKg(vitals.weight) || '-', '-'],
-      ['Body Mass Index', calculateBMI(vitals.height, vitals.weight), '18.5 – 25.9']
+      ["Date of Birth", formData.patientInfo.dateOfBirth ? new Date(formData.patientInfo.dateOfBirth).toLocaleDateString() : "-", "-"],
+      ["Age (years)", calculateAge(formData.patientInfo.dateOfBirth), "-"],
+      ["Blood Pressure", formData.vitals.bloodPressure || "-", "120/60-140/85"],
+      ["Height (cm)", formData.vitals.height || "-", "-"],
+      ["Weight (Kg)", convertToKg(formData.vitals.weight) || "-", "-"],
+      ["Body Mass Index", calculateBMI(formData.vitals.height, formData.vitals.weight), "18.5 – 25.9"]
     ],
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
-      font: 'helvetica',
-      textColor: [60, 60, 60],
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: 30, right: 0}
+    margin: { left: contentMargin, right: contentMargin }
   });
-  
-  // Add page number
-  addPageNumber(doc, 2, pageWidth);
-};
+
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
 
 /**
- * Generates the third page with summary findings
+ * Section 4: Adds the Summary of Findings table.
  */
-const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  const { summaryFindings } = formData;
-  
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Summary of findings
-  doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+function generateSummarySection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
   doc.setFont("helvetica", "bold");
-  doc.text("Summary of findings", contentMargin, 45);
-  
-  // Summary findings table with proper width
+  doc.setFontSize(12);
+  currentY = ensureSpace(doc, currentY, 60, 20);
+  doc.text("Summary of findings", contentMargin, currentY);
+  currentY += 8;
+
   autoTable(doc, {
-    startY: 50,
+    startY: currentY,
     head: [
       [
-        { content: 'Parameters', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Key findings and next steps', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Parameter", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      ['Glucose Metabolism', summaryFindings?.glucoseMetabolism || ''],
-      ['Lipid Profile', summaryFindings?.lipidProfile || ''],
-      ['Inflammation', summaryFindings?.inflammation || ''],
-      ['Uric Acid', summaryFindings?.uricAcid || ''],
-      ['Vitamins', summaryFindings?.vitamins || ''],
-      ['Minerals', summaryFindings?.minerals || ''],
-      ['Sex Hormones', summaryFindings?.sexHormones || ''],
-      ['Renal & Liver Function', summaryFindings?.renalLiverFunction || ''],
-      ['Cancer markers', summaryFindings?.cancerMarkers || '']
+      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
+      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
+      ["Inflammation", formData.summaryFindings.inflammation || ""],
+      ["Uric Acid", formData.summaryFindings.uricAcid || ""],
+      ["Vitamins", formData.summaryFindings.vitamins || ""],
+      ["Minerals", formData.summaryFindings.minerals || ""],
+      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
+      ["Renal & Liver Function", formData.summaryFindings.renalLiverFunction || ""],
+      ["Cancer markers", formData.summaryFindings.cancerMarkers || ""]
     ],
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
-      font: 'helvetica',
-      overflow: 'linebreak',
-      textColor: [60, 60, 60]
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
-  // Add page number
-  addPageNumber(doc, 3, pageWidth);
-};
+
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
 
 /**
- * Generates the fourth page with Insulin Resistance and Cardiovascular risk
+ * Section 5: Adds Insulin Resistance (if enabled) and Cardiovascular Risk table.
  */
-const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  const showInsulinResistance = formData.showInsulinResistance === true;
-  
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  let startY = 45;
-  
-  // Only add Insulin Resistance section if enabled
-  if (showInsulinResistance) {
-    // Insulin Resistance section
+function generateInsulinCardioSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  if (formData.showInsulinResistance === true) {
     doc.setFontSize(12);
-    doc.setTextColor(153, 188, 68); // #99bc44
+    doc.setTextColor(153,188,68);
     doc.setFont("helvetica", "bold");
-    doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, startY);
-    
-    // Add the specified insulin resistance image
-    doc.addImage("/assets/insulin resistance.jpg", "JPEG", contentMargin, startY + 10, contentWidth, 60);
-    
+    currentY = ensureSpace(doc, currentY, 80, 20);
+    doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, currentY);
+    currentY += 10;
+    try {
+      doc.addImage("/assets/insulin resistance.jpg", "JPEG", contentMargin, currentY, contentWidth, 60);
+    } catch (error) {
+      console.error("Error adding insulin resistance image:", error);
+    }
+    currentY += 60;
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, startY + 75, { align: "center" });
-    
-    startY = startY + 85; // Adjust start position for next section
+    doc.setTextColor(100,100,100);
+    doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" });
+    currentY += 10;
   }
-  
   // Cardiovascular risk table
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, startY);
-  
-  // Determine which row to highlight based on gender
-  const isMale = formData.patientInfo.gender === 'Male';
+  currentY = ensureSpace(doc, currentY, 20, 20);
+  doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, currentY);
+  currentY += 5;
   
   autoTable(doc, {
-    startY: startY + 5,
+    startY: currentY,
     head: [
       [
-        { content: '', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Low risk', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Moderate risk', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'High risk', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Low risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Moderate risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "High risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      ['Men', '0.30-to-0.69', '0.70-to-0.89', '0.90-to-1.2'],
-      ['Women', '0.30-to-0.59', '0.60-to-0.79', '0.80-to-1.00']
+      ["Men", "0.30-to-0.69", "0.70-to-0.89", "0.90-to-1.2"],
+      ["Women", "0.30-to-0.59", "0.60-to-0.79", "0.80-to-1.00"]
     ],
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 40, fillColor: [240, 250, 230] },
+      0: { cellWidth: 40, fillColor: [240,250,230] },
       1: { cellWidth: 40 },
       2: { cellWidth: 40 },
       3: { cellWidth: 40 }
     },
-    didDrawCell: (data) => {
-      // Highlight the row based on gender
-      if (data.section === 'body') {
-        const rowIndex = data.row.index;
-        if ((isMale && rowIndex === 0) || (!isMale && rowIndex === 1)) {
-          doc.setFillColor(255, 255, 200); // Light yellow highlight
-          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-          
-          // Re-draw text since we covered it with the highlight
-          doc.setTextColor(60, 60, 60);
-          doc.text(
-            data.cell.text,
-            data.cell.x + data.cell.padding('left'),
-            data.cell.y + data.cell.padding('top') + data.cell.contentHeight / 2 + 1
-          );
-        }
-      }
-    },
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
-  addPageNumber(doc, 4, pageWidth);
-};
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
 
 /**
- * Generates the fifth page with Doctor's Recommendations (Nutrition)
+ * Section 6: Adds Doctor's Recommendations (Nutrition)
  */
-const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Doctor's Recommendations
+function generateDoctorsRecommendationsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  doc.text("Doctors Recommendations", contentMargin, 45);
+  currentY = ensureSpace(doc, currentY, 20, 20);
+  doc.text("Doctors Recommendations", contentMargin, currentY);
+  currentY += 8;
   
-  // Nutrition recommendations table
   autoTable(doc, {
-    startY: 55,
+    startY: currentY,
     head: [
       [
-        { content: 'Nutrition', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Recommendations', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Nutrition", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Recommendations", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      ['Style (nutritional plan)', formData.nutritionRecommendations?.nutritionalPlan || ''],
-      ['Protein Consumption', formData.nutritionRecommendations?.proteinConsumption || ''],
-      ['Omissions', formData.nutritionRecommendations?.omissions || ''],
-      ['Additional Considerations', formData.nutritionRecommendations?.additionalConsiderations || '']
+      ["Style (nutritional plan)", formData.nutritionRecommendations?.nutritionalPlan || ""],
+      ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
+      ["Omissions", formData.nutritionRecommendations?.omissions || ""],
+      ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
     ],
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      overflow: 'linebreak',
-      minCellHeight: 20,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
-  addPageNumber(doc, 5, pageWidth);
-};
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
 
 /**
- * Generates the sixth page with Exercise and Sleep/Stress recommendations
+ * Section 7: Adds Exercise and Sleep/Stress Recommendations.
  */
-const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Exercise recommendations table
+function generateExerciseSleepSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  // Exercise recommendations
   autoTable(doc, {
-    startY: 45,
+    startY: currentY,
     head: [
       [
-        { content: 'Exercise', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Recommendations', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Exercise", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Recommendations", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      ['Focus on', formData.exerciseDetail?.focusOn || ''],
-      ['Walking', formData.exerciseDetail?.walking || ''],
-      ['Avoid', formData.exerciseDetail?.avoid || ''],
-      ['Tracking', formData.exerciseDetail?.tracking || '']
+      ["Focus on", formData.exerciseDetail?.focusOn || ""],
+      ["Walking", formData.exerciseDetail?.walking || ""],
+      ["Avoid", formData.exerciseDetail?.avoid || ""],
+      ["Tracking", formData.exerciseDetail?.tracking || ""]
     ],
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      overflow: 'linebreak',
-      minCellHeight: 20,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Sleep and stress recommendations table with improved spacing
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  
+  // Sleep and Stress recommendations
   autoTable(doc, {
-    startY: 140,
+    startY: currentY,
     head: [
       [
-        { content: 'Sleep and Stress', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Recommendations', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Sleep and Stress", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Recommendations", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      ['Sleep', formData.sleepStressRecommendations?.sleep || ''],
-      ['Stress', formData.sleepStressRecommendations?.stress || '']
+      ["Sleep", formData.sleepStressRecommendations?.sleep || ""],
+      ["Stress", formData.sleepStressRecommendations?.stress || ""]
     ],
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      overflow: 'linebreak',
-      minCellHeight: 20,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
   
-  // Add page number
-  addPageNumber(doc, 6, pageWidth);
-};
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
 
 /**
- * Generates the seventh page with Medications and Supplements
+ * Section 8: Adds Medications and Supplements.
  */
-const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
-  
+function generateMedicationsSupplementsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData,
+  medications: Medication[]
+): number {
   // Medications title
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  doc.text("Medications", contentMargin, 45);
+  currentY = ensureSpace(doc, currentY, 20, 20);
+  doc.text("Medications", contentMargin, currentY);
+  currentY += 8;
   
-  // Medications table with actual patient medications - only include non-empty rows
-  const medicationRows = formData.medications
-    .map(med => {
-      const medication = medications.find(m => m.id === med.medicationId);
-      return [
-        medication?.name || '',
-        med.dosage || '',
-        'Prescription'
-      ];
-    })
-    .filter(row => row[0] || row[1]); // Filter out empty rows
+  const medicationRows = formData.medications.map(med => {
+    const medication = medications.find(m => m.id === med.medicationId);
+    return [
+      medication?.name || "",
+      med.dosage || "",
+      "Prescription"
+    ];
+  }).filter(row => row[0] || row[1]);
   
-  // If no medications, add a single example row
   if (medicationRows.length === 0) {
-    medicationRows.push(
-      ['No medications prescribed', '', '']
-    );
+    medicationRows.push(["No medications prescribed", "", ""]);
   }
   
   autoTable(doc, {
-    startY: 55,
+    startY: currentY,
     head: [
       [
-        { content: 'Medications', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Dosage', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Type', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Medications", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Dosage", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Type", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: medicationRows,
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
   
-  // Supplements title with improved spacing
+  // Supplements title
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  doc.text("Supplements", contentMargin, 110);
+  currentY = ensureSpace(doc, currentY, 20, 20);
+  doc.text("Supplements", contentMargin, currentY);
+  currentY += 8;
   
-  // Get supplements from formData or use defaults - only include non-empty rows
-  const supplementRows = (formData.supplements || [])
-    .map(sup => {
-      const supplement = medications.find(m => m.id === sup.supplementId);
-      return [
-        supplement?.name || '',
-        sup.dosage || '',
-        sup.source || ''
-      ];
-    })
-    .filter(row => row[0] || row[1] || row[2]); // Filter out empty rows
+  const supplementRows = (formData.supplements || []).map(sup => {
+    const supplement = medications.find(m => m.id === sup.supplementId);
+    return [
+      supplement?.name || "",
+      sup.dosage || "",
+      sup.source || ""
+    ];
+  }).filter(row => row[0] || row[1] || row[2]);
   
-  // If no supplements, add a single row
   if (supplementRows.length === 0) {
-    supplementRows.push(
-      ['No supplements recommended', '', '']
-    );
+    supplementRows.push(["No supplements recommended", "", ""]);
   }
   
-  // Supplements table with specific dosages
   autoTable(doc, {
-    startY: 120,
+    startY: currentY,
     head: [
       [
-        { content: 'Supplements', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Dosage', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Source', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "Supplements", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Dosage", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Source", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: supplementRows,
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
-  
-  // Add page number
-  addPageNumber(doc, 7, pageWidth);
-};
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
 
 /**
- * Generates the eighth page with Follow-ups
+ * Section 9: Adds Follow-ups and Referrals plus signature.
  */
-const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Follow-ups and referrals
+function generateFollowUpsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68); // #99bc44
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  doc.text("Follow-ups and referrals", contentMargin, 45);
+  currentY = ensureSpace(doc, currentY, 20, 20);
+  doc.text("Follow-ups and referrals", contentMargin, currentY);
+  currentY += 8;
   
-  // Get follow-ups from form data or use defaults - only include non-empty rows
-  const followUpRows = (formData.followUps || [])
-    .map(followUp => [
-      followUp.withDoctor || '',
-      followUp.forReason || '',
-      followUp.date || ''
-    ])
-    .filter(row => row[0] || row[1] || row[2]); // Filter out empty rows
+  const followUpRows = (formData.followUps || []).map(followUp => [
+    followUp.withDoctor || "",
+    followUp.forReason || "",
+    followUp.date || ""
+  ]).filter(row => row[0] || row[1] || row[2]);
   
-  // If no follow-ups, add a single row
   if (followUpRows.length === 0) {
-    followUpRows.push(
-      ['No follow-ups scheduled', '', '']
-    );
+    followUpRows.push(["No follow-ups scheduled", "", ""]);
   }
   
   autoTable(doc, {
-    startY: 55,
+    startY: currentY,
     head: [
       [
-        { content: 'With', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'For', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
-        { content: 'Date', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } }
+        { content: "With", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "For", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Date", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: followUpRows,
-    theme: 'grid',
+    theme: "grid",
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-      font: 'helvetica',
-      textColor: [60, 60, 60]
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
   
-  // Closing and signature
+  // Closing & Signature
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(100,100,100);
   doc.setFont("helvetica", "normal");
-  doc.text("Kind Regards,", contentMargin, 120);
+  doc.text("Kind Regards,", contentMargin, currentY);
+  currentY += 6;
   doc.setFont("helvetica", "bold");
-  doc.text("Dr Eslam Yakout", contentMargin, 130);
-  
-  // Add page number
-  addPageNumber(doc, 8, pageWidth);
-};
+  doc.text("Dr Eslam Yakout", contentMargin, currentY);
+  currentY += 10;
+  return currentY;
+}
 
 /**
- * Generate a complete PDF report for a patient
+ * Main PDF generator function.
  */
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
-  const { patientInfo } = formData;
-  
-  // Create a new PDF document - using A4 size with mm units
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4"
   });
-  
-  // Use Helvetica font throughout
   doc.setFont("helvetica");
   
-  // A4 dimensions: 210mm x 297mm
-  const pageWidth = 210;
-  const contentMargin = 20; // Margin on both sides
-  const contentWidth = pageWidth - (contentMargin * 2);
+  const pageWidth = doc.internal.pageSize.getWidth();  // 210 mm for A4
+  const contentMargin = 20;
+  const contentWidth = pageWidth - contentMargin * 2;
   
-  // Generate each page of the report
-  generateFirstPage(doc, pageWidth, contentMargin, contentWidth);
-  generateSecondPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateThirdPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateFourthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateFifthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateSixthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateSeventhPage(doc, formData, medications, pageWidth, contentMargin, contentWidth);
-  generateEighthPage(doc, formData, pageWidth, contentMargin, contentWidth);
+  // Start at a top margin (e.g., 30 mm)
+  let currentY = 30;
   
-  // Generate file name
-  const fileName = `${patientInfo.name?.replace(/\s+/g, '_') || 'Patient'}_Medical_Report.pdf`;
+  // Section 1: Images
+  currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
   
-  // Save the PDF
+  // Section 2: Introduction & Greeting
+  currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Section 3: Vital Signs Table
+  currentY = generateVitalsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Section 4: Summary Findings
+  currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Section 5: Insulin Resistance & Cardiovascular Risk (if enabled)
+  currentY = generateInsulinCardioSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Section 6: Doctor's Recommendations (Nutrition)
+  currentY = generateDoctorsRecommendationsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Section 7: Exercise and Sleep/Stress Recommendations
+  currentY = generateExerciseSleepSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Section 8: Medications and Supplements
+  currentY = generateMedicationsSupplementsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications);
+  
+  // Section 9: Follow-ups and Referrals
+  currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
+  const fileName = `${patientName}_Medical_Report.pdf`;
   doc.save(fileName);
   
-  // Save the PDF reference to the database
-  if (patientInfo.medicalRecordNumber) {
-    await databaseService.savePDFReference(patientInfo.medicalRecordNumber, fileName);
+  if (formData.patientInfo.medicalRecordNumber) {
+    await databaseService.savePDFReference(formData.patientInfo.medicalRecordNumber, fileName);
   }
   
   return fileName;
