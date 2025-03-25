@@ -4,6 +4,7 @@ import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
 import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
   try {
@@ -24,7 +25,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     if (patient) {
       fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
       try {
-        // Save to Supabase database
+        // Save to Supabase database with proper UUID format using uuidv4
         await savePDFReference(patient.id, fileName);
       } catch (error) {
         console.error("Error saving PDF reference:", error);

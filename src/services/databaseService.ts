@@ -750,7 +750,8 @@ export const loginUser = async (email: string, password: string): Promise<User |
 // PDF file operations
 export const savePDFReference = async (patientId: string, fileName: string): Promise<PDFFile> => {
   try {
-    const id = `pdf-${Date.now()}`;
+    // Generate a proper UUID using uuidv4 instead of a timestamp string
+    const id = uuidv4();
     const currentUser = await getCurrentUser();
     
     const newPDFFile: PDFFile = {

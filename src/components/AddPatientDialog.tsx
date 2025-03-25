@@ -48,23 +48,28 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
 
       // Create new patient with proper UUID
       const newPatient: Patient = {
-        id: uuidv4(), // Using UUID v4 instead of timestamp
+        id: uuidv4(), // Using UUID v4 for consistent ID format
         name: patientData.name,
         dateOfBirth: patientData.dateOfBirth,
         gender: patientData.gender,
         medicalRecordNumber,
         lastUpdated: new Date().toISOString(),
-        status: 'in-review' // This value should now be accepted as a valid status
+        status: 'in-review' 
       };
 
       // Save patient to database
-      await databaseService.addPatient(newPatient);
+      const savedPatient = await databaseService.addPatient(newPatient);
 
-      // Initialize form data for the new patient
-      await databaseService.getPatientFormData(newPatient.id);
+      // Initialize form data for the new patient without throwing an error if it fails
+      try {
+        await databaseService.getPatientFormData(savedPatient.id);
+      } catch (formError) {
+        console.warn("Warning: Could not initialize form data, but patient was created", formError);
+        // Continue anyway - the form data will be created when the patient form is first accessed
+      }
 
       setIsLoading(false);
-      onAddPatient(newPatient);
+      onAddPatient(savedPatient);
       setPatientData({
         name: "",
         dateOfBirth: "",
@@ -74,7 +79,7 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
       
       toast({
         title: "Patient added",
-        description: `${newPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
+        description: `${savedPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
       });
     } catch (error) {
       console.error("Error adding patient:", error);

@@ -12,10 +12,26 @@ import * as databaseService from "@/services/databaseService";
 const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number, contentWidth: number) => {
   addLogoToPage(doc);
   
-  // Key statistics boxes
-  drawStatBox(doc, "6 out of 10 causes\nof death are\npreventable", 60, contentMargin, contentWidth, pageWidth);
-  drawStatBox(doc, "We only spend 3%\nof our health care\nexpenditure on\nprevention", 110, contentMargin, contentWidth, pageWidth);
-  drawStatBox(doc, "90% of our health\ncare expenditure\noccurs in the last 3\nyears of our lives", 160, contentMargin, contentWidth, pageWidth);
+  // Add images instead of statistic boxes - centered on page
+  const imageWidth = 120;
+  const imageStartX = (pageWidth - imageWidth) / 2;
+  
+  try {
+    // First image: 6 out of 10 causes
+    doc.addImage("/assets/picture1.png", "PNG", imageStartX, 50, imageWidth, 50);
+    
+    // Second image: 3% healthcare expenditure 
+    doc.addImage("/assets/picture2.png", "PNG", imageStartX, 110, imageWidth, 50);
+    
+    // Third image: 90% healthcare expenditure
+    doc.addImage("/assets/picture3.png", "PNG", imageStartX, 170, imageWidth, 50);
+  } catch (error) {
+    console.error("Error adding images to PDF:", error);
+    // Fallback to text if images fail to load
+    drawStatBox(doc, "6 out of 10 causes\nof death are\npreventable", 60, contentMargin, contentWidth, pageWidth);
+    drawStatBox(doc, "We only spend 3%\nof our health care\nexpenditure on\nprevention", 110, contentMargin, contentWidth, pageWidth);
+    drawStatBox(doc, "90% of our health\ncare expenditure\noccurs in the last 3\nyears of our lives", 160, contentMargin, contentWidth, pageWidth);
+  }
   
   // Add page number
   addPageNumber(doc, 1, pageWidth);
