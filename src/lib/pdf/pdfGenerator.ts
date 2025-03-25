@@ -128,7 +128,7 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
 
   // Part 3 (gray)
   doc.setTextColor(100, 100, 100);
-  doc.text(line3Part3, currentX3, line3Y);
+  doc.text(line3Part3, currentX3, line3Y); 
 
   // Greeting
 doc.setFontSize(10);
