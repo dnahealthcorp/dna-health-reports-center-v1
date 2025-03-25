@@ -39,7 +39,7 @@ const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number,
 };
 
 /**
- * Generates the second page with introduction, vital signs, and starts summary findings
+ * Generates the second page with introduction, vital signs, and summary findings
  */
 const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   const { patientInfo, vitals, summaryFindings } = formData;
@@ -170,11 +170,11 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
       textColor: [60, 60, 60],
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: 50 },
-      2: { cellWidth: 50 }
+      0: { cellWidth: 40 },
+      1: { cellWidth: 40 },
+      2: { cellWidth: 40 }
     },
-    margin: { left: 30, right: 0},
+    margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo to any new pages created by the table
       if (data.pageNumber > 1) {
@@ -187,14 +187,43 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   });
   
   // Summary of findings - Starting on page 2 with proper spacing after vitals
+  const summaryTitleY = finalY + 15;
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Summary of findings", contentMargin, finalY + 15);
+  doc.text("Summary of findings", contentMargin, summaryTitleY);
   
+  // Calculate how much space we have left on page 2
+  const pageHeight = doc.internal.pageSize.height;
+  const availableSpace = pageHeight - summaryTitleY - 30; // 30mm safety margin at bottom
+  
+  // If we have very little space left, just start on page 3
+  if (availableSpace < 40) {
+    doc.addPage();
+    addLogoToPage(doc);
+    doc.setFontSize(12);
+    doc.setTextColor(153, 188, 68); // #99bc44
+    doc.setFont("helvetica", "bold");
+    doc.text("Summary of findings", contentMargin, 30);
+    
+    // Summary findings table starting on a new page
+    generateSummaryFindingsTable(doc, summaryFindings, contentMargin, 40, contentWidth, pageWidth);
+    addPageNumber(doc, 3, pageWidth);
+  } else {
+    // Start summary findings table on page 2 and let it flow to page 3 if needed
+    generateSummaryFindingsTable(doc, summaryFindings, contentMargin, summaryTitleY + 10, contentWidth, pageWidth);
+    // Add page number for page 2
+    addPageNumber(doc, 2, pageWidth);
+  }
+};
+
+/**
+ * Generates the Summary Findings table with better page break handling
+ */
+const generateSummaryFindingsTable = (doc: jsPDF, summaryFindings: any, contentMargin: number, startY: number, contentWidth: number, pageWidth: number) => {
   // Summary findings table with proper width, allowing continued to next page if needed
   autoTable(doc, {
-    startY: finalY + 20,
+    startY: startY,
     head: [
       [
         { content: 'Parameters', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -221,25 +250,30 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
       textColor: [60, 60, 60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 55 }
+      0: { cellWidth: 40, fillColor: [240, 250, 230] },
+      1: { cellWidth: contentWidth - 45 }
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
       // Add logo and page number to any new pages created by the table
       if (data.pageNumber > 2) {
         addLogoToPage(doc);
-        addPageNumber(doc, data.pageNumber, pageWidth);
+        // Update the page number - this will be page 3
+        addPageNumber(doc, 3, pageWidth);
       }
     },
     willDrawCell: (data) => {
-      // Ensure we're preventing the overlapping of cells 
-      // by checking available space on the page
-      if (data.row.index === 0 && data.section === 'body') {
-        // Calculate if there's enough space for at least 2 rows on current page
-        const availableSpace = doc.internal.pageSize.height - data.cursor.y - 40; // 40mm margin
-        if (availableSpace < 25) { // If less than 25mm available, force new page
-          data.cursor.y = 40; // Reset y position on new page
+      // Improved pagination logic
+      const rowsPerPage = 4; // Estimate based on cell height
+      if (data.section === 'body') {
+        // Calculate if breaking to a new page would be better for readability
+        const rowIndex = data.row.index;
+        const remainingRows = data.table.body.length - rowIndex;
+        
+        // If we're near the bottom of the page and have more than 2 rows left, 
+        // consider adding a page break
+        const distanceFromBottom = doc.internal.pageSize.height - data.cursor.y;
+        if (distanceFromBottom < 30 && remainingRows > 1 && rowIndex > 0) {
           doc.addPage();
           addLogoToPage(doc);
           doc.setFontSize(12);
@@ -251,22 +285,26 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
       }
     }
   });
-  
-  // Add page number for page 2
-  addPageNumber(doc, 2, pageWidth);
 };
 
 /**
  * Generates the third page with Insulin Resistance and Cardiovascular risk
- * Note: This is now page 3 as Summary of Findings may extend to this page
+ * Note: This is now page 3 after fixing the Summary of Findings pagination
  */
 const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   const showInsulinResistance = formData.showInsulinResistance === true;
   
-  doc.addPage();
-  addLogoToPage(doc);
+  // Since Summary Findings may have flowed to page 3, check if we need a new page
+  if (doc.getCurrentPageInfo().pageNumber < 3) {
+    doc.addPage();
+    addLogoToPage(doc);
+  } else {
+    // We're already on page 3 or later, so add some space
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+  }
   
-  let startY = 45;
+  let startY = 30; // Start higher up since we're on a new page
   
   // Only add Insulin Resistance section if enabled
   if (showInsulinResistance) {
@@ -349,7 +387,7 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
 
 /**
  * Generates the fourth page with Doctor's Recommendations (Nutrition)
- * Note: This is now page 4 
+ * Shifted from page 4 to page 3
  */
 const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -359,11 +397,11 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Doctors Recommendations", contentMargin, 45);
+  doc.text("Doctors Recommendations", contentMargin, 30);
   
   // Nutrition recommendations table
   autoTable(doc, {
-    startY: 55,
+    startY: 40,
     head: [
       [
         { content: 'Nutrition', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -387,7 +425,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 50 }
+      1: { cellWidth: contentWidth - 55 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
@@ -398,7 +436,7 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
 
 /**
  * Generates the fifth page with Exercise and Sleep/Stress recommendations
- * Note: This is now page 5
+ * Shifted from page 5 to page 4
  */
 const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -406,7 +444,7 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
   
   // Exercise recommendations table
   autoTable(doc, {
-    startY: 45,
+    startY: 30,
     head: [
       [
         { content: 'Exercise', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -430,14 +468,14 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 50 }
+      1: { cellWidth: contentWidth - 55 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
   
   // Sleep and stress recommendations table with improved spacing
   autoTable(doc, {
-    startY: 140,
+    startY: 120,
     head: [
       [
         { content: 'Sleep and Stress', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -459,7 +497,7 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 50 }
+      1: { cellWidth: contentWidth - 55 }
     },
     margin: { left: contentMargin, right: contentMargin }
   });
@@ -470,7 +508,7 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
 
 /**
  * Generates the sixth page with Medications and Supplements
- * Note: This is now page 6
+ * Shifted from page 6 to page 5
  */
 const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -480,7 +518,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: M
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Medications", contentMargin, 45);
+  doc.text("Medications", contentMargin, 30);
   
   // Medications table with actual patient medications - only include non-empty rows
   const medicationRows = formData.medications
@@ -502,7 +540,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: M
   }
   
   autoTable(doc, {
-    startY: 55,
+    startY: 40,
     head: [
       [
         { content: 'Medications', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -583,7 +621,7 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: M
 
 /**
  * Generates the seventh page with Follow-ups
- * Note: This is now page 7
+ * Shifted from page 7 to page 6
  */
 const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
@@ -593,7 +631,7 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, pageWidth: n
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Follow-ups and referrals", contentMargin, 45);
+  doc.text("Follow-ups and referrals", contentMargin, 30);
   
   // Get follow-ups from form data or use defaults - only include non-empty rows
   const followUpRows = (formData.followUps || [])
@@ -612,7 +650,7 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, pageWidth: n
   }
   
   autoTable(doc, {
-    startY: 55,
+    startY: 40,
     head: [
       [
         { content: 'With', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -669,7 +707,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   const contentMargin = 20; // Margin on both sides
   const contentWidth = pageWidth - (contentMargin * 2);
   
-  // Generate each page of the report - updated page numbers
+  // Generate each page of the report - updated page numbers and order
   generateFirstPage(doc, pageWidth, contentMargin, contentWidth);
   generateSecondPage(doc, formData, pageWidth, contentMargin, contentWidth);
   generateThirdPage(doc, formData, pageWidth, contentMargin, contentWidth);

@@ -3,7 +3,6 @@
 import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
 import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
-import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
