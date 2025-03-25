@@ -166,7 +166,7 @@ doc.text(greeting, contentMargin, 95);
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 2,
+      cellPadding: 5,
       font: 'helvetica',
       textColor: [60, 60, 60],
     },
@@ -220,7 +220,7 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
     theme: 'grid',
     styles: {
       fontSize: 10,
-      cellPadding: 2,
+      cellPadding: 5,
       font: 'helvetica',
       overflow: 'linebreak',
       textColor: [60, 60, 60]
