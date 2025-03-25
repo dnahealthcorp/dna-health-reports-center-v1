@@ -17,10 +17,14 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       formData.patientInfo.name = patient.name;
     }
     
-    // Generate the PDF
-    const pdfOutput = await generatePDFImpl(formData, medications);
+    // Generate the PDF - this returns the blob
+    const pdfBlob = await generatePDFImpl(formData, medications);
     
-    // Save PDF reference to database if we have a patient
+    // Create a URL for the blob and trigger the download
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    
+    // Generate file name
     let fileName = "";
     if (patient) {
       fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -34,6 +38,13 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     } else {
       fileName = `Patient_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
     }
+    
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     
     // For debugging
     console.log("PDF generated successfully with data:", {

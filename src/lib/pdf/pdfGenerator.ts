@@ -39,19 +39,18 @@ const generateFirstPage = (doc: jsPDF, pageWidth: number, contentMargin: number,
 };
 
 /**
- * Generates the second page with introduction and vital signs
+ * Generates the second page with introduction, vital signs, and summary findings
  */
 const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  const { patientInfo, vitals } = formData;
+  const { patientInfo, vitals, summaryFindings } = formData;
   
   doc.addPage();
   addLogoToPage(doc);
   
- 
   // We'll use a center alignment approach: 
   // 1. Build a full string for each line
   // 2. Measure its total width
-  // 3. Compute the starting x so it’s centered
+  // 3. Compute the starting x so it's centered
   // 4. Print each segment (gray or green) in sequence
 
   // Common settings
@@ -131,9 +130,9 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.text(line3Part3, currentX3, line3Y); 
 
   // Greeting
-doc.setFontSize(10);
-const greeting = `Dear ${patientInfo.name || "Patient"},`;
-doc.text(greeting, contentMargin, 80);
+  doc.setFontSize(10);
+  const greeting = `Dear ${patientInfo.name || "Patient"},`;
+  doc.text(greeting, contentMargin, 80);
   
   doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be a", contentMargin, 90);
   doc.text("part of your journey to wellness and longevity.", contentMargin, 95);
@@ -145,6 +144,7 @@ doc.text(greeting, contentMargin, 80);
   doc.text("Key vital signs", contentMargin, 105);
   
   // Vital signs table with proper width
+  let finalY = 0;
   autoTable(doc, {
     startY: 110,
     head: [
@@ -174,31 +174,27 @@ doc.text(greeting, contentMargin, 80);
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: 30, right: 0}
+    margin: { left: 30, right: 0},
+    didDrawPage: (data) => {
+      // Add logo to any new pages created by the table
+      if (data.pageNumber > 1) {
+        addLogoToPage(doc);
+      }
+    },
+    didParseCell: (data) => {
+      finalY = data.cell.y + data.cell.height;
+    }
   });
   
-  // Add page number
-  addPageNumber(doc, 2, pageWidth);
-};
-
-/**
- * Generates the third page with summary findings
- */
-const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
-  const { summaryFindings } = formData;
-  
-  doc.addPage();
-  addLogoToPage(doc);
-  
-  // Summary of findings
+  // Summary of findings - Adding directly to page 2 after vitals
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Summary of findings", contentMargin, 45);
+  doc.text("Summary of findings", contentMargin, finalY + 15);
   
   // Summary findings table with proper width
   autoTable(doc, {
-    startY: 50,
+    startY: finalY + 20,
     head: [
       [
         { content: 'Parameters', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
@@ -228,17 +224,23 @@ const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to any new pages created by the table
+      if (data.pageNumber > 1) {
+        addLogoToPage(doc);
+      }
+    }
   });
   
   // Add page number
-  addPageNumber(doc, 3, pageWidth);
+  addPageNumber(doc, 2, pageWidth);
 };
 
 /**
- * Generates the fourth page with Insulin Resistance and Cardiovascular risk
+ * Generates the third page with Insulin Resistance and Cardiovascular risk
  */
-const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateThirdPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   const showInsulinResistance = formData.showInsulinResistance === true;
   
   doc.addPage();
@@ -322,13 +324,13 @@ const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   });
   
   // Add page number
-  addPageNumber(doc, 4, pageWidth);
+  addPageNumber(doc, 3, pageWidth);
 };
 
 /**
- * Generates the fifth page with Doctor's Recommendations (Nutrition)
+ * Generates the fourth page with Doctor's Recommendations (Nutrition)
  */
-const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateFourthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
   
@@ -370,13 +372,13 @@ const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
   });
   
   // Add page number
-  addPageNumber(doc, 5, pageWidth);
+  addPageNumber(doc, 4, pageWidth);
 };
 
 /**
- * Generates the sixth page with Exercise and Sleep/Stress recommendations
+ * Generates the fifth page with Exercise and Sleep/Stress recommendations
  */
-const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateFifthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
   
@@ -441,13 +443,13 @@ const generateSixthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: num
   });
   
   // Add page number
-  addPageNumber(doc, 6, pageWidth);
+  addPageNumber(doc, 5, pageWidth);
 };
 
 /**
- * Generates the seventh page with Medications and Supplements
+ * Generates the sixth page with Medications and Supplements
  */
-const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateSixthPage = (doc: jsPDF, formData: PatientFormData, medications: Medication[], pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
   
@@ -553,13 +555,13 @@ const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, medications:
   });
   
   // Add page number
-  addPageNumber(doc, 7, pageWidth);
+  addPageNumber(doc, 6, pageWidth);
 };
 
 /**
- * Generates the eighth page with Follow-ups
+ * Generates the seventh page with Follow-ups
  */
-const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
+const generateSeventhPage = (doc: jsPDF, formData: PatientFormData, pageWidth: number, contentMargin: number, contentWidth: number) => {
   doc.addPage();
   addLogoToPage(doc);
   
@@ -619,13 +621,13 @@ const generateEighthPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.text("Dr Eslam Yakout", contentMargin, 130);
   
   // Add page number
-  addPageNumber(doc, 8, pageWidth);
+  addPageNumber(doc, 7, pageWidth);
 };
 
 /**
  * Generate a complete PDF report for a patient
  */
-export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
+export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
   const { patientInfo } = formData;
   
   // Create a new PDF document - using A4 size with mm units
@@ -643,26 +645,23 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   const contentMargin = 20; // Margin on both sides
   const contentWidth = pageWidth - (contentMargin * 2);
   
-  // Generate each page of the report
+  // Generate each page of the report - updated page numbers
   generateFirstPage(doc, pageWidth, contentMargin, contentWidth);
   generateSecondPage(doc, formData, pageWidth, contentMargin, contentWidth);
   generateThirdPage(doc, formData, pageWidth, contentMargin, contentWidth);
   generateFourthPage(doc, formData, pageWidth, contentMargin, contentWidth);
   generateFifthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateSixthPage(doc, formData, pageWidth, contentMargin, contentWidth);
-  generateSeventhPage(doc, formData, medications, pageWidth, contentMargin, contentWidth);
-  generateEighthPage(doc, formData, pageWidth, contentMargin, contentWidth);
+  generateSixthPage(doc, formData, medications, pageWidth, contentMargin, contentWidth);
+  generateSeventhPage(doc, formData, pageWidth, contentMargin, contentWidth);
   
   // Generate file name
   const fileName = `${patientInfo.name?.replace(/\s+/g, '_') || 'Patient'}_Medical_Report.pdf`;
   
-  // Save the PDF
-  doc.save(fileName);
+  // Get the PDF as a blob
+  const pdfBlob = doc.output('blob');
   
-  // Save the PDF reference to the database
-  if (patientInfo.medicalRecordNumber) {
-    await databaseService.savePDFReference(patientInfo.medicalRecordNumber, fileName);
-  }
+  // Log success
+  console.log(`PDF generated with ${doc.getNumberOfPages()} pages`);
   
-  return fileName;
+  return pdfBlob;
 };
