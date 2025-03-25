@@ -47,42 +47,89 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   doc.addPage();
   addLogoToPage(doc);
   
-  // Title and introduction - centered with specific styling per the design
-  const centerX = pageWidth / 2;
-  
-  // First part of title: "Your step towards"
-  doc.setTextColor(100, 100, 100);
+ 
+  // We'll use a center alignment approach: 
+  // 1. Build a full string for each line
+  // 2. Measure its total width
+  // 3. Compute the starting x so it’s centered
+  // 4. Print each segment (gray or green) in sequence
+
+  // Common settings
+  doc.setFont("calibri", "bold");
   doc.setFontSize(22);
-  doc.setFont("calibri", "bold");
-  doc.text("Your step towards ", centerX, 45, { align: "center" });
-  
-  // "optimal health" in green
+
+  // --------------------
+  // LINE 1: "Your step towards optimal health."
+  // --------------------
+  const line1Part1 = "Your step towards ";
+  const line1Part2 = "optimal health";
+  const line1Part3 = ".";
+
+  const line1Full = line1Part1 + line1Part2 + line1Part3;
+  const line1Width = doc.getTextWidth(line1Full);
+
+  // Center horizontally
+  const centerX = pageWidth / 2;
+  // The left edge of the text is half the total width to the left of center
+  const line1StartX = centerX - (line1Width / 2);
+  const line1Y = 45; // vertical position
+
+  let currentX = line1StartX;
+
+  // Part 1 (gray)
+  doc.setTextColor(100, 100, 100);  // gray
+  doc.text(line1Part1, currentX, line1Y);
+  currentX += doc.getTextWidth(line1Part1);
+
+  // Part 2 (green)
+  doc.setTextColor(153, 188, 68);   // #99bc44
+  doc.text(line1Part2, currentX, line1Y);
+  currentX += doc.getTextWidth(line1Part2);
+
+  // Part 3 (gray)
+  doc.setTextColor(100, 100, 100);
+  doc.text(line1Part3, currentX, line1Y);
+
+  // --------------------
+  // LINE 2: "Our approach is proactive, rather than reactive,"
+  // --------------------
+  const line2 = "Our approach is proactive, rather than reactive,";
+  const line2Width = doc.getTextWidth(line2);
+  const line2StartX = centerX - (line2Width / 2);
+  const line2Y = 55;
+
+  doc.setTextColor(100, 100, 100);
+  doc.text(line2, line2StartX, line2Y);
+
+  // --------------------
+  // LINE 3: "giving you control of your health throughout your life."
+  // (with "control of your health" in green)
+  // --------------------
+  const line3Part1 = "giving you ";
+  const line3Part2 = "control of your health";
+  const line3Part3 = " throughout your life.";
+
+  const line3Full = line3Part1 + line3Part2 + line3Part3;
+  const line3Width = doc.getTextWidth(line3Full);
+  const line3StartX = centerX - (line3Width / 2);
+  const line3Y = 65;
+
+  let currentX3 = line3StartX;
+
+  // Part 1 (gray)
+  doc.setTextColor(100, 100, 100);
+  doc.text(line3Part1, currentX3, line3Y);
+  currentX3 += doc.getTextWidth(line3Part1);
+
+  // Part 2 (green)
   doc.setTextColor(153, 188, 68); // #99bc44
-  doc.setFont("calibri", "bold");
-  const textWidth = doc.getTextWidth("Your step towards ");
-  doc.text("optimal health", centerX, 45, { align: "center" });
-  
-  // Period at the end
+  doc.text(line3Part2, currentX3, line3Y);
+  currentX3 += doc.getTextWidth(line3Part2);
+
+  // Part 3 (gray)
   doc.setTextColor(100, 100, 100);
-  doc.text(".", centerX + (doc.getTextWidth("optimal health") / 2), 45);
-  
-  // Second line: "Our approach is proactive..."
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("calibri", "bold");
-  doc.text("Our approach is proactive, rather than reactive,", centerX, 55, { align: "center" });
-  
-  // Third line: "giving you control of your health..."
-  doc.text("giving you ", centerX - 15, 65, { align: "right" });
-  
-  // "control of your health" in green
-  doc.setTextColor(153, 188, 68); // #99bc44
-  doc.text("control of your health", centerX + 30, 65);
-  
-  // "throughout your life" in gray
-  doc.setTextColor(100, 100, 100);
-  doc.text(" throughout", centerX + 30 + doc.getTextWidth("control of your health"), 65);
-  doc.text("your life.", centerX, 75, { align: "center" });
-  
+  doc.text(line3Part3, currentX3, line3Y);
+
   // Greeting
   doc.setFontSize(10);
   doc.text("Dear", contentMargin, 95);
