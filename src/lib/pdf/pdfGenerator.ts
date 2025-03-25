@@ -133,20 +133,20 @@ const generateSecondPage = (doc: jsPDF, formData: PatientFormData, pageWidth: nu
   // Greeting
 doc.setFontSize(10);
 const greeting = `Dear ${patientInfo.name || "Patient"},`;
-doc.text(greeting, contentMargin, 75);
+doc.text(greeting, contentMargin, 80);
   
   doc.text("It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged to be a", contentMargin, 90);
-  doc.text("part of your journey to wellness and longevity.", contentMargin, 100);
+  doc.text("part of your journey to wellness and longevity.", contentMargin, 95);
   
   // Key vital signs table
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68); // #99bc44
   doc.setFont("helvetica", "bold");
-  doc.text("Key vital signs", contentMargin, 115);
+  doc.text("Key vital signs", contentMargin, 105);
   
   // Vital signs table with proper width
   autoTable(doc, {
-    startY: 120,
+    startY: 110,
     head: [
       [
         { content: 'Vitals', styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255], fontStyle: 'bold' } },
