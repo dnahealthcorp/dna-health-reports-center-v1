@@ -6,29 +6,15 @@ import { addLogoToPage } from "./logoRenderer";
 import * as databaseService from "@/services/databaseService";
 
 /**
- * Draws the footer on the current page.
- * Footer text: "Executive Summary | DNA Health" in 14px helvetica regular.
- */
-function addFooter(doc: jsPDF, pageWidth: number): void { 
-  const pageHeight = doc.internal.pageSize.getHeight();
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(14);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Executive Summary | DNA Health", pageWidth / 2, pageHeight - 10, { align: "center" });
-}
-
-/**
  * Checks if there’s enough vertical space on the current page.
- * If not, draws a footer, adds a new page (with logo), and resets currentY.
+ * If not, adds a new page (and logo as header) and resets currentY.
  */
-function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMargin = 20, pageWidth: number): number {
+function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMargin = 20): number {
   const pageHeight = doc.internal.pageSize.getHeight();
   const bottomMargin = 15; // adjust as needed
   if (currentY + neededHeight > pageHeight - bottomMargin) {
-    // Draw footer on the current page before adding new page
-    addFooter(doc, pageWidth);
     doc.addPage();
-    addLogoToPage(doc);
+    addLogoToPage(doc); // Add header logo on new page
     return topMargin;
   }
   return currentY;
@@ -36,7 +22,7 @@ function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMarg
 
 /**
  * Section 1: Images on the first page.
- * Displays 3 images and then forces a page break.
+ * This section displays 3 images and then forces a page break.
  */
 function generateImagesSection(
   doc: jsPDF,
@@ -45,8 +31,8 @@ function generateImagesSection(
   contentMargin: number,
   contentWidth: number
 ): number {
-  const blockHeight = 150; // estimated height for images section
-  currentY = ensureSpace(doc, currentY, blockHeight, 20, pageWidth);
+  const blockHeight = 150;
+  currentY = ensureSpace(doc, currentY, blockHeight, 20);
   const imageWidth = 100;
   const imageHeight = 66;
   const imageStartX = (pageWidth - imageWidth) / 2;
@@ -55,7 +41,7 @@ function generateImagesSection(
     // First image: 6 out of 10 causes
     doc.addImage("/assets/picture1.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
     currentY += imageHeight + 10;
-    // Second image: 3% healthcare expenditure
+    // Second image: 3% healthcare expenditure 
     doc.addImage("/assets/picture2.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
     currentY += imageHeight + 10;
     // Third image: 90% healthcare expenditure
@@ -71,7 +57,7 @@ function generateImagesSection(
 
 /**
  * Section 2: Introduction & Greeting.
- * Starts on a new page.
+ * This section starts on a new page.
  */
 function generateIntroductionSection(
   doc: jsPDF,
@@ -81,7 +67,6 @@ function generateIntroductionSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Title: "Your step towards optimal health."
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(18);
   const line1Part1 = "Your step towards ";
@@ -103,7 +88,6 @@ function generateIntroductionSection(
   doc.text(line1Part3, currentX, line1Y);
   currentY = line1Y + 10;
 
-  // Greeting and introduction text
   doc.setFontSize(10);
   const greeting = `Dear ${formData.patientInfo.name || "Patient"},`;
   doc.text(greeting, contentMargin, currentY);
@@ -133,7 +117,7 @@ function generateVitalsSection(
   doc.setFontSize(12);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 15, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 15, 20);
   doc.text("Key vital signs", contentMargin, currentY);
   currentY += 8;
 
@@ -141,9 +125,9 @@ function generateVitalsSection(
     startY: currentY,
     head: [
       [
-        { content: "Vitals", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-        { content: "Value", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-        { content: "Target Range", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+        { content: "Vitals", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
+        { content: "Value", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Target Range", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
@@ -159,16 +143,17 @@ function generateVitalsSection(
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: () => {
-      addFooter(doc, pageWidth);
+      // Add logo on every new page created by autoTable
+      addLogoToPage(doc);
     }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
@@ -188,7 +173,7 @@ function generateSummarySection(
 ): number {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  currentY = ensureSpace(doc, currentY, 60, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 60, 20);
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
@@ -196,8 +181,8 @@ function generateSummarySection(
     startY: currentY,
     head: [
       [
-        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+        { content: "Parameter", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
@@ -216,17 +201,18 @@ function generateSummarySection(
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: () => {
-      addFooter(doc, pageWidth);
+      addLogoToPage(doc);
     }
   });
+
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -244,9 +230,9 @@ function generateInsulinCardioSection(
 ): number {
   if (formData.showInsulinResistance === true) {
     doc.setFontSize(12);
-    doc.setTextColor(153, 188, 68);
+    doc.setTextColor(153,188,68);
     doc.setFont("helvetica", "bold");
-    currentY = ensureSpace(doc, currentY, 80, 20, pageWidth);
+    currentY = ensureSpace(doc, currentY, 80, 20);
     doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, currentY);
     currentY += 10;
     try {
@@ -256,15 +242,15 @@ function generateInsulinCardioSection(
     }
     currentY += 60;
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(100,100,100);
     doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" });
     currentY += 10;
   }
   // Cardiovascular risk table
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68);
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 20);
   doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, currentY);
   currentY += 5;
   
@@ -272,14 +258,13 @@ function generateInsulinCardioSection(
     startY: currentY,
     head: [
       [
-        { content: "", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
-        { content: "Low risk", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
-        { content: "Moderate risk", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
-        { content: "High risk", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
+        { content: "", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Low risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Moderate risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "High risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: [
-      // Highlight the appropriate row based on gender:
       ["Men", "0.30-to-0.69", "0.70-to-0.89", "0.90-to-1.2"],
       ["Women", "0.30-to-0.59", "0.60-to-0.79", "0.80-to-1.00"]
     ],
@@ -288,36 +273,20 @@ function generateInsulinCardioSection(
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60,60,60]
     },
     columnStyles: {
-      0: { cellWidth: 40, fillColor: [240, 250, 230] },
+      0: { cellWidth: 40, fillColor: [240,250,230] },
       1: { cellWidth: 40 },
       2: { cellWidth: 40 },
       3: { cellWidth: 40 }
     },
     margin: { left: contentMargin, right: contentMargin },
-    didDrawCell: (data) => {
-      if (data.section === "body") {
-        const rowIndex = data.row.index;
-        // Highlight "Men" row if gender is male; otherwise, highlight "Women"
-        if ((formData.patientInfo.gender === "Male" && rowIndex === 0) ||
-            (formData.patientInfo.gender === "Female" && rowIndex === 1)) {
-          doc.setFillColor(255, 255, 200);
-          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, "F");
-          doc.setTextColor(60, 60, 60);
-          doc.text(
-            data.cell.text,
-            data.cell.x + data.cell.padding("left"),
-            data.cell.y + data.cell.padding("top") + data.cell.contentHeight / 2 + 1
-          );
-        }
-      }
-    },
     didDrawPage: () => {
-      addFooter(doc, pageWidth);
+      addLogoToPage(doc);
     }
   });
+  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -334,9 +303,9 @@ function generateDoctorsRecommendationsSection(
   formData: PatientFormData
 ): number {
   doc.setFontSize(12);
-  doc.setTextColor(153, 188, 68);
+  doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 20);
   doc.text("Doctors Recommendations", contentMargin, currentY);
   currentY += 8;
   
@@ -359,17 +328,15 @@ function generateDoctorsRecommendationsSection(
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60,60,60]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: () => {
-      addFooter(doc, pageWidth);
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
+  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -405,16 +372,13 @@ function generateExerciseSleepSection(
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60,60,60]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: () => {
-      addFooter(doc, pageWidth);
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   
@@ -442,10 +406,7 @@ function generateExerciseSleepSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: () => {
-      addFooter(doc, pageWidth);
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -467,7 +428,7 @@ function generateMedicationsSupplementsSection(
   doc.setFontSize(12);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 20);
   doc.text("Medications", contentMargin, currentY);
   currentY += 8;
   
@@ -506,10 +467,7 @@ function generateMedicationsSupplementsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: () => {
-      addFooter(doc, pageWidth);
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   
@@ -517,7 +475,7 @@ function generateMedicationsSupplementsSection(
   doc.setFontSize(12);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 20);
   doc.text("Supplements", contentMargin, currentY);
   currentY += 8;
   
@@ -556,10 +514,7 @@ function generateMedicationsSupplementsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: () => {
-      addFooter(doc, pageWidth);
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -579,7 +534,7 @@ function generateFollowUpsSection(
   doc.setFontSize(12);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 20, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 20);
   doc.text("Follow-ups and referrals", contentMargin, currentY);
   currentY += 8;
   
@@ -615,10 +570,7 @@ function generateFollowUpsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: () => {
-      addFooter(doc, pageWidth);
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   
@@ -656,7 +608,6 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
   
   // Force a page break after images so Section 2 starts on a new page.
-  addFooter(doc, pageWidth); // Add footer to the first page before breaking
   doc.addPage();
   addLogoToPage(doc);
   currentY = 30; // reset vertical position
