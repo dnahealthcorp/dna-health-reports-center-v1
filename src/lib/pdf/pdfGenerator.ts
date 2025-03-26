@@ -9,7 +9,7 @@ import * as databaseService from "@/services/databaseService";
  * Draws the footer on the current page.
  * Footer text: "Executive Summary | DNA Health" in 14px helvetica regular.
  */
-function addFooter(doc: jsPDF, pageWidth: number): void {
+function addFooter(doc: jsPDF, pageWidth: number): void { 
   const pageHeight = doc.internal.pageSize.getHeight();
   doc.setFont("helvetica", "normal");
   doc.setFontSize(14);
