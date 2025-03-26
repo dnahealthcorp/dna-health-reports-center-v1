@@ -14,7 +14,7 @@ function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMarg
   const bottomMargin = 15; // adjust as needed
   if (currentY + neededHeight > pageHeight - bottomMargin) {
     doc.addPage();
-    addLogoToPage(doc);
+    addLogoToPage(doc); // Add header logo on new page
     return topMargin;
   }
   return currentY;
@@ -22,7 +22,7 @@ function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMarg
 
 /**
  * Section 1: Images on the first page.
- * This section displays the 3 images and then forces a page break.
+ * This section displays 3 images and then forces a page break.
  */
 function generateImagesSection(
   doc: jsPDF,
@@ -31,7 +31,7 @@ function generateImagesSection(
   contentMargin: number,
   contentWidth: number
 ): number {
-  const blockHeight = 150; // estimated height for images section
+  const blockHeight = 150;
   currentY = ensureSpace(doc, currentY, blockHeight, 20);
   const imageWidth = 100;
   const imageHeight = 66;
@@ -41,7 +41,7 @@ function generateImagesSection(
     // First image: 6 out of 10 causes
     doc.addImage("/assets/picture1.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
     currentY += imageHeight + 10;
-    // Second image: 3% healthcare expenditure
+    // Second image: 3% healthcare expenditure 
     doc.addImage("/assets/picture2.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
     currentY += imageHeight + 10;
     // Third image: 90% healthcare expenditure
@@ -49,10 +49,8 @@ function generateImagesSection(
     currentY += imageHeight + 10;
   } catch (error) {
     console.error("Error adding images to PDF:", error);
-    // Optionally fallback to text using an alternative method if images fail
   }
 
-  // Add page number on the first page
   addPageNumber(doc, doc.getNumberOfPages(), pageWidth);
   return currentY;
 }
@@ -69,7 +67,6 @@ function generateIntroductionSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Title: "Your step towards optimal health."
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(18);
   const line1Part1 = "Your step towards ";
@@ -91,7 +88,6 @@ function generateIntroductionSection(
   doc.text(line1Part3, currentX, line1Y);
   currentY = line1Y + 10;
 
-  // Greeting & introduction text
   doc.setFontSize(10);
   const greeting = `Dear ${formData.patientInfo.name || "Patient"},`;
   doc.text(greeting, contentMargin, currentY);
@@ -154,7 +150,11 @@ function generateVitalsSection(
       1: { cellWidth: 50 },
       2: { cellWidth: 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: () => {
+      // Add logo on every new page created by autoTable
+      addLogoToPage(doc);
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -207,8 +207,12 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: () => {
+      addLogoToPage(doc);
+    }
   });
+
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -277,8 +281,12 @@ function generateInsulinCardioSection(
       2: { cellWidth: 40 },
       3: { cellWidth: 40 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: () => {
+      addLogoToPage(doc);
+    }
   });
+  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -328,6 +336,7 @@ function generateDoctorsRecommendationsSection(
     },
     margin: { left: contentMargin, right: contentMargin }
   });
+  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
