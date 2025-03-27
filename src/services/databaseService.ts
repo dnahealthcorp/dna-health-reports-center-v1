@@ -813,19 +813,31 @@ export const savePDFReference = async (patientId: string, fileName: string): Pro
       throw new Error(`Patient with ID ${patientId} not found`);
     }
     
-    const { error } = await supabase
+    // Check if a similar PDF reference already exists to avoid duplicates
+    const { data: existingPDFs } = await supabase
       .from('pdf_files')
-      .insert([{
-        id: newPDFFile.id,
-        patient_id: patient.id, // Use the actual patient UUID, not the MRN
-        file_name: newPDFFile.fileName,
-        created_at: newPDFFile.createdAt,
-        created_by: currentUser?.id || null,
-        url: newPDFFile.url
-      }]);
-    
-    if (error) {
-      throw error;
+      .select('*')
+      .eq('patient_id', patient.id)
+      .eq('file_name', fileName);
+      
+    // Only insert if no duplicate exists
+    if (!existingPDFs || existingPDFs.length === 0) {
+      const { error } = await supabase
+        .from('pdf_files')
+        .insert([{
+          id: newPDFFile.id,
+          patient_id: patient.id, // Use the actual patient UUID, not the MRN
+          file_name: newPDFFile.fileName,
+          created_at: newPDFFile.createdAt,
+          created_by: currentUser?.id || null,
+          url: newPDFFile.url
+        }]);
+      
+      if (error) {
+        throw error;
+      }
+    } else {
+      console.log(`PDF reference already exists for patient ${patientId} with filename ${fileName}, skipping duplicate insert`);
     }
     
     return newPDFFile;

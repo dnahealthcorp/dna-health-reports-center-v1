@@ -23,7 +23,15 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     // Save PDF reference to database if we have a patient
     let fileName = "";
     if (patient) {
-      fileName = `${patient.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      // Format the current date as YYYY-MM-DD
+      const currentDate = new Date().toISOString().slice(0, 10);
+      
+      // Format the filename according to requirements: patient's_name's Health Screening Report- Date
+      // Handle apostrophe formatting for names ending with 's'
+      const patientName = patient.name.replace(/\s+/g, '_');
+      const apostrophe = patientName.endsWith('s') ? "'" : "'s";
+      fileName = `${patientName}${apostrophe} Health Screening Report- ${currentDate}.pdf`;
+      
       try {
         // Save to Supabase database with proper UUID format using uuidv4
         await savePDFReference(patient.id, fileName);
@@ -53,7 +61,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         // Continue even if saving reference fails
       }
     } else {
-      fileName = `Patient_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      // Fallback filename if no patient is found
+      const currentDate = new Date().toISOString().slice(0, 10);
+      fileName = `Patient_Health_Screening_Report-${currentDate}.pdf`;
     }
     
     // For debugging

@@ -152,7 +152,6 @@ function generateVitalsSection(
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: () => {
-      // Add logo on every new page created by autoTable
       addLogoToPage(doc);
     }
   });
@@ -636,8 +635,15 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Section 9: Follow-ups and Referrals.
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
   
-  const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
-  const fileName = `${patientName}_Medical_Report.pdf`;
+  // Format the current date as YYYY-MM-DD
+  const currentDate = new Date().toISOString().slice(0, 10);
+  
+  // Format the filename according to requirements: patient's_name's Health Screening Report- Date
+  // Handle apostrophe formatting for names ending with 's'
+  const patientName = formData.patientInfo.name?.replace(/\s+/g, '_') || "Patient";
+  const apostrophe = patientName.endsWith('s') ? "'" : "'s";
+  const fileName = `${patientName}${apostrophe} Health Screening Report- ${currentDate}.pdf`;
+  
   doc.save(fileName);
   
   if (formData.patientInfo.medicalRecordNumber) {
