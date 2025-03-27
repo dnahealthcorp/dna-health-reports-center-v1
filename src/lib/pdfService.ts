@@ -28,10 +28,11 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         // Save to Supabase database with proper UUID format using uuidv4
         await savePDFReference(patient.id, fileName);
         
-        // Update the patient's pdf_exported flag to true
+        // Update the patient's pdf_exported flag to true and set status to completed
         const updatedPatient = {
           ...patient,
           pdf_exported: true,
+          status: 'completed',
           lastUpdated: new Date().toISOString()
         };
         
@@ -60,7 +61,8 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       medicationsCount: medications.length,
       supplementsCount: formData.supplements?.length || 0,
       currentUser: currentUser?.name,
-      pdfExported: patient?.pdf_exported
+      pdfExported: patient?.pdf_exported,
+      status: patient?.status
     });
     
     return fileName;

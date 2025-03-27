@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -196,12 +195,21 @@ const PatientForm = () => {
         medicalRecordNumber: patient.medicalRecordNumber
       };
       
+      // Save form data first to ensure everything is up to date
+      await savePatientFormData(patient.id, formData);
+      
       // Generate the PDF
       const fileName = await generatePDF(formData, medications);
       
+      // Refresh the patient data after export to get the updated status
+      const refreshedPatient = await getPatientById(patient.id);
+      if (refreshedPatient) {
+        setPatient(refreshedPatient);
+      }
+      
       toast({
         title: "PDF Generated",
-        description: "Patient report has been downloaded",
+        description: "Patient report has been downloaded and status updated to completed",
       });
     } catch (error) {
       console.error("Error generating PDF:", error);

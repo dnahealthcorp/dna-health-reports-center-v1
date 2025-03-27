@@ -784,11 +784,18 @@ export const savePDFReference = async (patientId: string, fileName: string): Pro
       url: fileName
     };
     
+    // Make sure we're using a valid UUID for patientId, not a medical record number
+    const patient = await getPatientById(patientId);
+    
+    if (!patient) {
+      throw new Error(`Patient with ID ${patientId} not found`);
+    }
+    
     const { error } = await supabase
       .from('pdf_files')
       .insert([{
         id: newPDFFile.id,
-        patient_id: newPDFFile.patientId,
+        patient_id: patient.id, // Use the actual patient UUID, not the MRN
         file_name: newPDFFile.fileName,
         created_at: newPDFFile.createdAt,
         created_by: currentUser?.id || null,
