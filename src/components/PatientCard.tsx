@@ -10,21 +10,20 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { deletePatient } from "@/services/databaseService";
 import { useToast } from "@/hooks/use-toast";
+
 interface PatientCardProps {
   patient: Patient;
   onDelete?: (patientId: string) => void;
   onEdit?: (patient: Patient) => void;
 }
+
 const PatientCard = ({
   patient,
   onDelete,
   onEdit
 }: PatientCardProps) => {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
-  // Updated statusMap to only use the three allowed status values
   const statusMap = {
     "in-process": {
       label: "In Process",
@@ -40,13 +39,13 @@ const PatientCard = ({
     }
   };
 
-  // Ensure we have a valid status
   const status = statusMap[patient.status] || statusMap["in-process"];
   const formattedDate = new Date(patient.lastUpdated).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
   });
+
   const handleDelete = async () => {
     try {
       await deletePatient(patient.id);
@@ -66,11 +65,13 @@ const PatientCard = ({
       });
     }
   };
+
   const handleEdit = () => {
     if (onEdit) {
       onEdit(patient);
     }
   };
+
   return <Card className="overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-2px] h-full">
       <CardContent className="p-0">
         <div className="p-5">
@@ -140,4 +141,5 @@ const PatientCard = ({
       </CardContent>
     </Card>;
 };
+
 export default PatientCard;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
@@ -27,7 +26,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Sorting type definitions
 type SortField = 'lastUpdated' | 'status' | 'name';
 type SortDirection = 'asc' | 'desc';
 
@@ -38,7 +36,6 @@ const Patients = () => {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  // Add sorting state
   const [sortField, setSortField] = useState<SortField>('lastUpdated');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   
@@ -49,7 +46,6 @@ const Patients = () => {
     setIsLoading(true);
     try {
       const patientsData = await getPatients();
-      // Apply sorting to the fetched data
       setPatients(sortPatients(patientsData));
     } catch (error) {
       console.error("Error fetching patients:", error);
@@ -66,26 +62,26 @@ const Patients = () => {
   useEffect(() => {
     fetchPatients();
 
-    const channel = supabase.channel('patients-changes').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'patients'
-    }, payload => {
-      console.log('Change received!', payload);
-      fetchPatients();
-    }).subscribe();
+    const channel = supabase.channel('patients-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'patients'
+      }, payload => {
+        console.log('Change received!', payload);
+        fetchPatients();
+      })
+      .subscribe();
     
     return () => {
       supabase.removeChannel(channel);
     };
   }, [toast]);
   
-  // Sort patients whenever sort criteria changes
   useEffect(() => {
     setPatients(sortPatients(patients));
   }, [sortField, sortDirection]);
 
-  // Sort patients function
   const sortPatients = (patientsToSort: Patient[]) => {
     return [...patientsToSort].sort((a, b) => {
       switch (sortField) {
@@ -109,19 +105,15 @@ const Patients = () => {
     });
   };
 
-  // Toggle sort direction and field
   const handleSort = (field: SortField) => {
     if (field === sortField) {
-      // Toggle direction
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // New field, default to descending
       setSortField(field);
       setSortDirection('desc');
     }
   };
 
-  // Get sort direction icon
   const getSortIcon = (field: SortField) => {
     if (field !== sortField) return null;
     
@@ -138,15 +130,10 @@ const Patients = () => {
     });
   };
 
-  // Improved delete function to ensure database sync
   const handleDeletePatient = async (patientId: string) => {
     try {
-      // Delete from database first
       await deletePatient(patientId);
-      
-      // If successful, update UI
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
-      
       toast({
         title: "Patient deleted",
         description: "Patient record has been removed successfully",
@@ -158,6 +145,7 @@ const Patients = () => {
         description: "Failed to delete patient. Please try again.",
         variant: "destructive"
       });
+      fetchPatients();
     }
   };
 
