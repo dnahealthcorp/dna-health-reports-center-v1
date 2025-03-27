@@ -9,7 +9,7 @@ import * as databaseService from "@/services/databaseService";
  * Draws the footer on the current page.
  * Footer text: "Executive Summary | DNA Health" in 8px helvetica regular,
  * right aligned, color #a5a4a4.
- */ 
+ */
 function addFooter(doc: jsPDF, pageWidth: number): void {
   const pageHeight = doc.internal.pageSize.getHeight();
   doc.setFont("helvetica", "normal");
@@ -43,7 +43,7 @@ function ensureSpace(
 
 /**
  * Section 1: Images on the first page (cover).
- * Now includes logo on the first page.
+ * Includes logo on the first page, no page number shown.
  */
 function generateImagesSection(
   doc: jsPDF,
@@ -55,7 +55,6 @@ function generateImagesSection(
   // Add logo on the very first page
   addLogoToPage(doc);
 
-  // Estimated block height
   const blockHeight = 150;
   currentY = ensureSpace(doc, currentY, blockHeight, 40, pageWidth);
 
@@ -73,13 +72,13 @@ function generateImagesSection(
   } catch (error) {
     console.error("Error adding images to PDF:", error);
   }
-
   return currentY;
 }
 
 /**
  * Section 2: Introduction & Greeting.
  * Multi-line approach text with "control of your health" in green.
+ * Top spacing reduced: const titleY = currentY + 5
  */
 function generateIntroductionSection(
   doc: jsPDF,
@@ -95,8 +94,8 @@ function generateIntroductionSection(
   const title = "Your step towards optimal health.";
   const titleWidth = doc.getTextWidth(title);
   const centerX = pageWidth / 2;
+  const titleY = currentY + 5; // Reduced from 15 to 5
   const titleX = centerX - (titleWidth / 2);
-  const titleY = currentY + 15;
   doc.setTextColor(100, 100, 100);
   doc.text(title, titleX, titleY);
   currentY = titleY + 10;
@@ -114,18 +113,17 @@ function generateIntroductionSection(
   const line2Part3 = " throughout";
   const line3 = "your life.";
 
-  // Center line1
+  // line1 (center)
   const line1Width = doc.getTextWidth(line1);
-  const line1X = centerX - (line1Width / 2);
+  const line1X = centerX - line1Width / 2;
   doc.setTextColor(100, 100, 100);
   doc.text(line1, line1X, currentY);
   currentY += 10;
 
-  // Next line: "giving you control of your health throughout"
-  // We'll do small segments so "control of your health" is green
+  // line2: "giving you control of your health throughout"
   const line2Full = line2Part1 + line2Part2 + line2Part3;
   const line2Width = doc.getTextWidth(line2Full);
-  const line2X = centerX - (line2Width / 2);
+  const line2X = centerX - line2Width / 2;
   let segX = line2X;
 
   doc.setTextColor(100, 100, 100);
@@ -140,9 +138,9 @@ function generateIntroductionSection(
   doc.text(line2Part3, segX, currentY);
   currentY += 10;
 
-  // line3 (centered)
+  // line3 (center)
   const line3Width = doc.getTextWidth(line3);
-  const line3X = centerX - (line3Width / 2);
+  const line3X = centerX - line3Width / 2;
   doc.text(line3, line3X, currentY);
   currentY += 10;
 
@@ -165,6 +163,7 @@ function generateIntroductionSection(
 
 /**
  * Section 3: Vital Signs Table (striped).
+ * Headings set to 14px
  */
 function generateVitalsSection(
   doc: jsPDF,
@@ -174,7 +173,7 @@ function generateVitalsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  doc.setFontSize(12);
+  doc.setFontSize(14); // same as cardiovascular heading
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
@@ -184,6 +183,7 @@ function generateVitalsSection(
   const colWidth = contentWidth / 3;
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "Vitals", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
@@ -199,13 +199,17 @@ function generateVitalsSection(
       ["Weight (Kg)", convertToKg(formData.vitals.weight) || "-", "-"],
       ["Body Mass Index", calculateBMI(formData.vitals.height, formData.vitals.weight), "18.5 – 25.9"]
     ],
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60],
-      alternateRowStyles: { fillColor: [245, 245, 245] }
+      textColor: [60, 60, 60]
+    },
+    bodyStyles: {
+      fillColor: [255, 255, 255]
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
     },
     columnStyles: {
       0: { cellWidth: colWidth, fillColor: [240, 250, 230] },
@@ -229,18 +233,20 @@ function generateSummarySection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
+  doc.setFontSize(14);
+  doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
   currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
-        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
       ]
     ],
     body: [
@@ -254,13 +260,17 @@ function generateSummarySection(
       ["Renal & Liver Function", formData.summaryFindings.renalLiverFunction || ""],
       ["Cancer markers", formData.summaryFindings.cancerMarkers || ""]
     ],
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60],
-      alternateRowStyles: { fillColor: [245, 245, 245] }
+      textColor: [60, 60, 60]
+    },
+    bodyStyles: {
+      fillColor: [255, 255, 255]
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
@@ -273,8 +283,8 @@ function generateSummarySection(
 }
 
 /**
- * Section 5: Insulin Resistance & Cardiovascular Risk.
- * Increased heading font size to 14. Striped table. Highlights row based on gender.
+ * Section 5: Insulin Resistance & Cardiovascular Risk (striped).
+ * Now heading is 14px, highlight row based on gender.
  */
 function generateInsulinCardioSection(
   doc: jsPDF,
@@ -285,7 +295,7 @@ function generateInsulinCardioSection(
   formData: PatientFormData
 ): number {
   if (formData.showInsulinResistance === true) {
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setTextColor(153, 188, 68);
     doc.setFont("helvetica", "bold");
     currentY = ensureSpace(doc, currentY, 80, 40, pageWidth);
@@ -302,17 +312,18 @@ function generateInsulinCardioSection(
     doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" });
     currentY += 10;
   }
-  // Cardiovascular risk table
-  doc.setFontSize(14); // Increased heading font size
+  // Cardiovascular risk
+  doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, currentY);
   currentY += 5;
 
-  doc.setFontSize(10); // Revert font size for table content
+  doc.setFontSize(10);
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -325,13 +336,17 @@ function generateInsulinCardioSection(
       ["Men", "0.30-to-0.69", "0.70-to-0.89", "0.90-to-1.2"],
       ["Women", "0.30-to-0.59", "0.60-to-0.79", "0.80-to-1.00"]
     ],
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60],
-      alternateRowStyles: { fillColor: [245, 245, 245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawCell: (data) => {
@@ -366,7 +381,7 @@ function generateDoctorsRecommendationsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  doc.setFontSize(12);
+  doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
@@ -375,6 +390,7 @@ function generateDoctorsRecommendationsSection(
 
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "Nutrition", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -387,13 +403,17 @@ function generateDoctorsRecommendationsSection(
       ["Omissions", formData.nutritionRecommendations?.omissions || ""],
       ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
     ],
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      alternateRowStyles: { fillColor: [245,245,245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
@@ -416,9 +436,16 @@ function generateExerciseSleepSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Exercise table
+  doc.setFontSize(14);
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
+  // Title for Exercise
+  doc.text("Exercise", contentMargin, currentY);
+  currentY += 8;
+
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "Exercise", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -431,13 +458,17 @@ function generateExerciseSleepSection(
       ["Avoid", formData.exerciseDetail?.avoid || ""],
       ["Tracking", formData.exerciseDetail?.tracking || ""]
     ],
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      alternateRowStyles: { fillColor: [245,245,245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
@@ -446,10 +477,14 @@ function generateExerciseSleepSection(
     margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
-  
-  // Sleep & stress
+
+  // Title for Sleep & Stress
+  doc.text("Sleep and Stress", contentMargin, currentY);
+  currentY += 8;
+
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "Sleep and Stress", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -460,13 +495,17 @@ function generateExerciseSleepSection(
       ["Sleep", formData.sleepStressRecommendations?.sleep || ""],
       ["Stress", formData.sleepStressRecommendations?.stress || ""]
     ],
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      alternateRowStyles: { fillColor: [245,245,245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
@@ -491,13 +530,13 @@ function generateMedicationsSupplementsSection(
   medications: Medication[]
 ): number {
   // Medications
-  doc.setFontSize(12);
+  doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Medications", contentMargin, currentY);
   currentY += 8;
-  
+
   const medicationRows = formData.medications.map(med => {
     const medication = medications.find(m => m.id === med.medicationId);
     return [
@@ -506,13 +545,14 @@ function generateMedicationsSupplementsSection(
       "Prescription"
     ];
   }).filter(row => row[0] || row[1]);
-  
+
   if (medicationRows.length === 0) {
     medicationRows.push(["No medications prescribed", "", ""]);
   }
-  
+
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "Medications", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -521,13 +561,17 @@ function generateMedicationsSupplementsSection(
       ]
     ],
     body: medicationRows,
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      alternateRowStyles: { fillColor: [245,245,245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
@@ -537,15 +581,15 @@ function generateMedicationsSupplementsSection(
     margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
-  
+
   // Supplements
-  doc.setFontSize(12);
+  doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Supplements", contentMargin, currentY);
   currentY += 8;
-  
+
   const supplementRows = (formData.supplements || []).map(sup => {
     const supplement = medications.find(m => m.id === sup.supplementId);
     return [
@@ -554,13 +598,14 @@ function generateMedicationsSupplementsSection(
       sup.source || ""
     ];
   }).filter(row => row[0] || row[1] || row[2]);
-  
+
   if (supplementRows.length === 0) {
     supplementRows.push(["No supplements recommended", "", ""]);
   }
-  
+
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "Supplements", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -569,13 +614,17 @@ function generateMedicationsSupplementsSection(
       ]
     ],
     body: supplementRows,
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      alternateRowStyles: { fillColor: [245,245,245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
@@ -599,25 +648,26 @@ function generateFollowUpsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  doc.setFontSize(12);
+  doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Follow-ups and referrals", contentMargin, currentY);
   currentY += 8;
-  
+
   const followUpRows = (formData.followUps || []).map(followUp => [
     followUp.withDoctor || "",
     followUp.forReason || "",
     followUp.date || ""
   ]).filter(row => row[0] || row[1] || row[2]);
-  
+
   if (followUpRows.length === 0) {
     followUpRows.push(["No follow-ups scheduled", "", ""]);
   }
-  
+
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
         { content: "With", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
@@ -626,13 +676,17 @@ function generateFollowUpsSection(
       ]
     ],
     body: followUpRows,
-    theme: "grid",
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      alternateRowStyles: { fillColor: [245,245,245] }
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
@@ -642,7 +696,7 @@ function generateFollowUpsSection(
     margin: { left: contentMargin, right: contentMargin }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
-  
+
   // Signature
   doc.setFontSize(10);
   doc.setTextColor(100,100,100);
@@ -669,14 +723,14 @@ export const generatePDF = async (
   });
   doc.setFont("helvetica");
 
-  const pageWidth = doc.internal.pageSize.getWidth();  // 210 mm for A4
+  const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm for A4
   const contentMargin = 20;
   const contentWidth = pageWidth - contentMargin * 2;
 
   // Start at 40mm from the top for extra spacing
   let currentY = 40;
 
-  // 1) First page (cover) with images and logo
+  // 1) First page (cover) with images (and logo), no page number
   currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
 
   // Force new page after cover
