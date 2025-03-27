@@ -29,10 +29,11 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         await savePDFReference(patient.id, fileName);
         
         // Update the patient's pdf_exported flag to true and set status to completed
+        // Use a properly typed status value to satisfy TypeScript
         const updatedPatient = {
           ...patient,
           pdf_exported: true,
-          status: 'completed',
+          status: 'completed' as 'completed', // Type assertion to ensure it's the correct literal type
           lastUpdated: new Date().toISOString()
         };
         
