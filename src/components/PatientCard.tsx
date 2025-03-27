@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Patient } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,36 +5,25 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { deletePatient } from "@/services/databaseService";
 import { useToast } from "@/hooks/use-toast";
-
 interface PatientCardProps {
   patient: Patient;
   onDelete?: (patientId: string) => void;
   onEdit?: (patient: Patient) => void;
 }
+const PatientCard = ({
+  patient,
+  onDelete,
+  onEdit
+}: PatientCardProps) => {
+  const {
+    toast
+  } = useToast();
 
-const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
-  const { toast } = useToast();
-  
   // Updated statusMap to only use the three allowed status values
   const statusMap = {
     "in-process": {
@@ -51,7 +39,7 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
       color: "bg-green-100 text-green-700 border-green-200"
     }
   };
-  
+
   // Ensure we have a valid status
   const status = statusMap[patient.status] || statusMap["in-process"];
   const formattedDate = new Date(patient.lastUpdated).toLocaleDateString('en-US', {
@@ -59,13 +47,12 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
     day: 'numeric',
     year: 'numeric'
   });
-
   const handleDelete = async () => {
     try {
       await deletePatient(patient.id);
       toast({
         title: "Patient deleted",
-        description: `${patient.name} has been removed from the system.`,
+        description: `${patient.name} has been removed from the system.`
       });
       if (onDelete) {
         onDelete(patient.id);
@@ -75,19 +62,16 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
       toast({
         title: "Error",
         description: "Could not delete patient. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleEdit = () => {
     if (onEdit) {
       onEdit(patient);
     }
   };
-  
-  return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-2px] h-full">
+  return <Card className="overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-2px] h-full">
       <CardContent className="p-0">
         <div className="p-5">
           <div className="flex justify-between items-start mb-2">
@@ -109,7 +93,7 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
           </div>
         </div>
         
-        <div className="flex items-center justify-between py-3 px-5 bg-muted/30 border-t text-sm">
+        <div className="flex items-center justify-between px-5 bg-muted/30 border-t text-sm py-[12px]">
           <span className="text-muted-foreground">Updated {formattedDate}</span>
           <div className="flex items-center gap-2">
             <TooltipProvider>
@@ -154,8 +138,6 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default PatientCard;
