@@ -51,7 +51,7 @@ const PatientCard = ({
     try {
       console.log(`PatientCard: Deleting patient with ID: ${patient.id}`);
       
-      // Call the deletePatient function and await its completion
+      // Call the deletePatient function from the database service and await its completion
       await deletePatient(patient.id);
       
       console.log(`PatientCard: Successfully deleted patient with ID: ${patient.id}`);

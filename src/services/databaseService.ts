@@ -1,3 +1,4 @@
+
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, User, PDFFile, Json,
@@ -255,7 +256,7 @@ export const deletePatient = async (id: string): Promise<void> => {
       console.log(`DatabaseService: Successfully deleted any PDF files for patient ${id}`);
     }
     
-    // Step 3: Delete the patient record
+    // Step 3: Delete the patient record itself
     const { error } = await supabase
       .from('patients')
       .delete()
