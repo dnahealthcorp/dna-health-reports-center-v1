@@ -106,6 +106,7 @@ export type Database = {
       }
       patients: {
         Row: {
+          created_at: string
           created_by: string | null
           date_of_birth: string
           gender: string
@@ -113,9 +114,12 @@ export type Database = {
           last_updated: string
           medical_record_number: string
           name: string
+          pdf_exported: boolean
           status: string
+          status_updated_at: string | null
         }
         Insert: {
+          created_at?: string
           created_by?: string | null
           date_of_birth: string
           gender: string
@@ -123,9 +127,12 @@ export type Database = {
           last_updated?: string
           medical_record_number: string
           name: string
-          status: string
+          pdf_exported?: boolean
+          status?: string
+          status_updated_at?: string | null
         }
         Update: {
+          created_at?: string
           created_by?: string | null
           date_of_birth?: string
           gender?: string
@@ -133,7 +140,9 @@ export type Database = {
           last_updated?: string
           medical_record_number?: string
           name?: string
+          pdf_exported?: boolean
           status?: string
+          status_updated_at?: string | null
         }
         Relationships: [
           {
@@ -216,7 +225,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_patient_statuses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -106,19 +106,13 @@ const Patients = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'in-process':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">In Process</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Process</Badge>;
       case 'late':
         return <Badge className="bg-red-100 text-red-800 border-red-200">Late</Badge>;
       case 'completed':
         return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
-      case 'in-review':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">In Process</Badge>;
-      case 'nurse-pending':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">In Process</Badge>;
-      case 'doctor-pending':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">In Process</Badge>;
       default:
-        return <Badge>Unknown</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Process</Badge>;
     }
   };
 

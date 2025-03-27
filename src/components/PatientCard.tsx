@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Patient } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +36,7 @@ interface PatientCardProps {
 const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
   const { toast } = useToast();
   
+  // Updated statusMap to only use the three allowed status values
   const statusMap = {
     "in-process": {
       label: "In Process",
@@ -50,7 +52,8 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
     }
   };
   
-  const status = statusMap[patient.status];
+  // Ensure we have a valid status
+  const status = statusMap[patient.status] || statusMap["in-process"];
   const formattedDate = new Date(patient.lastUpdated).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',

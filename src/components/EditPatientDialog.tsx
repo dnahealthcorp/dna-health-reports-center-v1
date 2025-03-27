@@ -55,6 +55,7 @@ const EditPatientDialog = ({ patient, open, onOpenChange, onUpdate }: EditPatien
     setIsLoading(true);
 
     try {
+      // Preserve the original status
       const updatedPatient: Patient = {
         ...patient,
         name: patientData.name || patient.name,
