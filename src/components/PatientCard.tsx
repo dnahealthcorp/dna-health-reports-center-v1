@@ -52,45 +52,15 @@ const PatientCard = ({
     try {
       console.log(`PatientCard: Deleting patient with ID: ${patient.id}`);
       
-      // Direct database delete to ensure removal
-      const { error: formDataError } = await supabase
-        .from('patient_form_data')
-        .delete()
-        .eq('patient_id', patient.id);
-        
-      if (formDataError) {
-        console.error("Error deleting patient form data:", formDataError);
-        throw formDataError;
-      }
-      
-      const { error: pdfError } = await supabase
-        .from('pdf_files')
-        .delete()
-        .eq('patient_id', patient.id);
-        
-      if (pdfError) {
-        console.error("Error deleting patient PDF files:", pdfError);
-        // Continue with patient deletion even if PDF deletion fails
-      }
-      
-      const { error: patientError } = await supabase
-        .from('patients')
-        .delete()
-        .eq('id', patient.id);
-        
-      if (patientError) {
-        console.error("Error deleting patient record:", patientError);
-        throw patientError;
-      }
-      
-      console.log(`PatientCard: Successfully deleted patient with ID: ${patient.id} directly from database`);
+      // Call the database service to delete the patient
+      await deletePatient(patient.id);
       
       toast({
         title: "Patient deleted",
         description: `${patient.name} has been removed from the system.`
       });
       
-      // Only update UI if deletion was successful
+      // Update UI if deletion was successful
       if (onDelete) {
         onDelete(patient.id);
       }

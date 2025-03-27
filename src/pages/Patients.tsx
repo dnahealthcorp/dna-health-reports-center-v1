@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
@@ -141,40 +140,12 @@ const Patients = () => {
     try {
       console.log(`Patients: Attempting to delete patient with ID: ${patientId}`);
       
-      // Direct database delete to ensure removal
-      const { error: formDataError } = await supabase
-        .from('patient_form_data')
-        .delete()
-        .eq('patient_id', patientId);
-        
-      if (formDataError) {
-        console.error("Error deleting patient form data:", formDataError);
-        throw formDataError;
-      }
+      // Call the database service to delete the patient
+      await deletePatient(patientId);
       
-      const { error: pdfError } = await supabase
-        .from('pdf_files')
-        .delete()
-        .eq('patient_id', patientId);
-        
-      if (pdfError) {
-        console.error("Error deleting patient PDF files:", pdfError);
-        // Continue with patient deletion even if PDF deletion fails
-      }
+      console.log(`Patients: Successfully deleted patient with ID: ${patientId}`);
       
-      const { error: patientError } = await supabase
-        .from('patients')
-        .delete()
-        .eq('id', patientId);
-        
-      if (patientError) {
-        console.error("Error deleting patient record:", patientError);
-        throw patientError;
-      }
-      
-      console.log(`Patients: Successfully deleted patient with ID: ${patientId} directly from database`);
-      
-      // Only update UI if deletion was successful
+      // Update UI after successful deletion
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
       
       toast({
