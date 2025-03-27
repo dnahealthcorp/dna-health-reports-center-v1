@@ -11,7 +11,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { deletePatient } from "@/services/databaseService";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PatientCardProps {
   patient: Patient;
@@ -52,8 +51,10 @@ const PatientCard = ({
     try {
       console.log(`PatientCard: Deleting patient with ID: ${patient.id}`);
       
-      // Call the database service to delete the patient
+      // Call the deletePatient function from databaseService
       await deletePatient(patient.id);
+      
+      console.log(`PatientCard: Successfully deleted patient with ID: ${patient.id}`);
       
       toast({
         title: "Patient deleted",

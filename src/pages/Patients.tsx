@@ -140,7 +140,7 @@ const Patients = () => {
     try {
       console.log(`Patients: Attempting to delete patient with ID: ${patientId}`);
       
-      // Call the database service to delete the patient
+      // Call the deletePatient function from databaseService
       await deletePatient(patientId);
       
       console.log(`Patients: Successfully deleted patient with ID: ${patientId}`);

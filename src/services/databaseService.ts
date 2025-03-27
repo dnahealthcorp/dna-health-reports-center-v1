@@ -1,4 +1,3 @@
-
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, User, PDFFile, Json,
@@ -237,7 +236,7 @@ export const deletePatient = async (id: string): Promise<void> => {
       
     if (formError) {
       console.error(`DatabaseService: Error deleting form data for patient ${id}:`, formError);
-      throw formError;
+      throw new Error(`Failed to delete patient form data: ${formError.message}`);
     }
     
     console.log(`DatabaseService: Successfully deleted form data for patient ${id}`);
@@ -257,14 +256,14 @@ export const deletePatient = async (id: string): Promise<void> => {
     }
     
     // Step 3: Delete the patient record itself
-    const { error } = await supabase
+    const { error: patientError } = await supabase
       .from('patients')
       .delete()
       .eq('id', id);
     
-    if (error) {
-      console.error(`DatabaseService: Error in final patient deletion step for ${id}:`, error);
-      throw error;
+    if (patientError) {
+      console.error(`DatabaseService: Error in final patient deletion step for ${id}:`, patientError);
+      throw new Error(`Failed to delete patient record: ${patientError.message}`);
     }
     
     console.log(`DatabaseService: Successfully deleted patient with ID: ${id}`);
