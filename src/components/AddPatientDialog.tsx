@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -60,14 +59,6 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
       // Save patient to database
       const savedPatient = await databaseService.addPatient(newPatient);
 
-      // Initialize form data for the new patient without throwing an error if it fails
-      try {
-        await databaseService.getPatientFormData(savedPatient.id);
-      } catch (formError) {
-        console.warn("Warning: Could not initialize form data, but patient was created", formError);
-        // Continue anyway - the form data will be created when the patient form is first accessed
-      }
-
       setIsLoading(false);
       onAddPatient(savedPatient);
       setPatientData({
@@ -76,11 +67,6 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
         gender: ""
       });
       setOpen(false);
-      
-      toast({
-        title: "Patient added",
-        description: `${savedPatient.name} has been added successfully with MRN: ${medicalRecordNumber}`
-      });
     } catch (error) {
       console.error("Error adding patient:", error);
       setIsLoading(false);

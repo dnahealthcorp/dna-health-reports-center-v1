@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
@@ -38,22 +39,24 @@ const Patients = () => {
   } = useToast();
   const navigate = useNavigate();
 
+  const fetchPatients = async () => {
+    setIsLoading(true);
+    try {
+      const patientsData = await getPatients();
+      setPatients(patientsData);
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      toast({
+        title: "Error loading patients",
+        description: "Could not load patients from the database. Please check your connection.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const patientsData = await getPatients();
-        setPatients(patientsData);
-      } catch (error) {
-        console.error("Error fetching patients:", error);
-        toast({
-          title: "Error loading patients",
-          description: "Could not load patients from the database. Please check your connection.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchPatients();
 
     const channel = supabase.channel('patients-changes').on('postgres_changes', {
@@ -64,6 +67,7 @@ const Patients = () => {
       console.log('Change received!', payload);
       fetchPatients();
     }).subscribe();
+    
     return () => {
       supabase.removeChannel(channel);
     };
@@ -71,6 +75,10 @@ const Patients = () => {
 
   const handleAddPatient = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
+    toast({
+      title: "Patient added",
+      description: `${newPatient.name} has been added successfully with MRN: ${newPatient.medicalRecordNumber}`
+    });
   };
 
   const handleDeletePatient = async (patientId: string) => {

@@ -92,7 +92,8 @@ export const getPatients = async (): Promise<Patient[]> => {
   try {
     const { data, error } = await supabase
       .from('patients')
-      .select('*');
+      .select('*')
+      .order('last_updated', { ascending: false });
     
     if (error) {
       throw error;
@@ -160,11 +161,14 @@ export const addPatient = async (patient: Patient): Promise<Patient> => {
         gender: patientWithId.gender,
         medical_record_number: patientWithId.medicalRecordNumber,
         last_updated: new Date().toISOString(),
-        status: patientWithId.status
+        status: patientWithId.status,
+        created_at: new Date().toISOString(),
+        pdf_exported: false
       }])
       .select();
     
     if (error) {
+      console.error("Supabase insert error:", error);
       throw error;
     }
     

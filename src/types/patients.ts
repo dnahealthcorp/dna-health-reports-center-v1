@@ -8,6 +8,9 @@ export interface Patient {
   lastUpdated: string;
   status: 'in-process' | 'late' | 'completed';
   pdfFiles?: PDFFile[];
+  created_at?: string;
+  pdf_exported?: boolean;
+  status_updated_at?: string;
 }
 
 export interface PDFFile {
