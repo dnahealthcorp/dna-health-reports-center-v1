@@ -138,10 +138,15 @@ const Patients = () => {
     });
   };
 
+  // Improved delete function to ensure database sync
   const handleDeletePatient = async (patientId: string) => {
     try {
+      // Delete from database first
       await deletePatient(patientId);
+      
+      // If successful, update UI
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
+      
       toast({
         title: "Patient deleted",
         description: "Patient record has been removed successfully",

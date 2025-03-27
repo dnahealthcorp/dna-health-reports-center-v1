@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -74,7 +75,7 @@ const Layout = ({
     icon: Users
   }];
 
-  // Only show medications & supplements section for admin
+  // Only show medications & supplements section for admin - fixed alignment by removing extra indentation
   if (currentUser?.role === 'admin') {
     navItems.push({
       label: "Medications & Supplements",

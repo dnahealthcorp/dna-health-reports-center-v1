@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,39 +42,42 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // Filter patients based on user role and status
-  // Use the new status values but maintain the same workflow logic
-  const nurseActionRequired = patients.filter(p => p.status === "in-process" && currentUser?.role === "nurse");
-  const doctorActionRequired = patients.filter(p => p.status === "in-process" && currentUser?.role === "doctor");
-  const recentlyCompleted = patients.filter(p => p.status === "completed");
+  // Filter patients based on status
+  const inProcessPatients = patients.filter(p => p.status === "in-process");
+  const latePatients = patients.filter(p => p.status === "late");
+  const completedPatients = patients.filter(p => p.status === "completed");
 
-  // Stats for the cards
-  const stats = [{
-    title: "Total Patients",
-    value: patients.length,
-    icon: Users,
-    color: "text-blue-500",
-    bg: "bg-blue-100"
-  }, {
-    title: currentUser?.role === "nurse" ? "Nurse Reviews" : "Doctor Reviews",
-    value: currentUser?.role === "nurse" ? nurseActionRequired.length : doctorActionRequired.length,
-    icon: ClipboardList,
-    color: "text-purple-500",
-    bg: "bg-purple-100"
-  }, {
-    title: "Completed Forms",
-    value: recentlyCompleted.length,
-    icon: FileText,
-    color: "text-green-500",
-    bg: "bg-green-100"
-  }, {
-    title: "Recent Updates",
-    value: patients.length > 0 ? new Date(Math.max(...patients.map(p => new Date(p.lastUpdated).getTime()))).toLocaleDateString() : "No updates",
-    icon: Clock,
-    color: "text-amber-500",
-    bg: "bg-amber-100",
-    isDate: true
-  }];
+  // Updated stats for the cards as requested
+  const stats = [
+    {
+      title: "Total Patients",
+      value: patients.length,
+      icon: Users,
+      color: "text-blue-500",
+      bg: "bg-blue-100"
+    },
+    {
+      title: "In-Process Forms",
+      value: inProcessPatients.length,
+      icon: ClipboardList,
+      color: "text-purple-500",
+      bg: "bg-purple-100"
+    },
+    {
+      title: "Completed Forms",
+      value: completedPatients.length,
+      icon: FileText,
+      color: "text-green-500",
+      bg: "bg-green-100"
+    },
+    {
+      title: "Late Forms",
+      value: latePatients.length,
+      icon: Clock,
+      color: "text-amber-500",
+      bg: "bg-amber-100"
+    }
+  ];
 
   return <Layout>
       <div className="animate-fade-in">
@@ -97,7 +101,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <h4 className={`text-2xl font-semibold mt-1 ${stat.isDate ? "text-base" : ""}`}>
+                  <h4 className="text-2xl font-semibold mt-1">
                     {stat.value}
                   </h4>
                 </div>
@@ -141,20 +145,17 @@ const Dashboard = () => {
               
               <TabsContent value="action-required" className="mt-0">
                 {viewMode === 'cards' ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {currentUser?.role === "nurse" ? nurseActionRequired.length > 0 ? nurseActionRequired.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
-                          No patients require nurse review at this time.
-                        </p> : doctorActionRequired.length > 0 ? doctorActionRequired.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
-                        No patients require doctor review at this time.
-                      </p>}
+                    {inProcessPatients.length > 0 ? inProcessPatients.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
+                          No patients require review at this time.
+                        </p>}
                   </div> :
-              // Table view for action required
+              // Table view for action required patients
               <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>MRN</TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>DOB</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Last Updated</TableHead>
                           <TableHead>PDF Files</TableHead>
@@ -162,13 +163,12 @@ const Dashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentUser?.role === "nurse" ? nurseActionRequired.length > 0 ? nurseActionRequired.map(patient => <TableRow key={patient.id}>
+                        {inProcessPatients.length > 0 ? inProcessPatients.map(patient => <TableRow key={patient.id}>
                                 <TableCell>{patient.medicalRecordNumber}</TableCell>
                                 <TableCell>{patient.name}</TableCell>
-                                <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
                                 <TableCell>
                                   <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                    Nurse Review
+                                    In Process
                                   </span>
                                 </TableCell>
                                 <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
@@ -184,35 +184,10 @@ const Dashboard = () => {
                                   </Button>
                                 </TableCell>
                               </TableRow>) : <TableRow>
-                              <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                                No patients require nurse review at this time.
+                              <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                                No patients require review at this time.
                               </TableCell>
-                            </TableRow> : doctorActionRequired.length > 0 ? doctorActionRequired.map(patient => <TableRow key={patient.id}>
-                              <TableCell>{patient.medicalRecordNumber}</TableCell>
-                              <TableCell>{patient.name}</TableCell>
-                              <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
-                              <TableCell>
-                                <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                  Doctor Review
-                                </span>
-                              </TableCell>
-                              <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
-                              <TableCell>
-                                {patient.pdfFiles?.length > 0 ? patient.pdfFiles.map(file => <a key={file.id} href={`data:application/pdf;base64,${file.url}`} download={file.fileName} className="flex items-center text-primary hover:underline mb-1">
-                                      <Download size={14} className="mr-1" />
-                                      <span className="text-xs">{file.fileName}</span>
-                                    </a>) : <span className="text-xs text-muted-foreground">No files</span>}
-                              </TableCell>
-                              <TableCell>
-                                <Button size="sm" onClick={() => navigate(`/patients/${patient.id}`)}>
-                                  View
-                                </Button>
-                              </TableCell>
-                            </TableRow>) : <TableRow>
-                            <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                              No patients require doctor review at this time.
-                            </TableCell>
-                          </TableRow>}
+                            </TableRow>}
                       </TableBody>
                     </Table>
                   </div>}
@@ -220,7 +195,7 @@ const Dashboard = () => {
               
               <TabsContent value="completed" className="mt-0">
                 {viewMode === 'cards' ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {recentlyCompleted.length > 0 ? recentlyCompleted.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
+                    {completedPatients.length > 0 ? completedPatients.map(patient => <PatientCard key={patient.id} patient={patient} />) : <p className="text-muted-foreground col-span-full py-8 text-center">
                         No completed patient forms yet.
                       </p>}
                   </div> :
@@ -231,7 +206,6 @@ const Dashboard = () => {
                         <TableRow>
                           <TableHead>MRN</TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>DOB</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Last Updated</TableHead>
                           <TableHead>PDF Files</TableHead>
@@ -239,10 +213,9 @@ const Dashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {recentlyCompleted.length > 0 ? recentlyCompleted.map(patient => <TableRow key={patient.id}>
+                        {completedPatients.length > 0 ? completedPatients.map(patient => <TableRow key={patient.id}>
                               <TableCell>{patient.medicalRecordNumber}</TableCell>
                               <TableCell>{patient.name}</TableCell>
-                              <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
                               <TableCell>
                                 <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                   Completed
@@ -261,7 +234,7 @@ const Dashboard = () => {
                                 </Button>
                               </TableCell>
                             </TableRow>) : <TableRow>
-                            <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                            <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
                               No completed patient forms yet.
                             </TableCell>
                           </TableRow>}
@@ -283,7 +256,6 @@ const Dashboard = () => {
                         <TableRow>
                           <TableHead>MRN</TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>DOB</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Last Updated</TableHead>
                           <TableHead>PDF Files</TableHead>
@@ -294,7 +266,6 @@ const Dashboard = () => {
                         {patients.length > 0 ? patients.map(patient => <TableRow key={patient.id}>
                               <TableCell>{patient.medicalRecordNumber}</TableCell>
                               <TableCell>{patient.name}</TableCell>
-                              <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
                               <TableCell>
                                 {patient.status === 'in-process' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                     In Process
@@ -319,7 +290,7 @@ const Dashboard = () => {
                                 </Button>
                               </TableCell>
                             </TableRow>) : <TableRow>
-                            <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                            <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
                               No patients available.
                             </TableCell>
                           </TableRow>}
