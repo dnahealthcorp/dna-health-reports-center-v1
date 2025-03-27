@@ -9,13 +9,15 @@ interface PatientHeaderProps {
   handleExportPDF: () => void;
   handleSave: () => void;
   isSaving: boolean;
+  isExportingPDF?: boolean;
 }
 
 export const PatientHeader = ({ 
   patient, 
   handleExportPDF, 
   handleSave, 
-  isSaving 
+  isSaving,
+  isExportingPDF = false
 }: PatientHeaderProps) => {
   const navigate = useNavigate();
 
@@ -41,9 +43,18 @@ export const PatientHeader = ({
         </div>
       </div>
       <div className="flex gap-3">
-        <Button variant="outline" onClick={handleExportPDF}>
-          <Download className="mr-2 h-4 w-4" />
-          Export PDF
+        <Button variant="outline" onClick={handleExportPDF} disabled={isExportingPDF}>
+          {isExportingPDF ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Export PDF
+            </>
+          )}
         </Button>
         <Button disabled={isSaving} onClick={handleSave}>
           {isSaving ? (

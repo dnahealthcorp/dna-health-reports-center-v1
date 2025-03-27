@@ -30,7 +30,6 @@ import { VitalsTab } from "@/components/patient-form/VitalsTab";
 import { SummaryFindingsTab } from "@/components/patient-form/SummaryFindingsTab";
 import { MedicationsTab } from "@/components/patient-form/MedicationsTab";
 import { SupplementsTab } from "@/components/patient-form/SupplementsTab";
-import { NotesRecommendationsTab } from "@/components/patient-form/NotesRecommendationsTab";
 import { LoadingState } from "@/components/patient-form/LoadingState";
 import { NotFoundState } from "@/components/patient-form/NotFoundState";
 import { calculateBMI, calculateAge } from "@/components/patient-form/utils";
@@ -51,6 +50,7 @@ const PatientForm = () => {
   const [formData, setFormData] = useState<PatientFormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -177,6 +177,8 @@ const PatientForm = () => {
   const handleExportPDF = async () => {
     if (!formData || !patient) return;
     
+    setIsExportingPDF(true);
+    
     try {
       formData.patientInfo = {
         name: patient.name,
@@ -196,7 +198,7 @@ const PatientForm = () => {
       
       toast({
         title: "PDF Generated",
-        description: "Patient report has been downloaded and status updated to completed",
+        description: `"${fileName}" has been generated and patient status updated to completed`,
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -205,6 +207,8 @@ const PatientForm = () => {
         description: "Could not generate PDF",
         variant: "destructive"
       });
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -423,6 +427,7 @@ const PatientForm = () => {
           handleExportPDF={handleExportPDF}
           handleSave={handleSave}
           isSaving={isSaving}
+          isExportingPDF={isExportingPDF}
         />
 
         <PatientInfoCard 
