@@ -11,6 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { deletePatient } from "@/services/databaseService";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 interface PatientCardProps {
   patient: Patient;
@@ -24,6 +26,23 @@ const PatientCard = ({
   onEdit
 }: PatientCardProps) => {
   const { toast } = useToast();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [canDelete, setCanDelete] = useState(false);
+
+  useEffect(() => {
+    // Get the current user's ID from Supabase
+    const checkCurrentUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user?.id || null;
+      setCurrentUserId(userId);
+      
+      // Check if the user can delete this patient
+      // This is a UI-level check; the RLS policy is our ultimate security
+      setCanDelete(userId === patient.created_by);
+    };
+    
+    checkCurrentUser();
+  }, [patient.created_by]);
 
   const statusMap = {
     "in-process": {
@@ -49,6 +68,16 @@ const PatientCard = ({
 
   const handleDelete = async () => {
     try {
+      // Safety check - only attempt to delete if this is the user's patient
+      if (!canDelete) {
+        toast({
+          title: "Permission denied",
+          description: "You can only delete patients that you created.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       console.log(`PatientCard: Deleting patient with ID: ${patient.id}`);
       
       // Call the deletePatient function from databaseService
@@ -119,27 +148,42 @@ const PatientCard = ({
               </Tooltip>
             </TooltipProvider>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Trash2 size={16} className="text-red-500" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Patient</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete {patient.name}'s record? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {canDelete ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Trash2 size={16} className="text-red-500" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Patient</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {patient.name}'s record? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" disabled>
+                      <Trash2 size={16} className="text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>You can only delete patients you created</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
 
             <Link to={`/patients/${patient.id}`} className="text-primary flex items-center gap-1 font-medium ml-2">
               View

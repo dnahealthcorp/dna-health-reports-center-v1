@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 type SortField = 'lastUpdated' | 'status' | 'name';
 type SortDirection = 'asc' | 'desc';
@@ -38,7 +39,8 @@ const Patients = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('lastUpdated');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -62,9 +64,14 @@ const Patients = () => {
   };
 
   useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setCurrentUserId(data.session?.user?.id || null);
+    };
+    
+    getCurrentUser();
     fetchPatients();
 
-    // Set up Supabase realtime subscription for live updates
     const channel = supabase.channel('patients-changes')
       .on('postgres_changes', {
         event: '*',
@@ -140,12 +147,21 @@ const Patients = () => {
     try {
       console.log(`Patients: Attempting to delete patient with ID: ${patientId}`);
       
-      // Call the deletePatient function from databaseService
+      const patientToDelete = patients.find(p => p.id === patientId);
+      
+      if (patientToDelete && patientToDelete.created_by && patientToDelete.created_by !== currentUserId) {
+        toast({
+          title: "Permission denied",
+          description: "You can only delete patients that you created.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       await deletePatient(patientId);
       
       console.log(`Patients: Successfully deleted patient with ID: ${patientId}`);
       
-      // Update UI after successful deletion
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
       
       toast({
@@ -153,7 +169,6 @@ const Patients = () => {
         description: "Patient record has been removed successfully",
       });
       
-      // Force a refetch to ensure UI is in sync with database
       fetchPatients();
     } catch (error) {
       console.error("Patients: Error deleting patient:", error);
@@ -163,7 +178,6 @@ const Patients = () => {
         variant: "destructive"
       });
       
-      // Refresh the patient list to ensure UI is in sync with database
       fetchPatients();
     }
   };
@@ -191,6 +205,11 @@ const Patients = () => {
       default:
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Process</Badge>;
     }
+  };
+
+  const canDeletePatient = (patientCreatedBy: string | undefined | null): boolean => {
+    if (!currentUserId || !patientCreatedBy) return false;
+    return currentUserId === patientCreatedBy;
   };
 
   return <Layout>
@@ -262,31 +281,47 @@ const Patients = () => {
                             <span className="sr-only">View</span>
                           </Button>
                           
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="outline" className="text-red-500 hover:bg-red-50 hover:text-red-600">
-                                <Trash2 size={16} />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Patient</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete {patient.name}'s record? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  className="bg-red-500 hover:bg-red-600" 
-                                  onClick={() => handleDeletePatient(patient.id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          {canDeletePatient(patient.created_by) ? (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="outline" className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                                  <Trash2 size={16} />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Patient</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {patient.name}'s record? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    className="bg-red-500 hover:bg-red-600" 
+                                    onClick={() => handleDeletePatient(patient.id)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="outline" disabled className="text-muted-foreground">
+                                    <Trash2 size={16} />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>You can only delete patients you created</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>)}
