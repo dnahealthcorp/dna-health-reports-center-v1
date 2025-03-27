@@ -226,7 +226,7 @@ export const updatePatient = async (patient: Patient): Promise<Patient> => {
 
 export const deletePatient = async (id: string): Promise<void> => {
   try {
-    console.log(`Attempting to delete patient with ID: ${id}`);
+    console.log(`DatabaseService: Starting deletion process for patient with ID: ${id}`);
     
     // Step 1: Delete patient form data
     const { error: formError } = await supabase
@@ -235,9 +235,11 @@ export const deletePatient = async (id: string): Promise<void> => {
       .eq('patient_id', id);
       
     if (formError) {
-      console.error(`Error deleting form data for patient ${id}:`, formError);
+      console.error(`DatabaseService: Error deleting form data for patient ${id}:`, formError);
       throw formError;
     }
+    
+    console.log(`DatabaseService: Successfully deleted form data for patient ${id}`);
     
     // Step 2: Delete any PDF files associated with the patient
     const { error: pdfError } = await supabase
@@ -246,8 +248,11 @@ export const deletePatient = async (id: string): Promise<void> => {
       .eq('patient_id', id);
       
     if (pdfError) {
-      console.error(`Error deleting PDF files for patient ${id}:`, pdfError);
-      // Continue with patient deletion even if PDF deletion fails
+      console.error(`DatabaseService: Error deleting PDF files for patient ${id}:`, pdfError);
+      // We'll continue with patient deletion even if PDF deletion fails
+      // but we log the error for debugging purposes
+    } else {
+      console.log(`DatabaseService: Successfully deleted any PDF files for patient ${id}`);
     }
     
     // Step 3: Delete the patient record
@@ -257,14 +262,14 @@ export const deletePatient = async (id: string): Promise<void> => {
       .eq('id', id);
     
     if (error) {
-      console.error(`Error in final patient deletion step for ${id}:`, error);
+      console.error(`DatabaseService: Error in final patient deletion step for ${id}:`, error);
       throw error;
     }
     
-    console.log(`Successfully deleted patient with ID: ${id}`);
+    console.log(`DatabaseService: Successfully deleted patient with ID: ${id}`);
   } catch (error) {
-    console.error(`Error deleting patient ${id} from Supabase:`, error);
-    throw error;
+    console.error(`DatabaseService: Error deleting patient ${id} from Supabase:`, error);
+    throw error; // Re-throw to allow calling code to handle the error
   }
 };
 

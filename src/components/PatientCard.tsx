@@ -49,19 +49,24 @@ const PatientCard = ({
 
   const handleDelete = async () => {
     try {
-      console.log(`Deleting patient with ID: ${patient.id}`);
+      console.log(`PatientCard: Deleting patient with ID: ${patient.id}`);
+      
+      // Call the deletePatient function and await its completion
       await deletePatient(patient.id);
+      
+      console.log(`PatientCard: Successfully deleted patient with ID: ${patient.id}`);
       
       toast({
         title: "Patient deleted",
         description: `${patient.name} has been removed from the system.`
       });
       
+      // Only update UI if deletion was successful
       if (onDelete) {
         onDelete(patient.id);
       }
     } catch (error) {
-      console.error("Error deleting patient:", error);
+      console.error("PatientCard: Error deleting patient:", error);
       toast({
         title: "Error",
         description: "Could not delete patient. Please try again.",

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
@@ -46,10 +45,12 @@ const Patients = () => {
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
+      console.log("Patients: Fetching patients from database");
       const patientsData = await getPatients();
+      console.log(`Patients: Retrieved ${patientsData.length} patients`);
       setPatients(sortPatients(patientsData));
     } catch (error) {
-      console.error("Error fetching patients:", error);
+      console.error("Patients: Error fetching patients:", error);
       toast({
         title: "Error loading patients",
         description: "Could not load patients from the database. Please check your connection.",
@@ -63,19 +64,22 @@ const Patients = () => {
   useEffect(() => {
     fetchPatients();
 
-    // Set up Supabase realtime subscription
+    // Set up Supabase realtime subscription for live updates
     const channel = supabase.channel('patients-changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'patients'
       }, payload => {
-        console.log('Change received!', payload);
-        fetchPatients();
+        console.log('Patients: Realtime change detected!', payload);
+        fetchPatients(); // Refetch on any database changes
       })
       .subscribe();
     
+    console.log("Patients: Subscribed to realtime changes");
+    
     return () => {
+      console.log("Patients: Cleanup - removing realtime subscription");
       supabase.removeChannel(channel);
     };
   }, [toast]);
@@ -134,20 +138,28 @@ const Patients = () => {
 
   const handleDeletePatient = async (patientId: string) => {
     try {
-      console.log(`Deleting patient with ID: ${patientId} from Patients component`);
+      console.log(`Patients: Attempting to delete patient with ID: ${patientId}`);
+      
+      // Call the deletePatient function and await its completion
       await deletePatient(patientId);
+      
+      console.log(`Patients: Successfully deleted patient with ID: ${patientId}`);
+      
+      // Only update UI if deletion was successful
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
+      
       toast({
         title: "Patient deleted",
         description: "Patient record has been removed successfully",
       });
     } catch (error) {
-      console.error("Error deleting patient:", error);
+      console.error("Patients: Error deleting patient:", error);
       toast({
         title: "Error",
         description: "Failed to delete patient. Please try again.",
         variant: "destructive"
       });
+      
       // Refresh the patient list to ensure UI is in sync with database
       fetchPatients();
     }
