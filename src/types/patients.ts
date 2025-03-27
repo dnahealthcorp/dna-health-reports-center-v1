@@ -1,4 +1,3 @@
-
 // Patient related type definitions
 export interface Patient {
   id: string;
@@ -7,7 +6,7 @@ export interface Patient {
   gender: string;
   medicalRecordNumber: string;
   lastUpdated: string;
-  status: 'in-review' | 'nurse-pending' | 'doctor-pending' | 'completed';
+  status: 'in-process' | 'late' | 'completed';
   pdfFiles?: PDFFile[];
 }
 
