@@ -1,3 +1,4 @@
+
 // Patient related type definitions
 export interface Patient {
   id: string;
@@ -11,6 +12,8 @@ export interface Patient {
   created_at?: string;
   pdf_exported?: boolean;
   status_updated_at?: string;
+  created_by?: string; // Add created_by field
+  createdByName?: string; // Display name of creator
 }
 
 export interface PDFFile {

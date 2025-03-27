@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
 import { Input } from "@/components/ui/input";
-import { Search, Trash2, Edit, Eye } from "lucide-react";
+import { Search, Trash2, Edit, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import PatientCard from "@/components/PatientCard";
 import AddPatientDialog from "@/components/AddPatientDialog";
 import EditPatientDialog from "@/components/EditPatientDialog";
@@ -27,6 +27,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// Sorting type definitions
+type SortField = 'lastUpdated' | 'status' | 'name';
+type SortDirection = 'asc' | 'desc';
+
 const Patients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,16 +38,19 @@ const Patients = () => {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const {
-    toast
-  } = useToast();
+  // Add sorting state
+  const [sortField, setSortField] = useState<SortField>('lastUpdated');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const fetchPatients = async () => {
     setIsLoading(true);
     try {
       const patientsData = await getPatients();
-      setPatients(patientsData);
+      // Apply sorting to the fetched data
+      setPatients(sortPatients(patientsData));
     } catch (error) {
       console.error("Error fetching patients:", error);
       toast({
@@ -72,6 +79,56 @@ const Patients = () => {
       supabase.removeChannel(channel);
     };
   }, [toast]);
+  
+  // Sort patients whenever sort criteria changes
+  useEffect(() => {
+    setPatients(sortPatients(patients));
+  }, [sortField, sortDirection]);
+
+  // Sort patients function
+  const sortPatients = (patientsToSort: Patient[]) => {
+    return [...patientsToSort].sort((a, b) => {
+      switch (sortField) {
+        case 'status':
+          const statusOrder = { 'completed': 0, 'in-process': 1, 'late': 2 };
+          const statusA = a.status as keyof typeof statusOrder;
+          const statusB = b.status as keyof typeof statusOrder;
+          const comparison = statusOrder[statusA] - statusOrder[statusB];
+          return sortDirection === 'asc' ? comparison : -comparison;
+        
+        case 'name':
+          const nameComparison = a.name.localeCompare(b.name);
+          return sortDirection === 'asc' ? nameComparison : -nameComparison;
+          
+        case 'lastUpdated':
+        default:
+          const dateA = new Date(a.lastUpdated).getTime();
+          const dateB = new Date(b.lastUpdated).getTime();
+          return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+    });
+  };
+
+  // Toggle sort direction and field
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      // Toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to descending
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // Get sort direction icon
+  const getSortIcon = (field: SortField) => {
+    if (field !== sortField) return null;
+    
+    return sortDirection === 'asc' 
+      ? <ArrowUp size={14} className="inline ml-1" /> 
+      : <ArrowDown size={14} className="inline ml-1" />;
+  };
 
   const handleAddPatient = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
@@ -160,11 +217,17 @@ const Patients = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>MRN</TableHead>
-                    <TableHead>Name</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
+                      Name {getSortIcon('name')}
+                    </TableHead>
                     <TableHead>Gender</TableHead>
-                    <TableHead>Date of Birth</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Updated</TableHead>
+                    <TableHead>Created By</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
+                      Status {getSortIcon('status')}
+                    </TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('lastUpdated')}>
+                      Last Updated {getSortIcon('lastUpdated')}
+                    </TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -173,7 +236,7 @@ const Patients = () => {
                       <TableCell className="font-medium">{patient.medicalRecordNumber}</TableCell>
                       <TableCell>{patient.name}</TableCell>
                       <TableCell>{patient.gender}</TableCell>
-                      <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
+                      <TableCell>{patient.createdByName || "Unknown"}</TableCell>
                       <TableCell>{getStatusBadge(patient.status)}</TableCell>
                       <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
                       <TableCell>

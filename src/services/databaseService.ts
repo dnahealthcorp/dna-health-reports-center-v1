@@ -1,4 +1,3 @@
-
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, User, PDFFile, Json,
@@ -43,7 +42,12 @@ const mapPatientFromDB = (dbPatient: any): Patient => {
     medicalRecordNumber: dbPatient.medical_record_number,
     lastUpdated: dbPatient.last_updated,
     status: dbPatient.status,
-    pdfFiles: dbPatient.pdfFiles || undefined
+    pdfFiles: dbPatient.pdfFiles || undefined,
+    created_at: dbPatient.created_at,
+    pdf_exported: dbPatient.pdf_exported,
+    status_updated_at: dbPatient.status_updated_at,
+    created_by: dbPatient.created_by,
+    createdByName: dbPatient.users?.name || "Unknown"
   };
 };
 
@@ -92,7 +96,12 @@ export const getPatients = async (): Promise<Patient[]> => {
   try {
     const { data, error } = await supabase
       .from('patients')
-      .select('*')
+      .select(`
+        *,
+        users:created_by (
+          name
+        )
+      `)
       .order('last_updated', { ascending: false });
     
     if (error) {
@@ -146,6 +155,9 @@ export const getPatientById = async (id: string): Promise<Patient | null> => {
 
 export const addPatient = async (patient: Patient): Promise<Patient> => {
   try {
+    // Get current user
+    const currentUser = await getCurrentUser();
+    
     // Make sure patient has an ID if not provided
     const patientWithId = {
       ...patient,
@@ -163,7 +175,8 @@ export const addPatient = async (patient: Patient): Promise<Patient> => {
         last_updated: new Date().toISOString(),
         status: patientWithId.status,
         created_at: new Date().toISOString(),
-        pdf_exported: false
+        pdf_exported: false,
+        created_by: currentUser?.id || null
       }])
       .select();
     
@@ -174,6 +187,9 @@ export const addPatient = async (patient: Patient): Promise<Patient> => {
     
     // Create an empty form data for this patient
     await createEmptyPatientFormData(patientWithId.id);
+    
+    // Add the createdByName for display purposes
+    patientWithId.createdByName = currentUser?.name || "Unknown";
     
     return patientWithId;
   } catch (error) {
@@ -192,7 +208,8 @@ export const updatePatient = async (patient: Patient): Promise<Patient> => {
         gender: patient.gender,
         medical_record_number: patient.medicalRecordNumber,
         last_updated: new Date().toISOString(),
-        status: patient.status
+        status: patient.status,
+        pdf_exported: patient.pdf_exported
       })
       .eq('id', patient.id);
     

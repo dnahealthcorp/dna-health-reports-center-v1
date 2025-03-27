@@ -2,7 +2,7 @@
 // Entry point for PDF service - redirects to the new modular implementation
 import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
-import { getPatientById, getCurrentUser, savePDFReference } from "@/services/databaseService";
+import { getPatientById, getCurrentUser, savePDFReference, updatePatient } from "@/services/databaseService";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -27,6 +27,25 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       try {
         // Save to Supabase database with proper UUID format using uuidv4
         await savePDFReference(patient.id, fileName);
+        
+        // Update the patient's pdf_exported flag to true
+        const updatedPatient = {
+          ...patient,
+          pdf_exported: true,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        await updatePatient(updatedPatient);
+        
+        // Call update_patient_statuses database function to update status immediately
+        try {
+          const { error } = await supabase.rpc('update_patient_statuses');
+          if (error) {
+            console.error("Error calling update_patient_statuses:", error);
+          }
+        } catch (funcError) {
+          console.error("Failed to call update_patient_statuses function:", funcError);
+        }
       } catch (error) {
         console.error("Error saving PDF reference:", error);
         // Continue even if saving reference fails
@@ -40,7 +59,8 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       patientName: formData.patientInfo.name,
       medicationsCount: medications.length,
       supplementsCount: formData.supplements?.length || 0,
-      currentUser: currentUser?.name
+      currentUser: currentUser?.name,
+      pdfExported: patient?.pdf_exported
     });
     
     return fileName;

@@ -105,7 +105,7 @@ const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
           <div className="flex items-center text-sm text-muted-foreground gap-3">
             <span>{patient.gender}</span>
             <span className="w-1 h-1 rounded-full bg-muted-foreground inline-block"></span>
-            <span>DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}</span>
+            <span>Created by: {patient.createdByName || "Unknown"}</span>
           </div>
         </div>
         
