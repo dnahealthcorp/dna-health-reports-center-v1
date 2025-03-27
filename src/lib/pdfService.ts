@@ -26,11 +26,11 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       // Format the current date as YYYY-MM-DD
       const currentDate = new Date().toISOString().slice(0, 10);
       
-      // Format the filename according to requirements: patient's_name's Health Screening Report- Date
+      // Format the filename according to new requirements: patient's_name's Health Screening - Date
       // Handle apostrophe formatting for names ending with 's'
       const patientName = patient.name.replace(/\s+/g, '_');
       const apostrophe = patientName.endsWith('s') ? "'" : "'s";
-      fileName = `${patientName}${apostrophe} Health Screening Report- ${currentDate}.pdf`;
+      fileName = `${patientName}${apostrophe} Health Screening - ${currentDate}.pdf`;
       
       try {
         // Save to Supabase database with proper UUID format using uuidv4
@@ -63,7 +63,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     } else {
       // Fallback filename if no patient is found
       const currentDate = new Date().toISOString().slice(0, 10);
-      fileName = `Patient_Health_Screening_Report-${currentDate}.pdf`;
+      fileName = `Patient_Health_Screening-${currentDate}.pdf`;
     }
     
     // For debugging

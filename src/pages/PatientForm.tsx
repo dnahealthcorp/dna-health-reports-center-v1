@@ -24,7 +24,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { generatePDF } from "@/lib/pdfService";
 
-// Import refactored components
 import { PatientHeader } from "@/components/patient-form/PatientHeader";
 import { PatientInfoCard } from "@/components/patient-form/PatientInfoCard";
 import { VitalsTab } from "@/components/patient-form/VitalsTab";
@@ -93,7 +92,6 @@ const PatientForm = () => {
     
     fetchData();
     
-    // Subscribe to realtime changes for the patient form data
     const channel = supabase
       .channel('form-data-changes')
       .on('postgres_changes', { 
@@ -103,12 +101,10 @@ const PatientForm = () => {
         filter: `patient_id=eq.${id}`
       }, (payload) => {
         console.log('Form data updated:', payload);
-        // Refresh the form data
         getPatientFormData(id as string).then(data => setFormData(data));
       })
       .subscribe();
       
-    // Subscribe to patient changes
     const patientChannel = supabase
       .channel('patient-changes')
       .on('postgres_changes', { 
@@ -118,7 +114,6 @@ const PatientForm = () => {
         filter: `id=eq.${id}`
       }, (payload) => {
         console.log('Patient data updated:', payload);
-        // Refresh the patient data
         getPatientById(id as string).then(data => setPatient(data));
       })
       .subscribe();
@@ -135,7 +130,6 @@ const PatientForm = () => {
     setIsSaving(true);
     
     try {
-      // Make sure patient info is properly set in form data
       formData.patientInfo = {
         name: patient.name,
         dateOfBirth: patient.dateOfBirth,
@@ -143,15 +137,12 @@ const PatientForm = () => {
         medicalRecordNumber: patient.medicalRecordNumber
       };
       
-      // Save form data
       await savePatientFormData(patient.id, formData);
       
-      // Update patient status if needed, using the new status types
       let updatedStatus = patient.status;
       
-      // Map the workflow roles to the new status types
       if (currentUser?.role === "nurse" && patient.status === 'in-process') {
-        updatedStatus = 'in-process'; // Used to be 'doctor-pending'
+        updatedStatus = 'in-process';
       } else if (currentUser?.role === "doctor" && patient.status === 'in-process') {
         updatedStatus = 'completed';
       }
@@ -187,7 +178,6 @@ const PatientForm = () => {
     if (!formData || !patient) return;
     
     try {
-      // Ensure patient info is set correctly before generating PDF
       formData.patientInfo = {
         name: patient.name,
         dateOfBirth: patient.dateOfBirth,
@@ -195,13 +185,10 @@ const PatientForm = () => {
         medicalRecordNumber: patient.medicalRecordNumber
       };
       
-      // Save form data first to ensure everything is up to date
       await savePatientFormData(patient.id, formData);
       
-      // Generate the PDF
       const fileName = await generatePDF(formData, medications);
       
-      // Refresh the patient data after export to get the updated status
       const refreshedPatient = await getPatientById(patient.id);
       if (refreshedPatient) {
         setPatient(refreshedPatient);
@@ -410,7 +397,6 @@ const PatientForm = () => {
     });
   };
 
-  // All users can now edit all sections
   const canEdit = true;
 
   if (isLoading) {
@@ -454,7 +440,6 @@ const PatientForm = () => {
             <TabsTrigger value="medications">Medications</TabsTrigger>
             <TabsTrigger value="supplements">Supplements</TabsTrigger>
             <TabsTrigger value="docRecommendations">Doctor Recommendations</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
             <TabsTrigger value="followUps">Follow-ups</TabsTrigger>
           </TabsList>
           
@@ -518,17 +503,6 @@ const PatientForm = () => {
               formData={formData}
               handleInputChange={handleInputChange}
               canEditDoctorSection={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="notes" className="mt-0">
-            <NotesRecommendationsTab 
-              formData={formData}
-              handleInputChange={handleInputChange}
-              canEditNurseSection={canEdit}
-              canEditDoctorSection={canEdit}
-              handleSave={handleSave}
-              isSaving={isSaving}
             />
           </TabsContent>
           
