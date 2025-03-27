@@ -140,10 +140,38 @@ const Patients = () => {
     try {
       console.log(`Patients: Attempting to delete patient with ID: ${patientId}`);
       
-      // Call the deletePatient function and await its completion
-      await deletePatient(patientId);
+      // Direct database delete to ensure removal
+      const { error: formDataError } = await supabase
+        .from('patient_form_data')
+        .delete()
+        .eq('patient_id', patientId);
+        
+      if (formDataError) {
+        console.error("Error deleting patient form data:", formDataError);
+        throw formDataError;
+      }
       
-      console.log(`Patients: Successfully deleted patient with ID: ${patientId}`);
+      const { error: pdfError } = await supabase
+        .from('pdf_files')
+        .delete()
+        .eq('patient_id', patientId);
+        
+      if (pdfError) {
+        console.error("Error deleting patient PDF files:", pdfError);
+        // Continue with patient deletion even if PDF deletion fails
+      }
+      
+      const { error: patientError } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', patientId);
+        
+      if (patientError) {
+        console.error("Error deleting patient record:", patientError);
+        throw patientError;
+      }
+      
+      console.log(`Patients: Successfully deleted patient with ID: ${patientId} directly from database`);
       
       // Only update UI if deletion was successful
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
@@ -152,6 +180,9 @@ const Patients = () => {
         title: "Patient deleted",
         description: "Patient record has been removed successfully",
       });
+      
+      // Force a refetch to ensure UI is in sync with database
+      fetchPatients();
     } catch (error) {
       console.error("Patients: Error deleting patient:", error);
       toast({

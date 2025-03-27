@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { deletePatient } from "@/services/databaseService";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PatientCardProps {
   patient: Patient;
@@ -51,10 +52,38 @@ const PatientCard = ({
     try {
       console.log(`PatientCard: Deleting patient with ID: ${patient.id}`);
       
-      // Call the deletePatient function from the database service and await its completion
-      await deletePatient(patient.id);
+      // Direct database delete to ensure removal
+      const { error: formDataError } = await supabase
+        .from('patient_form_data')
+        .delete()
+        .eq('patient_id', patient.id);
+        
+      if (formDataError) {
+        console.error("Error deleting patient form data:", formDataError);
+        throw formDataError;
+      }
       
-      console.log(`PatientCard: Successfully deleted patient with ID: ${patient.id}`);
+      const { error: pdfError } = await supabase
+        .from('pdf_files')
+        .delete()
+        .eq('patient_id', patient.id);
+        
+      if (pdfError) {
+        console.error("Error deleting patient PDF files:", pdfError);
+        // Continue with patient deletion even if PDF deletion fails
+      }
+      
+      const { error: patientError } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', patient.id);
+        
+      if (patientError) {
+        console.error("Error deleting patient record:", patientError);
+        throw patientError;
+      }
+      
+      console.log(`PatientCard: Successfully deleted patient with ID: ${patient.id} directly from database`);
       
       toast({
         title: "Patient deleted",
