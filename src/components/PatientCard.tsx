@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Patient } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,11 +49,14 @@ const PatientCard = ({
 
   const handleDelete = async () => {
     try {
+      console.log(`Deleting patient with ID: ${patient.id}`);
       await deletePatient(patient.id);
+      
       toast({
         title: "Patient deleted",
         description: `${patient.name} has been removed from the system.`
       });
+      
       if (onDelete) {
         onDelete(patient.id);
       }

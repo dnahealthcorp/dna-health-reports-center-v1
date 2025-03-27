@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
@@ -62,6 +63,7 @@ const Patients = () => {
   useEffect(() => {
     fetchPatients();
 
+    // Set up Supabase realtime subscription
     const channel = supabase.channel('patients-changes')
       .on('postgres_changes', {
         event: '*',
@@ -132,6 +134,7 @@ const Patients = () => {
 
   const handleDeletePatient = async (patientId: string) => {
     try {
+      console.log(`Deleting patient with ID: ${patientId} from Patients component`);
       await deletePatient(patientId);
       setPatients(prev => prev.filter(patient => patient.id !== patientId));
       toast({
@@ -145,6 +148,7 @@ const Patients = () => {
         description: "Failed to delete patient. Please try again.",
         variant: "destructive"
       });
+      // Refresh the patient list to ensure UI is in sync with database
       fetchPatients();
     }
   };

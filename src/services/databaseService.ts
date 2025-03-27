@@ -228,29 +228,29 @@ export const deletePatient = async (id: string): Promise<void> => {
   try {
     console.log(`Attempting to delete patient with ID: ${id}`);
     
-    // Delete patient form data first
+    // Step 1: Delete patient form data
     const { error: formError } = await supabase
       .from('patient_form_data')
       .delete()
       .eq('patient_id', id);
       
     if (formError) {
-      console.warn(`Error deleting form data for patient ${id}:`, formError);
+      console.error(`Error deleting form data for patient ${id}:`, formError);
       throw formError;
     }
     
-    // Delete any PDF files associated with the patient
+    // Step 2: Delete any PDF files associated with the patient
     const { error: pdfError } = await supabase
       .from('pdf_files')
       .delete()
       .eq('patient_id', id);
       
     if (pdfError) {
-      console.warn(`Error deleting PDF files for patient ${id}:`, pdfError);
+      console.error(`Error deleting PDF files for patient ${id}:`, pdfError);
       // Continue with patient deletion even if PDF deletion fails
     }
     
-    // Then delete the patient
+    // Step 3: Delete the patient record
     const { error } = await supabase
       .from('patients')
       .delete()
