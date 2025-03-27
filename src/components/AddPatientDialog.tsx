@@ -46,8 +46,7 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
       // Auto-generate MRN
       const medicalRecordNumber = databaseService.generateMRN();
 
-      // Create new patient - ensuring valid status values
-      // Database seems to have a constraint on status values
+      // Create new patient with the updated status type
       const newPatient: Patient = {
         id: uuidv4(),
         name: patientData.name,
@@ -55,7 +54,7 @@ const AddPatientDialog = ({ onAddPatient }: AddPatientDialogProps) => {
         gender: patientData.gender,
         medicalRecordNumber,
         lastUpdated: new Date().toISOString(),
-        status: 'nurse-pending' // Use nurse-pending as the initial status instead of in-review
+        status: 'in-process' // Using the new enum value instead of 'nurse-pending'
       };
 
       // Save patient to database

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Patient } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,14 +34,15 @@ interface PatientCardProps {
 
 const PatientCard = ({ patient, onDelete, onEdit }: PatientCardProps) => {
   const { toast } = useToast();
+  
   const statusMap = {
-    "nurse-pending": {
-      label: "Nurse Review",
+    "in-process": {
+      label: "In Process",
       color: "bg-blue-100 text-blue-700 border-blue-200"
     },
-    "doctor-pending": {
-      label: "Doctor Review",
-      color: "bg-purple-100 text-purple-700 border-purple-200"
+    "late": {
+      label: "Late",
+      color: "bg-red-100 text-red-700 border-red-200"
     },
     "completed": {
       label: "Completed",

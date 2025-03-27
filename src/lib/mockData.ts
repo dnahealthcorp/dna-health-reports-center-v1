@@ -92,7 +92,7 @@ export const mockPatients: Patient[] = [
     gender: "Female",
     medicalRecordNumber: "MRN78901",
     lastUpdated: "2023-11-15T09:30:00",
-    status: "nurse-pending"
+    status: "in-process"
   },
   {
     id: "p2",
@@ -101,7 +101,7 @@ export const mockPatients: Patient[] = [
     gender: "Male",
     medicalRecordNumber: "MRN12345",
     lastUpdated: "2023-11-14T14:45:00",
-    status: "doctor-pending"
+    status: "in-process"
   },
   {
     id: "p3",
@@ -119,7 +119,7 @@ export const mockPatients: Patient[] = [
     gender: "Male",
     medicalRecordNumber: "MRN34567",
     lastUpdated: "2023-11-15T16:20:00",
-    status: "nurse-pending"
+    status: "in-process"
   },
   {
     id: "p5",
@@ -128,7 +128,7 @@ export const mockPatients: Patient[] = [
     gender: "Female",
     medicalRecordNumber: "MRN23456",
     lastUpdated: "2023-11-14T10:10:00",
-    status: "doctor-pending"
+    status: "in-process"
   }
 ];
 

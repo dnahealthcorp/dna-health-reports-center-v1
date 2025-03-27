@@ -9,12 +9,14 @@ import PatientCard from "@/components/PatientCard";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 const Dashboard = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const navigate = useNavigate();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -40,8 +42,9 @@ const Dashboard = () => {
   }, []);
 
   // Filter patients based on user role and status
-  const nurseActionRequired = patients.filter(p => p.status === "nurse-pending");
-  const doctorActionRequired = patients.filter(p => p.status === "doctor-pending");
+  // Use the new status values but maintain the same workflow logic
+  const nurseActionRequired = patients.filter(p => p.status === "in-process" && currentUser?.role === "nurse");
+  const doctorActionRequired = patients.filter(p => p.status === "in-process" && currentUser?.role === "doctor");
   const recentlyCompleted = patients.filter(p => p.status === "completed");
 
   // Stats for the cards
@@ -71,6 +74,7 @@ const Dashboard = () => {
     bg: "bg-amber-100",
     isDate: true
   }];
+
   return <Layout>
       <div className="animate-fade-in">
         <div className="flex items-center justify-between mb-8">
@@ -143,7 +147,7 @@ const Dashboard = () => {
                         No patients require doctor review at this time.
                       </p>}
                   </div> :
-              // Table view
+              // Table view for action required
               <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -292,11 +296,11 @@ const Dashboard = () => {
                               <TableCell>{patient.name}</TableCell>
                               <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                {patient.status === 'nurse-pending' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                    Nurse Review
+                                {patient.status === 'in-process' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                    In Process
                                   </span>}
-                                {patient.status === 'doctor-pending' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                    Doctor Review
+                                {patient.status === 'late' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                    Late
                                   </span>}
                                 {patient.status === 'completed' && <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                     Completed

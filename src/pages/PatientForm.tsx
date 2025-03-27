@@ -147,13 +147,14 @@ const PatientForm = () => {
       // Save form data
       await savePatientFormData(patient.id, formData);
       
-      // Update patient status if needed
+      // Update patient status if needed, using the new status types
       let updatedStatus = patient.status;
       
-      if (currentUser?.role === "nurse" && patient?.status === "nurse-pending") {
-        updatedStatus = "doctor-pending";
-      } else if (currentUser?.role === "doctor" && patient?.status === "doctor-pending") {
-        updatedStatus = "completed";
+      // Map the workflow roles to the new status types
+      if (currentUser?.role === "nurse" && patient.status === 'in-process') {
+        updatedStatus = 'in-process'; // Used to be 'doctor-pending'
+      } else if (currentUser?.role === "doctor" && patient.status === 'in-process') {
+        updatedStatus = 'completed';
       }
       
       if (updatedStatus !== patient.status) {
