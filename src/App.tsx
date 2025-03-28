@@ -10,6 +10,7 @@ import NotFound from './pages/NotFound'
 import Medications from './pages/Medications'
 import Login from './pages/Login'
 import Settings from './pages/Settings'
+import UserManagement from './pages/UserManagement'
 import { Toaster } from './components/ui/toaster'
 import { getCurrentUser } from './services/databaseService'
 
@@ -55,6 +56,47 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Admin only route component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const user = await getCurrentUser();
+        setIsAdmin(user?.role === 'admin');
+      } catch (err) {
+        console.error("Admin check error:", err);
+        setError("Failed to check admin privileges.");
+        setIsAdmin(false);
+      }
+    };
+    
+    checkAdmin();
+  }, []);
+  
+  if (isAdmin === null) {
+    // Still loading, show a loader
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+        <p className="text-muted-foreground text-sm">
+          {error || "Checking administrator access..."}
+        </p>
+      </div>
+    );
+  }
+  
+  if (isAdmin === false) {
+    // Not an admin, redirect to home
+    return <Navigate to="/" />;
+  }
+  
+  // Admin user, render children
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <>
@@ -67,6 +109,7 @@ function App() {
         <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
         <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
