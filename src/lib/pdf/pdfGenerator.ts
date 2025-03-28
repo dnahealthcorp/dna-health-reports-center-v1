@@ -168,7 +168,6 @@ function generateVitalsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // re-apply heading style after ensureSpace
   currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
@@ -636,6 +635,7 @@ function generateMedicationsSupplementsSection(
 
 /**
  * Section 9: Follow-ups and Referrals plus Signature, striped.
+ * After the table, we add the requested links, then the signature.
  */
 function generateFollowUpsSection(
   doc: jsPDF,
@@ -694,6 +694,33 @@ function generateFollowUpsSection(
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
+  // === Add the requested links here ===
+  // We'll do them as small link texts. 
+  const guides = [
+    "Guide to Intermittent Fasting",
+    "Guide to Carbohydrates and Protein",
+    "Guide to Meditation",
+    "Guide to Sleep",
+    "Guide to Anti-inflammatory Foods",
+    "Guide to Homocystein"
+  ];
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100,100,100);
+  doc.text("Additional Guides:", contentMargin, currentY);
+  currentY += 6;
+
+  // We'll render each as a link to "#"
+  guides.forEach((guide) => {
+    // Use doc.textWithLink for clickable link (all pointing to "#")
+    doc.setTextColor(0, 0, 255); // typical link color
+    doc.textWithLink(guide, contentMargin, currentY, { url: "#" });
+    currentY += 6;
+  });
+
+  currentY += 6; // extra spacing before signature
+
   // Signature
   doc.setFontSize(10);
   doc.setTextColor(100,100,100);
@@ -703,6 +730,7 @@ function generateFollowUpsSection(
   doc.setFont("helvetica", "bold");
   doc.text("Dr Eslam Yakout", contentMargin, currentY);
   currentY += 10;
+
   return currentY;
 }
 
@@ -757,7 +785,7 @@ export const generatePDF = async (
   // 8) Medications & Supplements
   currentY = generateMedicationsSupplementsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications);
 
-  // 9) Follow-ups
+  // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
   // Save
