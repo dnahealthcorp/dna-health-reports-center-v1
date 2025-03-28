@@ -168,10 +168,11 @@ function generateVitalsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
+  // re-apply heading style after ensureSpace
+  currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
   doc.text("Key vital signs", contentMargin, currentY);
   currentY += 8;
 
@@ -228,10 +229,10 @@ function generateSummarySection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
+  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
@@ -279,7 +280,7 @@ function generateSummarySection(
 
 /**
  * Section 5: Insulin Resistance & Cardiovascular Risk (striped).
- * Ensures heading is 14px before printing "Cardiovascular risk..."
+ * Reapply heading style after ensureSpace
  */
 function generateInsulinCardioSection(
   doc: jsPDF,
@@ -290,10 +291,10 @@ function generateInsulinCardioSection(
   formData: PatientFormData
 ): number {
   if (formData.showInsulinResistance === true) {
+    currentY = ensureSpace(doc, currentY, 80, 40, pageWidth);
     doc.setFontSize(14);
     doc.setTextColor(153, 188, 68);
     doc.setFont("helvetica", "bold");
-    currentY = ensureSpace(doc, currentY, 80, 40, pageWidth);
     doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, currentY);
     currentY += 10;
     try {
@@ -308,11 +309,10 @@ function generateInsulinCardioSection(
     currentY += 10;
   }
 
-  // Cardiovascular risk
-  doc.setFontSize(14); // same style as other headings
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, currentY);
   currentY += 5;
 
@@ -377,10 +377,10 @@ function generateDoctorsRecommendationsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Doctors Recommendations", contentMargin, currentY);
   currentY += 8;
 
@@ -515,7 +515,7 @@ function generateExerciseSleepSection(
 
 /**
  * Section 8: Medications and Supplements, striped.
- * Ensures "Supplements" heading is 14px, same as others.
+ * Re-apply heading style after ensureSpace for "Supplements"
  */
 function generateMedicationsSupplementsSection(
   doc: jsPDF,
@@ -527,10 +527,10 @@ function generateMedicationsSupplementsSection(
   medications: Medication[]
 ): number {
   // Medications
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Medications", contentMargin, currentY);
   currentY += 8;
 
@@ -580,10 +580,10 @@ function generateMedicationsSupplementsSection(
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
   // Supplements
-  doc.setFontSize(14); // same style as others
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14); // reapply heading style
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Supplements", contentMargin, currentY);
   currentY += 8;
 
@@ -645,10 +645,10 @@ function generateFollowUpsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
-  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.text("Follow-ups and referrals", contentMargin, currentY);
   currentY += 8;
 
