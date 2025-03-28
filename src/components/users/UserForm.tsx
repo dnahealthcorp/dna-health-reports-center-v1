@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ interface UserFormProps {
 
 export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
   const [formData, setFormData] = useState<User>({
-    id: user?.id || uuidv4(), // Generate a UUID for new users
+    id: user?.id || uuidv4(), 
     name: user?.name || '',
     email: user?.email || '',
     role: user?.role || 'nurse'
@@ -32,6 +32,18 @@ export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
     name: '',
     email: ''
   });
+  
+  // Update the form data when the user prop changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      });
+    }
+  }, [user]);
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -77,7 +89,12 @@ export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData);
+      // Ensure the UUID is valid
+      const userData = {
+        ...formData,
+        id: formData.id || uuidv4()
+      };
+      onSubmit(userData);
     }
   };
 

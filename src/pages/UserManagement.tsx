@@ -30,7 +30,7 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { getCurrentUser, getUsers, setCurrentUser } from "@/services/databaseService";
+import { getCurrentUser, getUsers } from "@/services/databaseService";
 import { User } from "@/types";
 import { UserForm } from "@/components/users/UserForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,6 +113,12 @@ const UserManagement = () => {
     if (!selectedUser) return;
     
     try {
+      // Check if current user is admin
+      const currentUser = await getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error("Only administrators can delete users");
+      }
+      
       // Delete user from database
       const { error } = await supabase
         .from('users')
@@ -143,16 +149,47 @@ const UserManagement = () => {
 
   const handleUserFormSubmit = async (userData: User) => {
     try {
+      // Check if current user is admin
+      const currentUser = await getCurrentUser();
+      if (!currentUser || currentUser.role !== 'admin') {
+        throw new Error("Only administrators can manage users");
+      }
+      
       // Check if this is a new user (add) or existing user (edit)
       const isNewUser = !users.some(user => user.id === userData.id);
       
-      // Save user to database using the databaseService
-      await setCurrentUser(userData);
-      
-      // Update local state
       if (isNewUser) {
-        setUsers(prev => [...prev, userData]);
+        // Insert new user
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role
+          }])
+          .select();
+        
+        if (error) throw error;
+        
+        // Update local state with the returned data
+        if (data && data.length > 0) {
+          setUsers(prev => [...prev, data[0] as User]);
+        }
       } else {
+        // Update existing user
+        const { error } = await supabase
+          .from('users')
+          .update({
+            name: userData.name,
+            email: userData.email,
+            role: userData.role
+          })
+          .eq('id', userData.id);
+        
+        if (error) throw error;
+        
+        // Update local state
         setUsers(prev => prev.map(user => 
           user.id === userData.id ? userData : user
         ));
@@ -172,7 +209,7 @@ const UserManagement = () => {
       console.error("Error saving user:", error);
       toast({
         title: "Error",
-        description: "Failed to save user information",
+        description: error instanceof Error ? error.message : "Failed to save user information",
         variant: "destructive"
       });
     }
