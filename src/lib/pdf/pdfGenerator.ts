@@ -20,7 +20,7 @@ function addFooter(doc: jsPDF, pageWidth: number): void {
 }
 
 /**
- * Checks if there's enough vertical space on the current page.
+ * Checks if there’s enough vertical space on the current page.
  * If not, draws a footer, adds a new page (with header logo), and resets currentY to topMargin.
  */
 function ensureSpace(
@@ -77,8 +77,7 @@ function generateImagesSection(
 
 /**
  * Section 2: Introduction & Greeting.
- * Multi-line approach text with "control of your health" in green.
- * Top spacing reduced: const titleY = currentY + 5
+ * Reduced top spacing for "Your step towards optimal health."
  */
 function generateIntroductionSection(
   doc: jsPDF,
@@ -94,16 +93,13 @@ function generateIntroductionSection(
   const title = "Your step towards optimal health.";
   const titleWidth = doc.getTextWidth(title);
   const centerX = pageWidth / 2;
-  const titleY = currentY + 5; // Reduced from 15 to 5
+  const titleY = currentY + 5; // reduced top spacing
   const titleX = centerX - (titleWidth / 2);
   doc.setTextColor(100, 100, 100);
   doc.text(title, titleX, titleY);
   currentY = titleY + 10;
 
   // Multi-line approach text
-  // "Our approach is proactive, rather than reactive,"
-  // "giving you control of your health throughout"
-  // "your life."
   doc.setFontSize(18);
   doc.setFont("Helvetica", "bold");
 
@@ -113,14 +109,13 @@ function generateIntroductionSection(
   const line2Part3 = " throughout";
   const line3 = "your life.";
 
-  // line1 (center)
   const line1Width = doc.getTextWidth(line1);
   const line1X = centerX - line1Width / 2;
   doc.setTextColor(100, 100, 100);
   doc.text(line1, line1X, currentY);
   currentY += 10;
 
-  // line2: "giving you control of your health throughout"
+  // line2
   const line2Full = line2Part1 + line2Part2 + line2Part3;
   const line2Width = doc.getTextWidth(line2Full);
   const line2X = centerX - line2Width / 2;
@@ -138,7 +133,7 @@ function generateIntroductionSection(
   doc.text(line2Part3, segX, currentY);
   currentY += 10;
 
-  // line3 (center)
+  // line3
   const line3Width = doc.getTextWidth(line3);
   const line3X = centerX - line3Width / 2;
   doc.text(line3, line3X, currentY);
@@ -163,7 +158,7 @@ function generateIntroductionSection(
 
 /**
  * Section 3: Vital Signs Table (striped).
- * Headings set to 14px
+ * Headings 14px
  */
 function generateVitalsSection(
   doc: jsPDF,
@@ -173,7 +168,7 @@ function generateVitalsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  doc.setFontSize(14); // same as cardiovascular heading
+  doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
@@ -284,7 +279,7 @@ function generateSummarySection(
 
 /**
  * Section 5: Insulin Resistance & Cardiovascular Risk (striped).
- * Now heading is 14px, highlight row based on gender.
+ * Ensures heading is 14px before printing "Cardiovascular risk..."
  */
 function generateInsulinCardioSection(
   doc: jsPDF,
@@ -312,8 +307,9 @@ function generateInsulinCardioSection(
     doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" });
     currentY += 10;
   }
+
   // Cardiovascular risk
-  doc.setFontSize(14);
+  doc.setFontSize(14); // same style as other headings
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
@@ -519,6 +515,7 @@ function generateExerciseSleepSection(
 
 /**
  * Section 8: Medications and Supplements, striped.
+ * Ensures "Supplements" heading is 14px, same as others.
  */
 function generateMedicationsSupplementsSection(
   doc: jsPDF,
@@ -583,7 +580,7 @@ function generateMedicationsSupplementsSection(
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
   // Supplements
-  doc.setFontSize(14);
+  doc.setFontSize(14); // same style as others
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
   currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
@@ -763,17 +760,15 @@ export const generatePDF = async (
   // 9) Follow-ups
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
-  // Format the current date as YYYY-MM-DD
-  const currentDate = new Date().toISOString().slice(0, 10);
-  
-  // Format the filename according to requirements: patient's_name's Health Screening - Date
-  // Handle apostrophe formatting for names ending with 's'
-  const patientName = formData.patientInfo.name?.replace(/\s+/g, '_') || "Patient";
-  const apostrophe = patientName.endsWith('s') ? "'" : "'s";
-  const fileName = `${patientName}${apostrophe} Health Screening - ${currentDate}.pdf`;
-  
-  // Save with the correct filename
+  // Save
+  const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
+  const fileName = `${patientName}_Medical_Report.pdf`;
   doc.save(fileName);
+
+  // Save reference if needed
+  if (formData.patientInfo.medicalRecordNumber) {
+    await databaseService.savePDFReference(formData.patientInfo.medicalRecordNumber, fileName);
+  }
 
   return fileName;
 };
