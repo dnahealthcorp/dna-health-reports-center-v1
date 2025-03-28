@@ -20,7 +20,7 @@ function addFooter(doc: jsPDF, pageWidth: number): void {
 }
 
 /**
- * Checks if there’s enough vertical space on the current page.
+ * Checks if there's enough vertical space on the current page.
  * If not, draws a footer, adds a new page (with header logo), and resets currentY to topMargin.
  */
 function ensureSpace(
@@ -763,15 +763,17 @@ export const generatePDF = async (
   // 9) Follow-ups
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
-  // Save
-  const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
-  const fileName = `${patientName}_Medical_Report.pdf`;
+  // Format the current date as YYYY-MM-DD
+  const currentDate = new Date().toISOString().slice(0, 10);
+  
+  // Format the filename according to requirements: patient's_name's Health Screening - Date
+  // Handle apostrophe formatting for names ending with 's'
+  const patientName = formData.patientInfo.name?.replace(/\s+/g, '_') || "Patient";
+  const apostrophe = patientName.endsWith('s') ? "'" : "'s";
+  const fileName = `${patientName}${apostrophe} Health Screening - ${currentDate}.pdf`;
+  
+  // Save with the correct filename
   doc.save(fileName);
-
-  // Save reference if needed
-  if (formData.patientInfo.medicalRecordNumber) {
-    await databaseService.savePDFReference(formData.patientInfo.medicalRecordNumber, fileName);
-  }
 
   return fileName;
 };
