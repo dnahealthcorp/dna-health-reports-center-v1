@@ -10,7 +10,6 @@ import NotFound from './pages/NotFound'
 import Medications from './pages/Medications'
 import Login from './pages/Login'
 import Settings from './pages/Settings'
-import UserManagement from './pages/UserManagement'
 import { Toaster } from './components/ui/toaster'
 import { getCurrentUser } from './services/databaseService'
 
@@ -109,7 +108,6 @@ function App() {
         <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
         <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
