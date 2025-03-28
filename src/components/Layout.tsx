@@ -129,7 +129,7 @@ const Layout = ({
                 key={item.href} 
                 to={item.href} 
                 className={cn(
-                  "flex items-center px-4 py-3 text-sm rounded-lg transition-colors text-left", 
+                  "flex items-center px-4 py-3 text-sm rounded-lg transition-colors text-left w-full", 
                   location.pathname === item.href 
                     ? "bg-primary/10 text-primary" 
                     : "text-brand-text hover:bg-accent hover:text-foreground"
@@ -144,7 +144,7 @@ const Layout = ({
                       : "text-brand-text/70"
                   )} 
                 />
-                {item.label}
+                <span className="text-left">{item.label}</span>
               </Link>
             ))}
           </nav>
@@ -165,7 +165,7 @@ const Layout = ({
               onClick={handleSignOut}
             >
               <LogOut size={18} className="mr-3 text-brand-text/70" />
-              Sign out
+              <span className="text-left">Sign out</span>
             </button>
           </div>
         </div>
