@@ -696,6 +696,11 @@ export const getCurrentUser = async (): Promise<User | null> => {
 
 export const setCurrentUser = async (user: User): Promise<User> => {
   try {
+    // Verify user has a valid UUID
+    if (!user.id || user.id.trim() === '') {
+      throw new Error('User ID cannot be empty');
+    }
+    
     // Check if user exists
     const { data, error: checkError } = await supabase
       .from('users')
@@ -710,6 +715,7 @@ export const setCurrentUser = async (user: User): Promise<User> => {
     let error;
     if (data && data.length > 0) {
       // Update
+      console.log('Updating existing user:', user);
       const { error: updateError } = await supabase
         .from('users')
         .update({
@@ -722,19 +728,22 @@ export const setCurrentUser = async (user: User): Promise<User> => {
       error = updateError;
     } else {
       // Insert
+      console.log('Creating new user:', user);
       const { error: insertError } = await supabase
         .from('users')
         .insert([{
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          created_at: new Date().toISOString()
         }]);
         
       error = insertError;
     }
     
     if (error) {
+      console.error('Error in database operation:', error);
       throw error;
     }
     

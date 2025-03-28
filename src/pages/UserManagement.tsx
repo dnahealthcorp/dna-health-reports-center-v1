@@ -4,15 +4,6 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { 
   Table, 
   TableBody, 
@@ -25,7 +16,6 @@ import {
   Dialog, 
   DialogContent, 
   DialogDescription, 
-  DialogFooter, 
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
@@ -123,8 +113,11 @@ const UserManagement = () => {
     if (!selectedUser) return;
     
     try {
-      // Delete user from Supabase auth and database
-      const { error } = await supabase.auth.admin.deleteUser(selectedUser.id);
+      // Delete user from database
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', selectedUser.id);
       
       if (error) throw error;
       
@@ -148,22 +141,22 @@ const UserManagement = () => {
     }
   };
 
-  const handleUserFormSubmit = async (userData: User, isNewUser: boolean = false) => {
+  const handleUserFormSubmit = async (userData: User) => {
     try {
-      // If creating a new user, this would involve:
-      // 1. Creating auth credentials in Supabase auth
-      // 2. Adding the user profile to the users table
+      // Check if this is a new user (add) or existing user (edit)
+      const isNewUser = !users.some(user => user.id === userData.id);
       
+      // Save user to database using the databaseService
+      await setCurrentUser(userData);
+      
+      // Update local state
       if (isNewUser) {
-        // For this demo, we're just adding to the users table
-        await setCurrentUser(userData);
+        setUsers(prev => [...prev, userData]);
       } else {
-        // Update existing user
-        await setCurrentUser(userData);
+        setUsers(prev => prev.map(user => 
+          user.id === userData.id ? userData : user
+        ));
       }
-      
-      // Refresh the user list
-      await fetchUsers();
       
       toast({
         title: "Success",
@@ -264,7 +257,7 @@ const UserManagement = () => {
               </DialogDescription>
             </DialogHeader>
             <UserForm 
-              onSubmit={(userData) => handleUserFormSubmit(userData, true)} 
+              onSubmit={handleUserFormSubmit} 
               onCancel={() => setIsAddUserOpen(false)}
             />
           </DialogContent>
@@ -282,7 +275,7 @@ const UserManagement = () => {
             {selectedUser && (
               <UserForm 
                 user={selectedUser}
-                onSubmit={(userData) => handleUserFormSubmit(userData, false)} 
+                onSubmit={handleUserFormSubmit} 
                 onCancel={() => setIsEditUserOpen(false)}
               />
             )}

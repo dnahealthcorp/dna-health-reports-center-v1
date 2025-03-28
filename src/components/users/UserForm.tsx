@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { User } from "@/types";
 import { DialogFooter } from "@/components/ui/dialog";
+import { v4 as uuidv4 } from 'uuid';
 
 interface UserFormProps {
   user?: User;
@@ -21,7 +22,7 @@ interface UserFormProps {
 
 export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
   const [formData, setFormData] = useState<User>({
-    id: user?.id || '',
+    id: user?.id || uuidv4(), // Generate a UUID for new users
     name: user?.name || '',
     email: user?.email || '',
     role: user?.role || 'nurse'
