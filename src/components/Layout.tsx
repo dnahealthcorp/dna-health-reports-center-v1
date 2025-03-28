@@ -129,7 +129,7 @@ const Layout = ({
                 key={item.href} 
                 to={item.href} 
                 className={cn(
-                  "flex items-center px-4 py-3 text-sm rounded-lg transition-colors", 
+                  "flex items-center px-4 py-3 text-sm rounded-lg transition-colors text-left", 
                   location.pathname === item.href 
                     ? "bg-primary/10 text-primary" 
                     : "text-brand-text hover:bg-accent hover:text-foreground"
