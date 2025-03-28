@@ -43,7 +43,11 @@ export const PatientHeader = ({
         </div>
       </div>
       <div className="flex gap-3">
-        <Button variant="outline" onClick={handleExportPDF} disabled={isExportingPDF}>
+        <Button 
+          variant="outline" 
+          onClick={handleExportPDF} 
+          disabled={isExportingPDF}
+        >
           {isExportingPDF ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

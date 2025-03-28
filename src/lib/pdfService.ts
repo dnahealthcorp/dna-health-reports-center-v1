@@ -47,6 +47,24 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         
         // Only save if no duplicate exists
         if (!existingPdf) {
+          // First, check and remove any entries from today with different naming patterns
+          // This prevents the duplicate entries issue
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const todayISOStart = todayStart.toISOString();
+          
+          // Delete any PDF reference created today for this patient
+          const { error: deleteError } = await supabase
+            .from('pdf_files')
+            .delete()
+            .eq('patient_id', patient.id)
+            .gte('created_at', todayISOStart);
+            
+          if (deleteError) {
+            console.error("Error deleting existing PDF references:", deleteError);
+          }
+          
+          // Now save the new reference with the correct filename
           await savePDFReference(patient.id, fileName);
           
           // Update the patient's pdf_exported flag to true and set status to completed
