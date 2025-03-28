@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +9,7 @@ import MedicationForm from "@/components/medications/MedicationForm";
 import { MedicationList } from "@/components/medications/MedicationList";
 import { MedicationEditModal } from "@/components/medications/MedicationEditModal";
 import { Medication, User } from "@/types";
-import { Plus, ArrowUpAZ, ArrowDownAZ } from "lucide-react";
+import { Plus } from "lucide-react";
 import { 
   getMedications, 
   addMedication, 
@@ -155,86 +156,90 @@ const Medications = () => {
   
   if (isLoading) {
     return (
-      <div className="container py-8">
-        <h1 className="text-2xl font-bold mb-4">Medications & Supplements</h1>
-        <div className="text-center py-8">Loading...</div>
-      </div>
+      <Layout>
+        <div className="container py-8">
+          <h1 className="text-2xl font-bold mb-4">Medications & Supplements</h1>
+          <div className="text-center py-8">Loading...</div>
+        </div>
+      </Layout>
     );
   }
   
   return (
-    <div className="container py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Medications & Supplements</h1>
-        {isAdmin && (
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add New
-          </Button>
+    <Layout>
+      <div className="container py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Medications & Supplements</h1>
+          {isAdmin && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add New
+            </Button>
+          )}
+        </div>
+        
+        {showForm ? (
+          <div className="mb-8" id="medication-form">
+            <MedicationForm
+              onSave={handleSaveMedication}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        ) : (
+          <Tabs defaultValue="medications" className="mb-8">
+            <TabsList className="mb-4">
+              <TabsTrigger value="medications">Medications</TabsTrigger>
+              <TabsTrigger value="supplements">Supplements</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="medications">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Medications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MedicationList
+                    medications={medications}
+                    type="medication"
+                    isAdmin={isAdmin}
+                    onEdit={handleMedicationEdit}
+                    onDuplicate={handleDuplicateMedication}
+                    onDelete={handleDeleteMedication}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="supplements">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Supplements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MedicationList
+                    medications={medications}
+                    type="supplement"
+                    isAdmin={isAdmin}
+                    onEdit={handleMedicationEdit}
+                    onDuplicate={handleDuplicateMedication}
+                    onDelete={handleDeleteMedication}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+        
+        {selectedMedication && (
+          <MedicationEditModal
+            medication={selectedMedication}
+            onClose={() => setSelectedMedication(null)}
+            onUpdate={handleUpdateMedication}
+            onChange={handleEditChange}
+          />
         )}
       </div>
-      
-      {showForm ? (
-        <div className="mb-8" id="medication-form">
-          <MedicationForm
-            onSave={handleSaveMedication}
-            onCancel={() => setShowForm(false)}
-          />
-        </div>
-      ) : (
-        <Tabs defaultValue="medications" className="mb-8">
-          <TabsList className="mb-4">
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="supplements">Supplements</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="medications">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Medications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MedicationList
-                  medications={medications}
-                  type="medication"
-                  isAdmin={isAdmin}
-                  onEdit={handleMedicationEdit}
-                  onDuplicate={handleDuplicateMedication}
-                  onDelete={handleDeleteMedication}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="supplements">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Supplements</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MedicationList
-                  medications={medications}
-                  type="supplement"
-                  isAdmin={isAdmin}
-                  onEdit={handleMedicationEdit}
-                  onDuplicate={handleDuplicateMedication}
-                  onDelete={handleDeleteMedication}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
-      
-      {selectedMedication && (
-        <MedicationEditModal
-          medication={selectedMedication}
-          onClose={() => setSelectedMedication(null)}
-          onUpdate={handleUpdateMedication}
-          onChange={handleEditChange}
-        />
-      )}
-    </div>
+    </Layout>
   );
 };
 
