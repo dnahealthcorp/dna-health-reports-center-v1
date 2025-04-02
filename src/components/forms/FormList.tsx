@@ -1,16 +1,40 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FormInstance } from "@/types/multiforms";
-import { FileText, Eye, FilePlus, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { useToast } from "@/components/ui/use-toast";
-import { getFormsByPatientId, deleteForm } from "@/services/formService";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getFormsByPatientId, deleteForm } from "@/services/formService";
+import { FormInstance } from "@/types/multiforms";
+import { 
+  FilePlus2, 
+  FileText, 
+  Trash2, 
+  ExternalLink, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle,
+  Loader2
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
 
 interface FormListProps {
   patientId: string;
@@ -20,21 +44,22 @@ const FormList = ({ patientId }: FormListProps) => {
   const [forms, setForms] = useState<FormInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [formToDelete, setFormToDelete] = useState<FormInstance | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchForms = async () => {
       try {
-        const patientForms = await getFormsByPatientId(patientId);
-        setForms(patientForms);
+        const formData = await getFormsByPatientId(patientId);
+        setForms(formData);
       } catch (error) {
         console.error("Error fetching forms:", error);
         toast({
           title: "Error",
-          description: "Failed to load patient forms",
-          variant: "destructive"
+          description: "Could not load patient forms",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -44,182 +69,178 @@ const FormList = ({ patientId }: FormListProps) => {
     fetchForms();
   }, [patientId, toast]);
 
+  const handleCreateForm = () => {
+    navigate(`/forms/new/${patientId}`);
+  };
+
   const handleDeleteForm = async () => {
     if (!formToDelete) return;
     
-    setDeleting(true);
+    setIsDeleting(true);
+    
     try {
-      const success = await deleteForm(formToDelete.id);
-      if (success) {
-        setForms(forms.filter(form => form.id !== formToDelete.id));
-        toast({
-          title: "Success",
-          description: "Form deleted successfully"
-        });
-      } else {
-        throw new Error("Failed to delete form");
-      }
+      await deleteForm(formToDelete);
+      
+      // Update the forms list
+      setForms(forms.filter(form => form.id !== formToDelete));
+      
+      toast({
+        title: "Form deleted",
+        description: "The form has been permanently deleted",
+      });
     } catch (error) {
       console.error("Error deleting form:", error);
       toast({
         title: "Error",
-        description: "Failed to delete form",
-        variant: "destructive"
+        description: "Could not delete form",
+        variant: "destructive",
       });
     } finally {
-      setDeleting(false);
+      setIsDeleting(false);
       setDeleteDialogOpen(false);
       setFormToDelete(null);
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const confirmDelete = (formId: string) => {
+    setFormToDelete(formId);
+    setDeleteDialogOpen(true);
+  };
+
+  const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
-        return "secondary";
+        return <Badge variant="outline" className="ml-2">Draft</Badge>;
       case 'in-process':
-        return "default";
+        return <Badge variant="secondary" className="ml-2">In Progress</Badge>;
       case 'completed':
-        return "success";
+        return <Badge variant="success" className="ml-2 bg-green-100 text-green-800">Completed</Badge>;
       case 'late':
-        return "destructive";
+        return <Badge variant="destructive" className="ml-2">Late</Badge>;
       default:
-        return "outline";
+        return null;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map(i => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <Skeleton className="h-6 w-1/2 mb-2" />
-              <Skeleton className="h-4 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-40 w-full" />
-            </CardContent>
-            <CardFooter>
-              <Skeleton className="h-9 w-full" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (forms.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="bg-muted/30 rounded-full p-4 inline-flex mb-4">
-          <FilePlus className="h-12 w-12 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-medium mb-2">No forms found</h3>
-        <p className="text-muted-foreground mb-6">
-          This patient doesn't have any forms yet. Create a new form to get started.
-        </p>
-        <Link to={`/forms/new/${patientId}`}>
-          <Button>
-            <FilePlus className="mr-2 h-4 w-4" />
-            Create New Form
-          </Button>
-        </Link>
-      </div>
-    );
-  }
+  const renderStatusIcon = (status: string) => {
+    switch (status) {
+      case 'draft':
+        return <Clock className="h-4 w-4 text-gray-500" />;
+      case 'in-process':
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'late':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium">Patient Forms</h3>
-        <Link to={`/forms/new/${patientId}`}>
-          <Button>
-            <FilePlus className="mr-2 h-4 w-4" />
-            Create New Form
-          </Button>
-        </Link>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Medical Forms</h2>
+        <Button onClick={handleCreateForm}>
+          <FilePlus2 className="h-4 w-4 mr-2" />
+          New Form
+        </Button>
       </div>
       
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {forms.map(form => (
-          <Card key={form.id} className="animate-fade-in-up">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg">{form.formType?.title || "Unknown Form Type"}</CardTitle>
-                <Badge variant={getStatusBadgeVariant(form.status)}>
-                  {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
-                </Badge>
-              </div>
-              <CardDescription>
-                Created: {format(new Date(form.created_at), "MMM d, yyyy")}
-                {form.status_updated_at && (
+      {loading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <Card key={index} className="overflow-hidden animate-pulse">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center">
                   <div>
-                    Status Updated: {format(new Date(form.status_updated_at), "MMM d, yyyy")}
+                    <Skeleton className="h-5 w-40 mb-2" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center h-32 bg-muted/30 rounded-md">
-                <FileText className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <div className="mt-4">
-                {form.pdf_exported && (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    PDF Exported
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={() => {
-                  setFormToDelete(form);
-                  setDeleteDialogOpen(true);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              <Link to={`/forms/${form.formType?.slug || 'unknown'}/${form.id}`}>
-                <Button>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Form
-                </Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Form</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this form? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleting}
-            >
-              Cancel
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : forms.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground mb-4">No forms have been created for this patient yet.</p>
+            <Button onClick={handleCreateForm}>
+              <FilePlus2 className="h-4 w-4 mr-2" />
+              Create First Form
             </Button>
-            <Button 
-              variant="destructive" 
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {forms.map((form) => (
+            <Card key={form.id}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center">
+                      <div className="mr-2">{renderStatusIcon(form.status)}</div>
+                      <h3 className="font-medium">
+                        {form.formType?.title || "Unknown Form Type"}
+                        {renderStatusBadge(form.status)}
+                      </h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Created {formatDistanceToNow(new Date(form.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => confirmDelete(form.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Link to={`/forms/${form.formType?.slug || 'unknown'}/${form.id}`}>
+                      <Button size="sm">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the form
+              and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
               onClick={handleDeleteForm}
-              disabled={deleting}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
             >
-              {deleting ? "Deleting..." : "Delete Form"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

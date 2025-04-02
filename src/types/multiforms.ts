@@ -1,5 +1,5 @@
 
-import { FormTemplate, PatientFormData } from './forms';
+import { FormTemplate } from './forms';
 import { Patient } from './patients';
 
 export type FormType = {

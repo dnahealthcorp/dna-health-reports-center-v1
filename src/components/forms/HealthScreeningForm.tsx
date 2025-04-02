@@ -7,11 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { updateFormStatus } from "@/services/formService";
 import { Printer, Save } from "lucide-react";
 
-interface FoodIntoleranceFormProps {
+interface HealthScreeningFormProps {
   form: FormInstance;
 }
 
-const FoodIntoleranceForm = ({ form }: FoodIntoleranceFormProps) => {
+const HealthScreeningForm = ({ form }: HealthScreeningFormProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -24,7 +24,7 @@ const FoodIntoleranceForm = ({ form }: FoodIntoleranceFormProps) => {
       
       toast({
         title: "Form Saved",
-        description: "Food intolerance form has been saved successfully",
+        description: "Health screening form has been saved successfully",
       });
     } catch (error) {
       console.error("Error saving form:", error);
@@ -42,7 +42,7 @@ const FoodIntoleranceForm = ({ form }: FoodIntoleranceFormProps) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">Food Intolerance Test</h2>
+          <h2 className="text-xl font-semibold">Health Screening</h2>
           <p className="text-muted-foreground">
             Status: <span className="capitalize">{form.status}</span>
           </p>
@@ -65,30 +65,30 @@ const FoodIntoleranceForm = ({ form }: FoodIntoleranceFormProps) => {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            This is a placeholder for the Food Intolerance form. In a full implementation, this would have form fields
-            specific to food intolerance testing.
+            This is a placeholder for the Health Screening form content. The existing PatientForm layout and components
+            would be integrated here, but pulling data from the health_screening_data table instead.
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Symptoms</CardTitle>
+          <CardTitle>Vitals</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Patient symptoms would be entered here.
+            Vitals section will be displayed here, similar to the existing PatientForm component.
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Food Testing</CardTitle>
+          <CardTitle>Summary Findings</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Food test results would be displayed here.
+            Summary findings content will be displayed here.
           </p>
         </CardContent>
       </Card>
@@ -96,4 +96,4 @@ const FoodIntoleranceForm = ({ form }: FoodIntoleranceFormProps) => {
   );
 };
 
-export default FoodIntoleranceForm;
+export default HealthScreeningForm;
