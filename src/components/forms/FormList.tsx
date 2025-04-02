@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -114,7 +113,7 @@ const FormList = ({ patientId }: FormListProps) => {
       case 'in-process':
         return <Badge variant="secondary" className="ml-2">In Progress</Badge>;
       case 'completed':
-        return <Badge variant="success" className="ml-2 bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge variant="default" className="ml-2 bg-green-100 text-green-800">Completed</Badge>;
       case 'late':
         return <Badge variant="destructive" className="ml-2">Late</Badge>;
       default:

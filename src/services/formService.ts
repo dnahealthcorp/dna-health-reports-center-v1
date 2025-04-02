@@ -242,7 +242,10 @@ export const updateFormStatus = async (formId: string, status: string): Promise<
   try {
     const { error } = await supabase
       .from('forms')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ 
+        status, 
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', formId);
     
     if (error) {
