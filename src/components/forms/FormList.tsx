@@ -1,9 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { 
   Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+  CardContent
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -136,8 +135,18 @@ const FormList = ({ patientId }: FormListProps) => {
     }
   };
 
+  // Group forms by type
+  const formsByType = forms.reduce((acc, form) => {
+    const formTypeName = form.formType?.title || "Unknown";
+    if (!acc[formTypeName]) {
+      acc[formTypeName] = [];
+    }
+    acc[formTypeName].push(form);
+    return acc;
+  }, {} as Record<string, FormInstance[]>);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Medical Forms</h2>
         <Button onClick={handleCreateForm}>
@@ -173,41 +182,48 @@ const FormList = ({ patientId }: FormListProps) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {forms.map((form) => (
-            <Card key={form.id}>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center">
-                      <div className="mr-2">{renderStatusIcon(form.status)}</div>
-                      <h3 className="font-medium">
-                        {form.formType?.title || "Unknown Form Type"}
-                        {renderStatusBadge(form.status)}
-                      </h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Created {formatDistanceToNow(new Date(form.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => confirmDelete(form.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <Link to={`/forms/${form.formType?.slug || 'unknown'}/${form.id}`}>
-                      <Button size="sm">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="space-y-6">
+          {Object.entries(formsByType).map(([formTypeName, formsList]) => (
+            <div key={formTypeName} className="space-y-2">
+              <h3 className="font-medium text-lg">{formTypeName} Forms</h3>
+              <div className="space-y-2">
+                {formsList.map((form) => (
+                  <Card key={form.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="flex items-center">
+                            <div className="mr-2">{renderStatusIcon(form.status)}</div>
+                            <h3 className="font-medium">
+                              Created {formatDistanceToNow(new Date(form.created_at), { addSuffix: true })}
+                              {renderStatusBadge(form.status)}
+                            </h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Last updated: {new Date(form.updated_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => confirmDelete(form.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Link to={`/forms/${form.formType?.slug || 'unknown'}/${form.id}`}>
+                            <Button size="sm">
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Open
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

@@ -57,7 +57,7 @@ const FormSelector = () => {
               <h1 className="text-3xl font-semibold tracking-tight">Create New Form</h1>
               <p className="text-muted-foreground mt-1">
                 {patient ? (
-                  `Select a form type to create for ${patient.name}`
+                  `Select a form type to create for ${patient.name}. You can create multiple instances of each form type.`
                 ) : (
                   "Select a form type to create"
                 )}

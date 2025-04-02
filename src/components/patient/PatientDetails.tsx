@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Patient } from "@/types";
@@ -15,7 +16,8 @@ interface PatientDetailsProps {
 const PatientDetails = ({ patient }: PatientDetailsProps) => {
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Patient Profile</h1>
         <Link to={`/forms/new/${patient.id}`}>
           <Button className="bg-primary hover:bg-primary/90">
             <PlusCircle className="h-4 w-4 mr-2" />

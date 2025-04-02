@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFormTypes, createFormInstance } from "@/services/formService";
 import { FormType } from "@/types/multiforms";
-import { FileText, LoaderCircle } from "lucide-react";
+import { FileText, LoaderCircle, CalendarPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface FormTypeSelectorProps {
@@ -107,8 +107,8 @@ const FormTypeSelector = ({ patientId }: FormTypeSelectorProps) => {
                 </>
               ) : (
                 <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Create Form
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  Create New {formType.title}
                 </>
               )}
             </Button>
