@@ -13,11 +13,13 @@ export type FormType = {
   updated_at: string;
 };
 
+export type FormStatus = 'draft' | 'in-process' | 'completed' | 'late';
+
 export type FormInstance = {
   id: string;
   patient_id: string;
   form_type_id: string;
-  status: 'draft' | 'in-process' | 'completed' | 'late';
+  status: FormStatus;
   pdf_exported: boolean;
   created_by?: string | null;
   created_at: string;

@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { FormType, FormInstance, HealthScreeningData, FoodIntoleranceData } from "@/types/multiforms";
+import { FormType, FormInstance, FormStatus, HealthScreeningData, FoodIntoleranceData } from "@/types/multiforms";
 import { Patient } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./databaseService";
@@ -17,7 +17,7 @@ export const getFormTypes = async (): Promise<FormType[]> => {
       throw error;
     }
     
-    return data || [];
+    return data as FormType[] || [];
   } catch (error) {
     console.error("Error fetching form types:", error);
     return [];
@@ -37,7 +37,7 @@ export const getFormTypeBySlug = async (slug: string): Promise<FormType | null> 
       throw error;
     }
     
-    return data || null;
+    return data as FormType || null;
   } catch (error) {
     console.error(`Error fetching form type by slug ${slug}:`, error);
     return null;
@@ -57,7 +57,7 @@ export const getFormTypeById = async (id: string): Promise<FormType | null> => {
       throw error;
     }
     
-    return data || null;
+    return data as FormType || null;
   } catch (error) {
     console.error(`Error fetching form type by ID ${id}:`, error);
     return null;
@@ -83,7 +83,8 @@ export const getFormsByPatientId = async (patientId: string): Promise<FormInstan
     // Transform the data to match our expected types
     return (data || []).map(form => ({
       ...form,
-      formType: form.form_type
+      status: form.status as FormStatus,
+      formType: form.form_type as FormType
     }));
   } catch (error) {
     console.error(`Error fetching forms for patient ${patientId}:`, error);
@@ -110,10 +111,26 @@ export const getFormById = async (formId: string): Promise<FormInstance | null> 
     
     if (!data) return null;
     
+    // Transform the patient data to match our Patient type
+    const patient = data.patient ? {
+      id: data.patient.id,
+      name: data.patient.name,
+      dateOfBirth: data.patient.date_of_birth,
+      gender: data.patient.gender,
+      medicalRecordNumber: data.patient.medical_record_number,
+      lastUpdated: data.patient.last_updated,
+      status: data.patient.status as 'in-process' | 'late' | 'completed',
+      pdf_exported: data.patient.pdf_exported,
+      created_at: data.patient.created_at,
+      status_updated_at: data.patient.status_updated_at,
+      created_by: data.patient.created_by
+    } : undefined;
+    
     return {
       ...data,
-      formType: data.form_type,
-      patient: data.patient
+      status: data.status as FormStatus,
+      formType: data.form_type as FormType,
+      patient: patient as Patient | undefined
     };
   } catch (error) {
     console.error(`Error fetching form by ID ${formId}:`, error);
@@ -149,7 +166,10 @@ export const createFormInstance = async (patientId: string, formTypeId: string):
       await initializeFormData(data[0].id, formType.slug);
     }
     
-    return data[0];
+    return {
+      ...data[0],
+      status: data[0].status as FormStatus
+    };
   } catch (error) {
     console.error("Error creating form instance:", error);
     return null;
@@ -210,7 +230,7 @@ export const getHealthScreeningData = async (formId: string): Promise<HealthScre
       throw error;
     }
     
-    return data;
+    return data as HealthScreeningData;
   } catch (error) {
     console.error(`Error fetching health screening data for form ${formId}:`, error);
     return null;
@@ -230,7 +250,7 @@ export const getFoodIntoleranceData = async (formId: string): Promise<FoodIntole
       throw error;
     }
     
-    return data;
+    return data as FoodIntoleranceData;
   } catch (error) {
     console.error(`Error fetching food intolerance data for form ${formId}:`, error);
     return null;
@@ -238,7 +258,7 @@ export const getFoodIntoleranceData = async (formId: string): Promise<FoodIntole
 };
 
 // Update a form's status
-export const updateFormStatus = async (formId: string, status: string): Promise<boolean> => {
+export const updateFormStatus = async (formId: string, status: FormStatus): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('forms')
