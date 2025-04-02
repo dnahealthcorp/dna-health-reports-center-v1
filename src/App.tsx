@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
@@ -12,8 +11,9 @@ import Login from './pages/Login'
 import Settings from './pages/Settings'
 import { Toaster } from './components/ui/toaster'
 import { getCurrentUser } from './services/databaseService'
+import FormSelector from './pages/FormSelector'
+import DynamicForm from './pages/DynamicForm'
 
-// Protected route component with improved error handling
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       } catch (err) {
         console.error("Authentication error:", err);
         setError("Failed to check authentication status. Using fallback authentication.");
-        // Fallback to allow access in case of auth errors
         setIsAuthenticated(true);
       }
     };
@@ -35,7 +34,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
   
   if (isAuthenticated === null) {
-    // Still loading, show nothing or a loader
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -47,15 +45,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (isAuthenticated === false) {
-    // Not authenticated, redirect to login
     return <Navigate to="/login" />;
   }
   
-  // Authenticated, render children
   return <>{children}</>;
 };
 
-// Admin only route component
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +71,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
   
   if (isAdmin === null) {
-    // Still loading, show a loader
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -88,11 +82,9 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (isAdmin === false) {
-    // Not an admin, redirect to home
     return <Navigate to="/" />;
   }
   
-  // Admin user, render children
   return <>{children}</>;
 };
 
@@ -106,8 +98,10 @@ function App() {
         <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
         <Route path="/patients/:id" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
         <Route path="/forms" element={<ProtectedRoute><Forms /></ProtectedRoute>} />
+        <Route path="/forms/new/:patientId" element={<ProtectedRoute><FormSelector /></ProtectedRoute>} />
+        <Route path="/forms/:formType/:formId" element={<ProtectedRoute><DynamicForm /></ProtectedRoute>} />
         <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><AdminRoute><Settings /></AdminRoute></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />

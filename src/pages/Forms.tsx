@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,17 @@ import { FileText, Upload, FileUp, FileDown, FilePlus2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import FormBuilder from "@/components/FormBuilder";
 import { FormTemplate } from "@/types";
+import { Patient } from "@/types";
+import { getPatients } from "@/services/databaseService";
+import { getFormTypes } from "@/services/formService";
+import { FormType } from "@/types/multiforms";
+import { Link } from "react-router-dom";
 
 const Forms = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [formTypes, setFormTypes] = useState<FormType[]>([]);
   const [templates, setTemplates] = useState<FormTemplate[]>([
     {
       id: "template-1",
@@ -38,7 +45,36 @@ const Forms = () => {
     }
   ]);
   
+  const [loadingPatients, setLoadingPatients] = useState(true);
+  const [loadingFormTypes, setLoadingFormTypes] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch patients
+        const patientsData = await getPatients();
+        setPatients(patientsData);
+        setLoadingPatients(false);
+        
+        // Fetch form types
+        const formTypesData = await getFormTypes();
+        setFormTypes(formTypesData);
+        setLoadingFormTypes(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load data",
+          variant: "destructive"
+        });
+        setLoadingPatients(false);
+        setLoadingFormTypes(false);
+      }
+    };
+    
+    fetchData();
+  }, [toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -90,59 +126,149 @@ const Forms = () => {
       <div className="animate-fade-in">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Form Templates</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">Form Management</h1>
             <p className="text-muted-foreground mt-1">
-              Manage and customize your form templates
+              Create, manage, and complete forms for your patients
             </p>
           </div>
         </div>
 
-        <Tabs defaultValue="templates">
+        <Tabs defaultValue="patients">
           <TabsList className="mb-6">
+            <TabsTrigger value="patients">Patient Forms</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="upload">Upload Template</TabsTrigger>
             <TabsTrigger value="create">Create Template</TabsTrigger>
           </TabsList>
           
+          <TabsContent value="patients" className="animate-fade-in-up">
+            <div className="mb-6">
+              <p className="text-muted-foreground mb-4">
+                Select a patient to create a new form or view existing forms
+              </p>
+            </div>
+            
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {loadingPatients ? (
+                Array(6).fill(0).map((_, index) => (
+                  <Card key={index} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-6 w-3/4 bg-muted rounded"></div>
+                      <div className="h-4 w-1/2 bg-muted rounded mt-2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-24 bg-muted rounded"></div>
+                    </CardContent>
+                    <CardFooter>
+                      <div className="h-9 w-full bg-muted rounded"></div>
+                    </CardFooter>
+                  </Card>
+                ))
+              ) : (
+                patients.map((patient) => (
+                  <Card key={patient.id} className="animate-fade-in-up">
+                    <CardHeader>
+                      <CardTitle>{patient.name}</CardTitle>
+                      <CardDescription>
+                        MRN: {patient.medicalRecordNumber}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">DOB:</span>
+                          <span className="text-sm">{patient.dateOfBirth}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Gender:</span>
+                          <span className="text-sm">{patient.gender}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Status:</span>
+                          <span className="text-sm capitalize">{patient.status}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Link to={`/forms/new/${patient.id}`} className="w-full">
+                        <Button className="w-full">
+                          <FilePlus2 className="mr-2 h-4 w-4" />
+                          Create Form
+                        </Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+          
           <TabsContent value="templates" className="animate-fade-in-up">
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {templates.map((template) => (
-                <Card key={template.id} className="animate-fade-in-up">
-                  <CardHeader>
-                    <CardTitle>{template.name}</CardTitle>
-                    <CardDescription>
-                      {template.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-center h-40 bg-muted/30 rounded-md">
-                      <FileText className="h-16 w-16 text-muted-foreground" />
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        {template.fields.length} fields
-                      </p>
-                      <div className="flex flex-wrap mt-2 gap-2">
-                        {Array.from(new Set(template.fields.map(field => field.section))).map(section => (
-                          <div key={section} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                            {section.charAt(0).toUpperCase() + section.slice(1)} Section
-                          </div>
-                        ))}
+              {formTypes.length === 0 && !loadingFormTypes ? (
+                <p className="col-span-3 text-center py-12 text-muted-foreground">
+                  No form types found. Create a form type to get started.
+                </p>
+              ) : loadingFormTypes ? (
+                Array(3).fill(0).map((_, index) => (
+                  <Card key={index} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-6 w-3/4 bg-muted rounded"></div>
+                      <div className="h-4 w-1/2 bg-muted rounded mt-2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-40 bg-muted rounded"></div>
+                    </CardContent>
+                    <CardFooter>
+                      <div className="h-9 w-full bg-muted rounded"></div>
+                    </CardFooter>
+                  </Card>
+                ))
+              ) : (
+                formTypes.map((formType) => (
+                  <Card key={formType.id} className="animate-fade-in-up">
+                    <CardHeader>
+                      <CardTitle>{formType.title}</CardTitle>
+                      <CardDescription>
+                        {formType.description || "No description available"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center h-40 bg-muted/30 rounded-md">
+                        <FileText className="h-16 w-16 text-muted-foreground" />
                       </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline">
-                      <FileDown className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button>
-                      Use Template
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button variant="outline">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Export
+                      </Button>
+                      <Button>
+                        Edit Template
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              )}
             </div>
+            
+            {!loadingFormTypes && (
+              <div className="mt-6 text-center">
+                <p className="text-muted-foreground mb-4">
+                  Need a new form type? Create a new template or upload an existing one.
+                </p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <Button onClick={() => document.getElementById('upload-tab')?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Template
+                  </Button>
+                  <Button onClick={() => document.getElementById('create-tab')?.click()}>
+                    <FilePlus2 className="mr-2 h-4 w-4" />
+                    Create Template
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="upload" className="animate-fade-in-up">
