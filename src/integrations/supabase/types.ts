@@ -9,200 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      food_intolerance_data: {
-        Row: {
-          followup_plan: string | null
-          form_id: string
-          id: string
-          last_updated: string
-          recommendations: string | null
-          symptoms: Json | null
-          test_results: Json | null
-          tested_foods: Json | null
-        }
-        Insert: {
-          followup_plan?: string | null
-          form_id: string
-          id?: string
-          last_updated?: string
-          recommendations?: string | null
-          symptoms?: Json | null
-          test_results?: Json | null
-          tested_foods?: Json | null
-        }
-        Update: {
-          followup_plan?: string | null
-          form_id?: string
-          id?: string
-          last_updated?: string
-          recommendations?: string | null
-          symptoms?: Json | null
-          test_results?: Json | null
-          tested_foods?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "food_intolerance_data_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      form_types: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          pdf_template_path: string | null
-          slug: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          pdf_template_path?: string | null
-          slug: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          pdf_template_path?: string | null
-          slug?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      forms: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          form_type_id: string
-          id: string
-          patient_id: string
-          pdf_exported: boolean
-          status: string
-          status_updated_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          form_type_id: string
-          id?: string
-          patient_id: string
-          pdf_exported?: boolean
-          status?: string
-          status_updated_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          form_type_id?: string
-          id?: string
-          patient_id?: string
-          pdf_exported?: boolean
-          status?: string
-          status_updated_at?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forms_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forms_form_type_id_fkey"
-            columns: ["form_type_id"]
-            isOneToOne: false
-            referencedRelation: "form_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forms_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      health_screening_data: {
-        Row: {
-          diagnosis: string | null
-          doctor_notes: string | null
-          exercise_detail: Json | null
-          follow_ups: Json | null
-          form_id: string
-          id: string
-          last_updated: string
-          medications: Json | null
-          nurse_notes: string | null
-          nutrition_recommendations: Json | null
-          show_insulin_resistance: boolean | null
-          sleep_stress_recommendations: Json | null
-          summary_findings: Json | null
-          supplements: Json | null
-          treatment_plan: string | null
-          vitals: Json | null
-        }
-        Insert: {
-          diagnosis?: string | null
-          doctor_notes?: string | null
-          exercise_detail?: Json | null
-          follow_ups?: Json | null
-          form_id: string
-          id?: string
-          last_updated?: string
-          medications?: Json | null
-          nurse_notes?: string | null
-          nutrition_recommendations?: Json | null
-          show_insulin_resistance?: boolean | null
-          sleep_stress_recommendations?: Json | null
-          summary_findings?: Json | null
-          supplements?: Json | null
-          treatment_plan?: string | null
-          vitals?: Json | null
-        }
-        Update: {
-          diagnosis?: string | null
-          doctor_notes?: string | null
-          exercise_detail?: Json | null
-          follow_ups?: Json | null
-          form_id?: string
-          id?: string
-          last_updated?: string
-          medications?: Json | null
-          nurse_notes?: string | null
-          nutrition_recommendations?: Json | null
-          show_insulin_resistance?: boolean | null
-          sleep_stress_recommendations?: Json | null
-          summary_findings?: Json | null
-          supplements?: Json | null
-          treatment_plan?: string | null
-          vitals?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "health_screening_data_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       medications: {
         Row: {
           dosage: string
@@ -353,7 +159,6 @@ export type Database = {
           created_at: string
           created_by: string | null
           file_name: string
-          form_id: string | null
           id: string
           patient_id: string
           url: string
@@ -362,7 +167,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           file_name: string
-          form_id?: string | null
           id?: string
           patient_id: string
           url: string
@@ -371,7 +175,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           file_name?: string
-          form_id?: string | null
           id?: string
           patient_id?: string
           url?: string
@@ -382,13 +185,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pdf_files_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
             referencedColumns: ["id"]
           },
           {
