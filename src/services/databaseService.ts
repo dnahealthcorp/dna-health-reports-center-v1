@@ -1,3 +1,4 @@
+
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, User, PDFFile, Json,
@@ -450,7 +451,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
     
     // Fix: Safely handle doctor_name by checking if it exists in the data object
     // If it doesn't exist or is null, default to empty string
-    const doctorName = 'doctor_name' in data ? data.doctor_name || '' : '';
+    const doctorName = data && 'doctor_name' in data ? (data.doctor_name as string) || '' : '';
     
     const formData: PatientFormData = {
       patientInfo: {
