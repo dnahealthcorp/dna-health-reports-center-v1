@@ -825,10 +825,10 @@ export const savePDFReference = async (patientId: string, fileName: string, file
     
     const newPDFFile: PDFFile = {
       id,
-      patientId,
-      fileName,
-      createdAt: new Date().toISOString(),
-      createdBy: currentUser?.name || "Unknown",
+      patient_id: patientId,
+      file_name: fileName,
+      created_at: new Date().toISOString(),
+      created_by: currentUser?.id || "Unknown",
       url: fileUrl || fileName
     };
     
@@ -853,8 +853,8 @@ export const savePDFReference = async (patientId: string, fileName: string, file
         .insert([{
           id: newPDFFile.id,
           patient_id: patient.id, // Use the actual patient UUID, not the MRN
-          file_name: newPDFFile.fileName,
-          created_at: newPDFFile.createdAt,
+          file_name: newPDFFile.file_name,
+          created_at: newPDFFile.created_at,
           created_by: currentUser?.id || null,
           url: newPDFFile.url
         }]);
@@ -893,10 +893,10 @@ export const getPDFFiles = async (): Promise<PDFFile[]> => {
     // Transform from database schema to application schema
     const pdfFiles: PDFFile[] = (data || []).map(item => ({
       id: item.id,
-      patientId: item.patient_id,
-      fileName: item.file_name,
-      createdAt: item.created_at,
-      createdBy: item.users?.name || "Unknown",
+      patient_id: item.patient_id,
+      file_name: item.file_name,
+      created_at: item.created_at,
+      created_by: item.users?.name || "Unknown",
       url: item.url
     }));
     
@@ -928,10 +928,10 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
     // Transform from database schema to application schema
     const pdfFiles: PDFFile[] = (data || []).map(item => ({
       id: item.id,
-      patientId: item.patient_id,
-      fileName: item.file_name,
-      createdAt: item.created_at,
-      createdBy: item.users?.name || "Unknown",
+      patient_id: item.patient_id,
+      file_name: item.file_name,
+      created_at: item.created_at,
+      created_by: item.users?.name || "Unknown",
       url: item.url
     }));
     

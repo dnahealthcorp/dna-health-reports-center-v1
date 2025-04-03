@@ -49,7 +49,22 @@ export const PatientHeader = ({
           return;
         }
         
-        setPdfFiles(data || []);
+        // Transform the data to match our PDFFile interface
+        const transformedData: PDFFile[] = (data || []).map(item => ({
+          id: item.id,
+          patient_id: item.patient_id,
+          file_name: item.file_name,
+          created_at: item.created_at,
+          created_by: item.created_by || "Unknown",
+          url: item.url,
+          // Add aliases for compatibility with the rest of the code
+          fileName: item.file_name,
+          patientId: item.patient_id,
+          createdAt: item.created_at,
+          createdBy: item.created_by || "Unknown"
+        }));
+        
+        setPdfFiles(transformedData);
       } catch (error) {
         console.error("Error fetching PDF files:", error);
       } finally {
@@ -83,7 +98,7 @@ export const PatientHeader = ({
       // Create a temporary anchor element
       const link = document.createElement('a');
       link.href = pdfFile.url;
-      link.download = pdfFile.fileName;
+      link.download = pdfFile.file_name; // Use file_name instead of fileName
       link.target = '_blank';
       
       // Programmatically click the link to trigger download
@@ -139,7 +154,7 @@ export const PatientHeader = ({
                         className="cursor-pointer"
                       >
                         <Download className="mr-2 h-4 w-4" />
-                        {file.fileName}
+                        {file.file_name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>

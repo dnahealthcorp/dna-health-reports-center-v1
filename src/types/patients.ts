@@ -12,17 +12,22 @@ export interface Patient {
   created_at?: string;
   pdf_exported?: boolean;
   status_updated_at?: string;
-  created_by?: string; // Add created_by field
+  created_by?: string;
   createdByName?: string; // Display name of creator
 }
 
 export interface PDFFile {
   id: string;
   patient_id: string;
-  fileName: string;
+  file_name: string;
   created_at: string;
   created_by: string;
   url: string;
+  // Add aliases for compatibility with previous code
+  patientId?: string;
+  fileName?: string;
+  createdAt?: string;
+  createdBy?: string;
 }
 
 export interface PatientFormData {
