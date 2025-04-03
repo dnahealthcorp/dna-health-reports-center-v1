@@ -12,27 +12,32 @@ export interface Vital {
 
 export interface SummaryFinding {
   glucoseMetabolism: string;
+  proteins: string;
   lipidProfile: string;
   inflammation: string;
-  uricAcid: string;
-  vitamins: string;
-  minerals: string;
+  metabolic: string;
+  homocysteine: string;
+  vitaminsMinerals: string;
+  ironProfile: string;
   sexHormones: string;
-  renalLiverFunction: string;
-  cancerMarkers: string;
+  kidneyFunctionElectrolytes: string;
+  liverFunctions: string;
+  tumorMarkers: string;
+  bloodCounts: string;
 }
 
 export interface NutritionRecommendation {
-  nutritionalPlan: string;
+  nutritionalStyle: string;
   proteinConsumption: string;
-  omissions: string;
+  eatingWindow: string;
+  limitations: string;
   additionalConsiderations: string;
 }
 
 export interface ExerciseRecommendation {
   focusOn: string;
   walking: string;
-  avoid: string;
+  restRecovery: string;
   tracking: string;
 }
 
@@ -64,8 +69,7 @@ export function isSummaryFinding(json: any): json is SummaryFinding {
     typeof json === 'object' &&
     'glucoseMetabolism' in json &&
     'lipidProfile' in json &&
-    'inflammation' in json &&
-    'uricAcid' in json
+    'inflammation' in json
   );
 }
 
@@ -73,7 +77,7 @@ export function isNutritionRecommendation(json: any): json is NutritionRecommend
   return (
     json &&
     typeof json === 'object' &&
-    'nutritionalPlan' in json
+    'nutritionalStyle' in json
   );
 }
 

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -77,7 +78,93 @@ const PatientForm = () => {
         setPatient(patientData);
         setMedications(medsData);
         setCurrentUser(userData);
-        setFormData(formDataResult);
+        
+        // If formDataResult is null, initialize with default structure
+        if (!formDataResult) {
+          const defaultFormData: PatientFormData = {
+            patientInfo: {
+              name: patientData.name,
+              dateOfBirth: patientData.dateOfBirth,
+              gender: patientData.gender,
+              medicalRecordNumber: patientData.medicalRecordNumber
+            },
+            vitals: { bloodPressure: '', height: '', weight: '' },
+            summaryFindings: {
+              glucoseMetabolism: '',
+              proteins: '',
+              lipidProfile: '',
+              inflammation: '',
+              metabolic: '',
+              homocysteine: '',
+              vitaminsMinerals: '',
+              ironProfile: '',
+              sexHormones: '',
+              kidneyFunctionElectrolytes: '',
+              liverFunctions: '',
+              tumorMarkers: '',
+              bloodCounts: ''
+            },
+            nutritionRecommendations: {
+              nutritionalStyle: '',
+              proteinConsumption: '',
+              eatingWindow: '',
+              limitations: '',
+              additionalConsiderations: ''
+            },
+            exerciseDetail: {
+              focusOn: '',
+              walking: '',
+              restRecovery: '',
+              tracking: ''
+            },
+            sleepStressRecommendations: { sleep: '', stress: '' },
+            medications: [],
+            doctorName: '',
+            exerciseRecommendations: '',
+            nurseNotes: '',
+            doctorNotes: '',
+            diagnosis: '',
+            treatmentPlan: '',
+            showInsulinResistance: false,
+            followUps: []
+          };
+          setFormData(defaultFormData);
+        } else {
+          // Initialize any missing fields in the existing form data
+          const updatedFormData = {
+            ...formDataResult,
+            summaryFindings: {
+              glucoseMetabolism: formDataResult.summaryFindings?.glucoseMetabolism || '',
+              proteins: formDataResult.summaryFindings?.proteins || '',
+              lipidProfile: formDataResult.summaryFindings?.lipidProfile || '',
+              inflammation: formDataResult.summaryFindings?.inflammation || '',
+              metabolic: formDataResult.summaryFindings?.metabolic || '',
+              homocysteine: formDataResult.summaryFindings?.homocysteine || '',
+              vitaminsMinerals: formDataResult.summaryFindings?.vitaminsMinerals || '',
+              ironProfile: formDataResult.summaryFindings?.ironProfile || '',
+              sexHormones: formDataResult.summaryFindings?.sexHormones || '',
+              kidneyFunctionElectrolytes: formDataResult.summaryFindings?.kidneyFunctionElectrolytes || '',
+              liverFunctions: formDataResult.summaryFindings?.liverFunctions || '',
+              tumorMarkers: formDataResult.summaryFindings?.tumorMarkers || '',
+              bloodCounts: formDataResult.summaryFindings?.bloodCounts || ''
+            },
+            nutritionRecommendations: {
+              nutritionalStyle: formDataResult.nutritionRecommendations?.nutritionalStyle || '',
+              proteinConsumption: formDataResult.nutritionRecommendations?.proteinConsumption || '',
+              eatingWindow: formDataResult.nutritionRecommendations?.eatingWindow || '',
+              limitations: formDataResult.nutritionRecommendations?.limitations || '',
+              additionalConsiderations: formDataResult.nutritionRecommendations?.additionalConsiderations || ''
+            },
+            exerciseDetail: {
+              focusOn: formDataResult.exerciseDetail?.focusOn || '',
+              walking: formDataResult.exerciseDetail?.walking || '',
+              restRecovery: formDataResult.exerciseDetail?.restRecovery || '',
+              tracking: formDataResult.exerciseDetail?.tracking || ''
+            },
+            doctorName: formDataResult.doctorName || ''
+          };
+          setFormData(updatedFormData);
+        }
       } catch (error) {
         console.error("Error fetching patient data:", error);
         toast({

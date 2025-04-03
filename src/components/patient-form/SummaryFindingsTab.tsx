@@ -45,6 +45,17 @@ export const SummaryFindingsTab = ({
                 </td>
               </tr>
               <tr>
+                <td className="px-4 py-2 border bg-gray-50">Proteins</td>
+                <td className="px-4 py-2 border">
+                  <Textarea 
+                    value={formData.summaryFindings?.proteins || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "proteins", e.target.value)}
+                    disabled={!canEditDoctorSection}
+                    className="border-0 p-0 min-h-[60px]"
+                  />
+                </td>
+              </tr>
+              <tr>
                 <td className="px-4 py-2 border bg-gray-50">Lipid Profile</td>
                 <td className="px-4 py-2 border">
                   <Textarea 
@@ -67,33 +78,44 @@ export const SummaryFindingsTab = ({
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Uric Acid</td>
+                <td className="px-4 py-2 border bg-gray-50">Metabolic</td>
                 <td className="px-4 py-2 border">
                   <Textarea 
-                    value={formData.summaryFindings?.uricAcid || ''}
-                    onChange={(e) => handleInputChange("summaryFindings", "uricAcid", e.target.value)}
+                    value={formData.summaryFindings?.metabolic || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "metabolic", e.target.value)}
                     disabled={!canEditDoctorSection}
                     className="border-0 p-0 min-h-[60px]"
                   />
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Vitamins</td>
+                <td className="px-4 py-2 border bg-gray-50">Homocysteine</td>
                 <td className="px-4 py-2 border">
                   <Textarea 
-                    value={formData.summaryFindings?.vitamins || ''}
-                    onChange={(e) => handleInputChange("summaryFindings", "vitamins", e.target.value)}
+                    value={formData.summaryFindings?.homocysteine || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "homocysteine", e.target.value)}
                     disabled={!canEditDoctorSection}
                     className="border-0 p-0 min-h-[60px]"
                   />
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Minerals</td>
+                <td className="px-4 py-2 border bg-gray-50">Vitamins/Minerals</td>
                 <td className="px-4 py-2 border">
                   <Textarea 
-                    value={formData.summaryFindings?.minerals || ''}
-                    onChange={(e) => handleInputChange("summaryFindings", "minerals", e.target.value)}
+                    value={formData.summaryFindings?.vitaminsMinerals || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "vitaminsMinerals", e.target.value)}
+                    disabled={!canEditDoctorSection}
+                    className="border-0 p-0 min-h-[60px]"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 border bg-gray-50">Iron Profile</td>
+                <td className="px-4 py-2 border">
+                  <Textarea 
+                    value={formData.summaryFindings?.ironProfile || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "ironProfile", e.target.value)}
                     disabled={!canEditDoctorSection}
                     className="border-0 p-0 min-h-[60px]"
                   />
@@ -111,22 +133,44 @@ export const SummaryFindingsTab = ({
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Renal & Liver Function</td>
+                <td className="px-4 py-2 border bg-gray-50">Kidney Function and Electrolytes</td>
                 <td className="px-4 py-2 border">
                   <Textarea 
-                    value={formData.summaryFindings?.renalLiverFunction || ''}
-                    onChange={(e) => handleInputChange("summaryFindings", "renalLiverFunction", e.target.value)}
+                    value={formData.summaryFindings?.kidneyFunctionElectrolytes || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "kidneyFunctionElectrolytes", e.target.value)}
                     disabled={!canEditDoctorSection}
                     className="border-0 p-0 min-h-[60px]"
                   />
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Cancer Markers</td>
+                <td className="px-4 py-2 border bg-gray-50">Liver Functions</td>
                 <td className="px-4 py-2 border">
                   <Textarea 
-                    value={formData.summaryFindings?.cancerMarkers || ''}
-                    onChange={(e) => handleInputChange("summaryFindings", "cancerMarkers", e.target.value)}
+                    value={formData.summaryFindings?.liverFunctions || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "liverFunctions", e.target.value)}
+                    disabled={!canEditDoctorSection}
+                    className="border-0 p-0 min-h-[60px]"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 border bg-gray-50">Tumor Markers</td>
+                <td className="px-4 py-2 border">
+                  <Textarea 
+                    value={formData.summaryFindings?.tumorMarkers || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "tumorMarkers", e.target.value)}
+                    disabled={!canEditDoctorSection}
+                    className="border-0 p-0 min-h-[60px]"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 border bg-gray-50">Blood Counts</td>
+                <td className="px-4 py-2 border">
+                  <Textarea 
+                    value={formData.summaryFindings?.bloodCounts || ''}
+                    onChange={(e) => handleInputChange("summaryFindings", "bloodCounts", e.target.value)}
                     disabled={!canEditDoctorSection}
                     className="border-0 p-0 min-h-[60px]"
                   />

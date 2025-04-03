@@ -41,6 +41,7 @@ export interface PatientFormData {
   doctorNotes: string;
   diagnosis: string;
   treatmentPlan: string;
+  doctorName: string; // New field for the doctor's name
   showInsulinResistance: boolean;
   nutritionRecommendations: NutritionRecommendation;
   exerciseDetail: ExerciseRecommendation;
