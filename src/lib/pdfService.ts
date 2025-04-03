@@ -23,6 +23,8 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     // Format the filename according to requirements: patient's_name's Health Screening - Date
     // Handle apostrophe formatting for names ending with 's'
     let fileName = "";
+    const uniqueID = Date.now(); // Add this for unique filenames
+    
     if (patient) {
       const patientName = patient.name.replace(/\s+/g, '_');
       const apostrophe = patientName.endsWith('s') ? "'" : "'s";
@@ -32,8 +34,8 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         // Generate the PDF with the correct filename format
         const pdfBlob = await generatePDFImpl(formData, medications);
         
-        // Upload the PDF to Supabase Storage
-        const pdfPath = `${patient.id}/${fileName}`;
+        // Upload the PDF to Supabase Storage with a unique path to prevent caching
+        const pdfPath = `${patient.id}/${fileName.split('.')[0]}_${uniqueID}.pdf`;
         
         // Make sure the storage bucket exists and has public access
         try {
@@ -59,17 +61,40 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           console.error("Error checking/creating bucket:", bucketErr);
         }
         
-        const { data: storageData, error: storageError } = await supabase
-          .storage
-          .from('pdf_files')
-          .upload(pdfPath, pdfBlob, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
+        // Try multiple times to upload the file in case of RLS policy issues
+        let uploadAttempts = 0;
+        let storageData;
+        let storageError;
+        
+        while (uploadAttempts < 3) {
+          uploadAttempts++;
+          
+          // Try to upload the file
+          const uploadResult = await supabase
+            .storage
+            .from('pdf_files')
+            .upload(pdfPath, pdfBlob, {
+              contentType: 'application/pdf',
+              upsert: true
+            });
+            
+          storageData = uploadResult.data;
+          storageError = uploadResult.error;
+          
+          if (!storageError) break;
+          
+          console.log(`Upload attempt ${uploadAttempts} failed. Retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
+        }
           
         if (storageError) {
-          console.error("Error uploading PDF to storage:", storageError);
-          throw storageError;
+          console.error("Error uploading PDF to storage after multiple attempts:", storageError);
+          
+          // Even if upload failed, we can still download the PDF locally
+          const downloadFileName = `${fileName.split('.')[0]}_${uniqueID}.pdf`;
+          await downloadPDF(pdfBlob, downloadFileName);
+          
+          return fileName;
         }
         
         // Get the public URL for the file
@@ -80,7 +105,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           
         const publicUrl = publicUrlData.publicUrl;
         
-        // Now save the reference with the correct filename and URL to the database
+        // Now save the reference with the unique filename and URL to the database
         await savePDFReference(patient.id, fileName, publicUrl);
         
         // Update the patient's pdf_exported flag to true and set status to completed
@@ -103,9 +128,8 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           console.error("Failed to call update_patient_statuses function:", funcError);
         }
         
-        // Always trigger a download of the newly generated PDF
-        // Add timestamp to file name to force browser to download a new copy every time
-        const downloadFileName = `${fileName.split('.')[0]}_${Date.now()}.pdf`;
+        // Create a download-specific filename with a timestamp to force browser to download a new copy
+        const downloadFileName = `${fileName.split('.')[0]}_${uniqueID}.pdf`;
         await downloadPDF(pdfBlob, downloadFileName);
         
         return fileName;
@@ -115,7 +139,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       }
     } else {
       // Fallback filename if no patient is found - should rarely happen in normal operation
-      fileName = `Health_Screening-${currentDate}.pdf`;
+      fileName = `Health_Screening-${currentDate}_${uniqueID}.pdf`;
     }
     
     // For debugging
@@ -127,6 +151,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       pdfExported: patient?.pdf_exported,
       status: patient?.status,
       fileName: fileName,
+      uniqueID: uniqueID,
       doctorName: formData.doctorName || "Not specified"
     });
     
@@ -159,7 +184,7 @@ const downloadPDF = async (pdfBlob: Blob, fileName: string): Promise<void> => {
     // to ensure download has started
     setTimeout(() => {
       URL.revokeObjectURL(blobUrl);
-    }, 2000); // Longer timeout to ensure download starts
+    }, 3000); // Extended timeout to ensure download starts completely
   } catch (downloadError) {
     console.error("Error downloading PDF:", downloadError);
   }

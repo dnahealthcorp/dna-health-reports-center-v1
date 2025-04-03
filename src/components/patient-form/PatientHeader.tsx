@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Save, Loader2, FileText } from "lucide-react";
@@ -123,7 +122,7 @@ export const PatientHeader = ({
       
       // Create a dynamic filename with timestamp to prevent caching
       const filenameParts = pdfFile.file_name.split('.');
-      const extension = filenameParts.pop();
+      const extension = filenameParts.pop() || 'pdf';
       const baseFilename = filenameParts.join('.');
       const downloadFilename = `${baseFilename}_${timestamp}.${extension}`;
       
@@ -141,7 +140,7 @@ export const PatientHeader = ({
       // Clean up
       setTimeout(() => {
         URL.revokeObjectURL(link.href);
-      }, 2000); // Longer timeout to ensure download starts
+      }, 3000); // Extended timeout to ensure download starts completely
       
       toast({
         title: "Download started",

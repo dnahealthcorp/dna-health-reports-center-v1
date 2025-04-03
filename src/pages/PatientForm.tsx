@@ -261,7 +261,7 @@ const PatientForm = () => {
   const handleExportPDF = async () => {
     if (!formData || !patient) return;
     
-    setIsExportingPDF(true);
+    setIsSaving(true);
     
     try {
       formData.patientInfo = {
@@ -272,6 +272,9 @@ const PatientForm = () => {
       };
       
       await savePatientFormData(patient.id, formData);
+      setIsSaving(false);
+      
+      setIsExportingPDF(true);
       
       const fileName = await generatePDF(formData, medications);
       
@@ -293,6 +296,7 @@ const PatientForm = () => {
       });
     } finally {
       setIsExportingPDF(false);
+      setIsSaving(false);
     }
   };
 
