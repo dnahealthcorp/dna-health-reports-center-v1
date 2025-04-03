@@ -428,7 +428,10 @@ const UserManagement = () => {
             </Button>
             <Button 
               type="button" 
-              onClick={handleCreateUser}
+              onClick={() => {
+                console.log("Create user button clicked");
+                handleCreateUser();
+              }}
               className="bg-green-500 hover:bg-green-600"
             >
               <Check className="mr-2 h-4 w-4" /> Create User
