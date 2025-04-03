@@ -34,11 +34,15 @@ export const PatientHeader = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Force refetching PDF files whenever this changes
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
   const fetchPDFFiles = async () => {
     if (!patient?.id) return;
     
     setLoading(true);
     try {
+      console.log(`Fetching PDF files for patient ${patient.id}...`);
       const { data, error } = await supabase
         .from('pdf_files')
         .select('*')
@@ -56,6 +60,7 @@ export const PatientHeader = ({
       }
       
       console.log("PDF files fetched:", data?.length || 0, "files");
+      console.log("PDF files data:", data);
       
       // Transform the data to match our PDFFile interface
       const transformedData: PDFFile[] = (data || []).map(item => ({
@@ -86,7 +91,13 @@ export const PatientHeader = ({
   };
   
   useEffect(() => {
+    // Fetch immediately on component mount or patient change
     fetchPDFFiles();
+    
+    // Set up a refresh interval to make sure we always have the latest data
+    const refreshInterval = setInterval(() => {
+      setRefetchTrigger(prev => prev + 1);
+    }, 5000); // Refresh every 5 seconds
     
     // Subscribe to changes in the pdf_files table for this patient
     const channel = supabase
@@ -98,14 +109,39 @@ export const PatientHeader = ({
         filter: `patient_id=eq.${patient?.id}`
       }, (payload) => {
         console.log('PDF files updated:', payload);
-        fetchPDFFiles();
+        fetchPDFFiles(); // Immediately fetch when there's a change
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Supabase channel status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to PDF files changes');
+        }
+      });
       
     return () => {
+      clearInterval(refreshInterval);
       supabase.removeChannel(channel);
     };
   }, [patient?.id]);
+  
+  // Refetch when the trigger changes
+  useEffect(() => {
+    if (refetchTrigger > 0) {
+      fetchPDFFiles();
+    }
+  }, [refetchTrigger]);
+  
+  // Refetch after PDF export completes
+  useEffect(() => {
+    if (!isExportingPDF && isExportingPDF !== undefined) {
+      // Small delay to ensure the database has been updated
+      const timer = setTimeout(() => {
+        fetchPDFFiles();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isExportingPDF]);
   
   const handleDownloadPDF = async (pdfFile: PDFFile) => {
     try {
@@ -114,6 +150,8 @@ export const PatientHeader = ({
       const modifiedUrl = pdfFile.url.includes('?') 
         ? `${pdfFile.url}&t=${timestamp}` 
         : `${pdfFile.url}?t=${timestamp}`;
+      
+      console.log(`Downloading PDF from URL: ${modifiedUrl}`);
       
       // Fetch the file from the URL
       const response = await fetch(modifiedUrl);

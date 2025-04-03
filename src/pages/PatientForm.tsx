@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -176,7 +177,8 @@ const PatientForm = () => {
     
     fetchData();
     
-    const channel = supabase
+    // Set up realtime subscriptions for both form data and patient changes
+    const formChannel = supabase
       .channel('form-data-changes')
       .on('postgres_changes', { 
         event: 'UPDATE', 
@@ -185,7 +187,9 @@ const PatientForm = () => {
         filter: `patient_id=eq.${id}`
       }, (payload) => {
         console.log('Form data updated:', payload);
-        getPatientFormData(id as string).then(data => setFormData(data));
+        getPatientFormData(id as string).then(data => {
+          if (data) setFormData(data);
+        });
       })
       .subscribe();
       
@@ -198,13 +202,31 @@ const PatientForm = () => {
         filter: `id=eq.${id}`
       }, (payload) => {
         console.log('Patient data updated:', payload);
-        getPatientById(id as string).then(data => setPatient(data));
+        getPatientById(id as string).then(data => {
+          if (data) setPatient(data);
+        });
       })
       .subscribe();
-      
+    
+    const pdfFilesChannel = supabase
+      .channel('pdf-files-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'pdf_files',
+        filter: `patient_id=eq.${id}`
+      }, (payload) => {
+        console.log('PDF files updated in PatientForm:', payload);
+        // No direct action needed here as PatientHeader handles PDF files
+      })
+      .subscribe((status) => {
+        console.log(`PDF files channel status: ${status}`);
+      });
+    
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(formChannel);
       supabase.removeChannel(patientChannel);
+      supabase.removeChannel(pdfFilesChannel);
     };
   }, [id, navigate, toast]);
 

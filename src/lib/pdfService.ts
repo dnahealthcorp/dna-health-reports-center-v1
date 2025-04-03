@@ -107,6 +107,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         const publicUrl = publicUrlData.publicUrl + `?t=${uniqueID}`;
         
         // Now save the reference with the unique filename and URL to the database
+        // IMPORTANT: Always create a new PDF reference, never update existing ones
         await savePDFReference(patient.id, fileName, publicUrl);
         
         // Update the patient's pdf_exported flag to true and set status to completed
