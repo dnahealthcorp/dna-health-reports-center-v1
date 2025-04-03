@@ -38,7 +38,7 @@ export const VitalsTab = ({
             </thead>
             <tbody>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Date of Birth</td>
+                <td className="px-4 py-2 border bg-gray-50 text-left">Date of Birth</td>
                 <td className="px-4 py-2 border">
                   <Input 
                     type="date"
@@ -51,12 +51,12 @@ export const VitalsTab = ({
                 <td className="px-4 py-2 border">-</td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Age (years)</td>
+                <td className="px-4 py-2 border bg-gray-50 text-left">Age (years)</td>
                 <td className="px-4 py-2 border">{calculateAge(formData.patientInfo.dateOfBirth)}</td>
                 <td className="px-4 py-2 border">-</td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Blood Pressure (mmHg)</td>
+                <td className="px-4 py-2 border bg-gray-50 text-left">Blood Pressure (mmHg)</td>
                 <td className="px-4 py-2 border">
                   <Input 
                     value={formData.vitals.bloodPressure}
@@ -69,7 +69,7 @@ export const VitalsTab = ({
                 <td className="px-4 py-2 border">120/60-140/85</td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Height (cm)</td>
+                <td className="px-4 py-2 border bg-gray-50 text-left">Height (cm)</td>
                 <td className="px-4 py-2 border">
                   <Input 
                     value={formData.vitals.height}
@@ -81,7 +81,7 @@ export const VitalsTab = ({
                 <td className="px-4 py-2 border">-</td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Weight (Kg)</td>
+                <td className="px-4 py-2 border bg-gray-50 text-left">Weight (Kg)</td>
                 <td className="px-4 py-2 border">
                   <Input 
                     value={formData.vitals.weight}
@@ -93,7 +93,7 @@ export const VitalsTab = ({
                 <td className="px-4 py-2 border">-</td>
               </tr>
               <tr>
-                <td className="px-4 py-2 border bg-gray-50">Body Mass Index</td>
+                <td className="px-4 py-2 border bg-gray-50 text-left">Body Mass Index</td>
                 <td className="px-4 py-2 border">{calculateBMI(formData.vitals.height, formData.vitals.weight)}</td>
                 <td className="px-4 py-2 border">18.5 – 25.9</td>
               </tr>
