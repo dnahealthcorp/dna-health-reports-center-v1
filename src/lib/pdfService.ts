@@ -106,6 +106,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         // Always trigger a download of the newly generated PDF
         downloadPDF(pdfBlob, fileName);
         
+        return fileName;
       } catch (err) {
         console.error("Error updating patient or PDF references:", err);
         throw err;
