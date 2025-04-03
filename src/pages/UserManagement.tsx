@@ -1,52 +1,17 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from "@/components/ui/alert-dialog";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { User, Edit, Trash2, UserPlus, Check, X } from "lucide-react";
-import { getUsers, addUser, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
+import { User, Edit, Trash2, UserPlus } from "lucide-react";
+import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
 import { User as UserType } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,52 +134,36 @@ const UserManagement = () => {
         return;
       }
 
-      // Create a new user in Supabase Auth first
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: "password123", // Temporary password, should be changed by user
-        email_confirm: true
-      });
+      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+        formData.email,
+        {
+          data: {
+            name: formData.name,
+            role: formData.role
+          }
+        }
+      );
       
       if (authError) {
-        console.error("Error creating auth user:", authError);
+        console.error("Error inviting user:", authError);
         toast({
           title: "Error",
-          description: `Failed to create user: ${authError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      if (!authData.user) {
-        toast({
-          title: "Error",
-          description: "User was not created",
+          description: `Failed to invite user: ${authError.message}`,
           variant: "destructive"
         });
         return;
       }
 
-      const newUser: UserType = {
-        id: authData.user.id,
-        name: formData.name,
-        email: formData.email,
-        role: formData.role
-      };
-
-      console.log("Attempting to add user:", newUser);
-      await addUser(newUser);
-      
-      const updatedUsers = await getUsers();
-      setUsers(updatedUsers);
-      
       toast({
         title: "Success",
-        description: "User created successfully"
+        description: "User invitation sent successfully"
       });
       
       setShowCreateDialog(false);
       resetForm();
+
+      const updatedUsers = await getUsers();
+      setUsers(updatedUsers);
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
@@ -420,9 +369,9 @@ const UserManagement = () => {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
+            <DialogTitle>Invite New User</DialogTitle>
             <DialogDescription>
-              Create a new user with the appropriate role
+              Send an invitation email to create a new user account
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -480,12 +429,10 @@ const UserManagement = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating...
+                  Sending Invitation...
                 </span>
               ) : (
-                <>
-                  <Check className="mr-2 h-4 w-4" /> Create User
-                </>
+                <>Send Invitation</>
               )}
             </Button>
           </DialogFooter>
