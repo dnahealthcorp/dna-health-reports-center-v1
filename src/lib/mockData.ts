@@ -1,4 +1,3 @@
-
 import { 
   Medication, Patient, User, SummaryFinding, 
   NutritionRecommendation, ExerciseRecommendation, 
@@ -252,7 +251,7 @@ export const getPatientFormData = (patientId: string) => {
     doctorNotes: "",
     diagnosis: "",
     treatmentPlan: "",
-    doctorName: "",
+    doctorName: "", // Make sure doctorName field is included
     showInsulinResistance: false,
     nutritionRecommendations: emptyNutritionRecommendation,
     exerciseDetail: emptyExerciseRecommendation,
