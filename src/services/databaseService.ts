@@ -817,7 +817,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
 };
 
 // PDF file operations
-export const savePDFReference = async (patientId: string, fileName: string): Promise<PDFFile> => {
+export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
     // Generate a proper UUID using uuidv4 instead of a timestamp string
     const id = uuidv4();
@@ -829,7 +829,7 @@ export const savePDFReference = async (patientId: string, fileName: string): Pro
       fileName,
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || "Unknown",
-      url: fileName
+      url: fileUrl || fileName
     };
     
     // Make sure we're using a valid UUID for patientId, not a medical record number

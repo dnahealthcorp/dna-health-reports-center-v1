@@ -46,8 +46,34 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           console.error("Error deleting existing PDF references:", deleteError);
         }
         
-        // Now save the new reference with the correct filename
-        await savePDFReference(patient.id, fileName);
+        // Generate the PDF with the correct filename format
+        const pdfBlob = await generatePDFImpl(formData, medications);
+        
+        // Upload the PDF to Supabase Storage
+        const pdfPath = `${patient.id}/${fileName}`;
+        const { data: storageData, error: storageError } = await supabase
+          .storage
+          .from('pdf_files')
+          .upload(pdfPath, pdfBlob, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
+          
+        if (storageError) {
+          console.error("Error uploading PDF to storage:", storageError);
+          throw storageError;
+        }
+        
+        // Get the public URL for the file
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('pdf_files')
+          .getPublicUrl(pdfPath);
+          
+        const publicUrl = publicUrlData.publicUrl;
+        
+        // Now save the new reference with the correct filename and URL
+        await savePDFReference(patient.id, fileName, publicUrl);
         
         // Update the patient's pdf_exported flag to true and set status to completed
         const updatedPatient = {
@@ -68,6 +94,14 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         } catch (funcError) {
           console.error("Failed to call update_patient_statuses function:", funcError);
         }
+        
+        // Download the PDF by opening the URL in a new window
+        const link = document.createElement('a');
+        link.href = publicUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } catch (err) {
         console.error("Error updating patient or PDF references:", err);
       }
@@ -75,10 +109,6 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       // Fallback filename if no patient is found - should rarely happen in normal operation
       fileName = `Health_Screening-${currentDate}.pdf`;
     }
-    
-    // Generate the PDF with the correct filename format
-    // This should also save the file with the correct name
-    await generatePDFImpl(formData, medications);
     
     // For debugging
     console.log("PDF generated successfully with data:", {

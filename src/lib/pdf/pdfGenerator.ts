@@ -1,10 +1,8 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
-import * as databaseService from "@/services/databaseService";
 
 /**
  * Draws the footer on the current page.
@@ -749,7 +747,7 @@ function generateFollowUpsSection(
 export const generatePDF = async (
   formData: PatientFormData,
   medications: Medication[]
-): Promise<string> => {
+): Promise<Blob> => {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -797,15 +795,6 @@ export const generatePDF = async (
   // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
-  // Save
-  const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
-  const fileName = `${patientName}_Medical_Report.pdf`;
-  doc.save(fileName);
-
-  // Save reference if needed
-  if (formData.patientInfo.medicalRecordNumber) {
-    await databaseService.savePDFReference(formData.patientInfo.medicalRecordNumber, fileName);
-  }
-
-  return fileName;
+  // Return the PDF as a Blob instead of saving it
+  return doc.output('blob');
 };
