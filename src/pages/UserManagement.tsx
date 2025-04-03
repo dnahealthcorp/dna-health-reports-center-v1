@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import { User, Edit, Trash2, UserPlus, Check, X } from "lucide-react";
 import { getUsers, addUser, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
 import { User as UserType } from "@/types";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserFormData {
   id?: string;
@@ -69,6 +71,7 @@ const UserManagement = () => {
     email: "",
     role: "nurse"
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -152,7 +155,11 @@ const UserManagement = () => {
 
   const handleCreateUser = async () => {
     console.log("HandleCreateUser function called");
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
+      
       if (!formData.name || !formData.email) {
         toast({
           title: "Validation Error",
@@ -162,8 +169,34 @@ const UserManagement = () => {
         return;
       }
 
+      // Create a new user in Supabase Auth first
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: formData.email,
+        password: "password123", // Temporary password, should be changed by user
+        email_confirm: true
+      });
+      
+      if (authError) {
+        console.error("Error creating auth user:", authError);
+        toast({
+          title: "Error",
+          description: `Failed to create user: ${authError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!authData.user) {
+        toast({
+          title: "Error",
+          description: "User was not created",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const newUser: UserType = {
-        id: crypto.randomUUID(),
+        id: authData.user.id,
         name: formData.name,
         email: formData.email,
         role: formData.role
@@ -182,18 +215,24 @@ const UserManagement = () => {
       
       setShowCreateDialog(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: "Failed to create user. Please try again.",
+        description: `Failed to create user: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateUser = async () => {
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
+      
       if (!formData.id || !formData.name || !formData.email) {
         toast({
           title: "Validation Error",
@@ -222,18 +261,24 @@ const UserManagement = () => {
       
       setShowEditDialog(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user:", error);
       toast({
         title: "Error",
-        description: "Failed to update user. Please try again.",
+        description: `Failed to update user: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteUser = async () => {
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
+      
       if (!currentUser?.id) {
         toast({
           title: "Error",
@@ -254,13 +299,15 @@ const UserManagement = () => {
       });
       
       setShowDeleteDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
       toast({
         title: "Error",
-        description: "Failed to delete user. Please try again.",
+        description: `Failed to delete user: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -425,8 +472,21 @@ const UserManagement = () => {
               type="button" 
               onClick={handleCreateUser}
               className="bg-green-500 hover:bg-green-600"
+              disabled={isSubmitting}
             >
-              <Check className="mr-2 h-4 w-4" /> Create User
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </span>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" /> Create User
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -483,8 +543,23 @@ const UserManagement = () => {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateUser}>
-              <Check className="mr-2 h-4 w-4" /> Update User
+            <Button 
+              onClick={handleUpdateUser}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Updating...
+                </span>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" /> Update User
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -500,8 +575,24 @@ const UserManagement = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground">
-              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              className="bg-destructive text-destructive-foreground"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Deleting...
+                </span>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
