@@ -426,7 +426,11 @@ const UserManagement = () => {
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateUser}>
+            <Button 
+              type="button" 
+              onClick={handleCreateUser}
+              className="bg-green-500 hover:bg-green-600"
+            >
               <Check className="mr-2 h-4 w-4" /> Create User
             </Button>
           </DialogFooter>
