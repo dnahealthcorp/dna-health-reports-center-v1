@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { User, Edit, Trash2, UserPlus, Check } from "lucide-react";
+import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
 import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
 import { User as UserType } from "@/types";
 import { useNavigate } from "react-router-dom";
@@ -120,7 +120,6 @@ const UserManagement = () => {
   };
 
   const handleCreateUser = async () => {
-    console.log("HandleCreateUser function called");
     if (isSubmitting) return;
     
     try {
@@ -135,7 +134,36 @@ const UserManagement = () => {
         return;
       }
 
-      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+      // Step 1: Get current user ID for tracking who sent the invite
+      const adminUser = await getCurrentUser();
+      if (!adminUser?.id) {
+        throw new Error("Admin user ID not found");
+      }
+
+      // Step 2: Store the invitation in our custom table
+      const { error: inviteError } = await supabase
+        .from('user_invitations')
+        .insert({
+          email: formData.email,
+          role: formData.role,
+          invited_by: adminUser.id
+        });
+
+      if (inviteError) {
+        // Check if this is a duplicate email error
+        if (inviteError.message.includes('duplicate key')) {
+          toast({
+            title: "Invitation Error",
+            description: "A user with this email has already been invited",
+            variant: "destructive"
+          });
+          return;
+        }
+        throw inviteError;
+      }
+
+      // Step 3: Send the invitation email via Supabase Auth
+      const { error: authError } = await supabase.auth.admin.inviteUserByEmail(
         formData.email,
         {
           data: {
@@ -147,9 +175,15 @@ const UserManagement = () => {
       
       if (authError) {
         console.error("Error inviting user:", authError);
+        // Try to clean up the invitation record if the auth invite fails
+        await supabase
+          .from('user_invitations')
+          .delete()
+          .eq('email', formData.email);
+          
         toast({
           title: "Error",
-          description: `Failed to invite user: ${authError.message}`,
+          description: `Failed to send invitation: ${authError.message}`,
           variant: "destructive"
         });
         return;
@@ -163,6 +197,7 @@ const UserManagement = () => {
       setShowCreateDialog(false);
       resetForm();
 
+      // Refresh the users list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
     } catch (error: any) {
@@ -199,7 +234,26 @@ const UserManagement = () => {
         role: formData.role
       };
 
+      // Update user in the users table
       await updateUser(updatedUser);
+      
+      // Also update the user_profiles table
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .update({
+          name: formData.name,
+          role: formData.role,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', formData.id);
+        
+      if (profileError) {
+        console.error("Error updating user profile:", profileError);
+        toast({
+          title: "Warning",
+          description: "User updated but profile details may not be updated completely",
+        });
+      }
       
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
@@ -238,7 +292,19 @@ const UserManagement = () => {
         return;
       }
 
+      // First try to delete the user from Supabase Auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        currentUser.id
+      );
+
+      if (authError) {
+        console.error("Error deleting user from auth:", authError);
+      }
+
+      // Delete from our users table
       await deleteUser(currentUser.id);
+      
+      // The user_profiles table should be automatically cleaned up due to ON DELETE CASCADE
       
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
@@ -280,7 +346,7 @@ const UserManagement = () => {
                 <CardDescription>Manage doctors, nurses, and administrators</CardDescription>
               </div>
               <Button onClick={openCreateDialog} className="flex items-center">
-                <UserPlus className="mr-2 h-4 w-4" /> Add User
+                <UserPlus className="mr-2 h-4 w-4" /> Invite User
               </Button>
             </div>
           </CardHeader>
@@ -360,7 +426,7 @@ const UserManagement = () => {
               </div>
             ) : (
               <div className="text-center py-6 text-muted-foreground">
-                No users found. Add a new user to get started.
+                No users found. Invite a new user to get started.
               </div>
             )}
           </CardContent>
@@ -433,7 +499,9 @@ const UserManagement = () => {
                   Sending Invitation...
                 </span>
               ) : (
-                <>Send Invitation</>
+                <>
+                  <Mail className="mr-2 h-4 w-4" /> Send Invitation
+                </>
               )}
             </Button>
           </DialogFooter>

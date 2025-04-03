@@ -61,9 +61,10 @@ const mapUserFromDB = (dbUser: any): User => {
 
   return {
     id: dbUser.id,
-    name: dbUser.name,
+    name: dbUser.name || dbUser.profiles?.name || 'Unknown',
     email: dbUser.email,
-    role: role
+    role: role,
+    profileId: dbUser.profiles?.id
   };
 };
 
@@ -664,6 +665,33 @@ export const deleteMedication = async (id: string): Promise<void> => {
 // User operations
 export const getUsers = async (): Promise<User[]> => {
   try {
+    // First get users from auth.users (via profiles)
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select(`
+        id,
+        name,
+        email,
+        role
+      `)
+      .order('name');
+    
+    if (profileError) {
+      // Try to handle error and continue with original approach
+      console.error("Error getting user profiles from Supabase:", profileError);
+    }
+    
+    if (profileData && profileData.length > 0) {
+      // If we successfully got profiles, use those
+      return profileData.map(profile => ({
+        id: profile.id,
+        name: profile.name || 'Unknown',
+        email: profile.email || '',
+        role: (profile.role as 'nurse' | 'doctor' | 'admin') || 'nurse'
+      }));
+    }
+    
+    // Fallback to original approach if profiles not available
     const { data, error } = await supabase
       .from('users')
       .select('*');
@@ -690,7 +718,23 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
     
-    // Get user from our users table
+    // Try to get user from profiles table first
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', authData.session.user.id)
+      .single();
+      
+    if (profileData && !profileError) {
+      return {
+        id: profileData.id,
+        name: profileData.name || 'Unknown',
+        email: profileData.email || authData.session.user.email || '',
+        role: (profileData.role as 'nurse' | 'doctor' | 'admin') || 'nurse'
+      };
+    }
+    
+    // If no profile, check the users table
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -698,7 +742,29 @@ export const getCurrentUser = async (): Promise<User | null> => {
       .single();
     
     if (error) {
-      throw error;
+      // Create a default profile if none exists
+      const defaultUser = {
+        id: authData.session.user.id,
+        name: authData.session.user.user_metadata?.name || 'User',
+        email: authData.session.user.email || '',
+        role: 'nurse' as const
+      };
+      
+      // Try to add this user to the user_profiles table
+      const { error: insertError } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: defaultUser.id,
+          name: defaultUser.name,
+          email: defaultUser.email,
+          role: defaultUser.role
+        }]);
+        
+      if (insertError) {
+        console.error("Error creating default user profile:", insertError);
+      }
+      
+      return defaultUser;
     }
     
     return data ? mapUserFromDB(data) : null;
@@ -718,7 +784,46 @@ export const setCurrentUser = async (user: User): Promise<User> => {
       throw new Error('User ID cannot be empty');
     }
     
-    // Check if user exists
+    // Check if user profile exists
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('id', user.id);
+      
+    // Insert or update user profile
+    let profileError2;
+    if (profileData && profileData.length > 0) {
+      // Update profile
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+        
+      profileError2 = error;
+    } else {
+      // Insert profile
+      const { error } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }]);
+        
+      profileError2 = error;
+    }
+    
+    if (profileError2) {
+      console.error("Error updating user profile:", profileError2);
+    }
+    
+    // Check if user exists in users table
     const { data, error: checkError } = await supabase
       .from('users')
       .select('id')
@@ -728,7 +833,7 @@ export const setCurrentUser = async (user: User): Promise<User> => {
       throw checkError;
     }
     
-    // Insert or update
+    // Insert or update in users table (for backwards compatibility)
     let error;
     if (data && data.length > 0) {
       // Update
@@ -778,7 +883,21 @@ export const addUser = async (user: User): Promise<User> => {
       throw new Error('User ID cannot be empty');
     }
     
-    // Insert new user
+    // Insert into user_profiles
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert([{
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }]);
+      
+    if (profileError) {
+      console.error("Error creating user profile:", profileError);
+    }
+    
+    // Insert new user (for backwards compatibility)
     const { error } = await supabase
       .from('users')
       .insert([{
@@ -803,6 +922,22 @@ export const addUser = async (user: User): Promise<User> => {
 
 export const updateUser = async (user: User): Promise<User> => {
   try {
+    // Update user_profiles
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .update({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+      
+    if (profileError) {
+      console.error("Error updating user profile:", profileError);
+    }
+    
+    // Update users table (for backwards compatibility)
     const { error } = await supabase
       .from('users')
       .update({
@@ -826,6 +961,10 @@ export const updateUser = async (user: User): Promise<User> => {
 
 export const deleteUser = async (id: string): Promise<void> => {
   try {
+    // The user_profiles table should be automatically cleaned up due to ON DELETE CASCADE
+    // when the auth.users record is deleted
+    
+    // Delete from users table (for backwards compatibility)
     const { error } = await supabase
       .from('users')
       .delete()
@@ -868,7 +1007,23 @@ export const loginUser = async (email: string, password: string): Promise<User |
       return null;
     }
     
-    // Get user from our users table
+    // Try to get user from profiles table first
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+      
+    if (profileData && !profileError) {
+      return {
+        id: profileData.id,
+        name: profileData.name || 'Unknown',
+        email: profileData.email || data.user.email || '',
+        role: (profileData.role as 'nurse' | 'doctor' | 'admin') || 'nurse'
+      };
+    }
+    
+    // If no profile, check the users table
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -876,7 +1031,13 @@ export const loginUser = async (email: string, password: string): Promise<User |
       .single();
     
     if (userError) {
-      throw userError;
+      // Create a basic profile if one doesn't exist
+      return {
+        id: data.user.id,
+        name: data.user.user_metadata?.name || 'User',
+        email: data.user.email || '',
+        role: 'nurse'
+      };
     }
     
     return userData ? mapUserFromDB(userData) : null;
