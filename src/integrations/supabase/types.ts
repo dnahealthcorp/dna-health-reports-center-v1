@@ -233,6 +233,7 @@ export type Database = {
       patient_form_data: {
         Row: {
           diagnosis: string | null
+          doctor_name: string | null
           doctor_notes: string | null
           exercise_detail: Json | null
           exercise_recommendations: string | null
@@ -252,6 +253,7 @@ export type Database = {
         }
         Insert: {
           diagnosis?: string | null
+          doctor_name?: string | null
           doctor_notes?: string | null
           exercise_detail?: Json | null
           exercise_recommendations?: string | null
@@ -271,6 +273,7 @@ export type Database = {
         }
         Update: {
           diagnosis?: string | null
+          doctor_name?: string | null
           doctor_notes?: string | null
           exercise_detail?: Json | null
           exercise_recommendations?: string | null

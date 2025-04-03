@@ -34,38 +34,42 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       todayStart.setHours(0, 0, 0, 0);
       const todayISOStart = todayStart.toISOString();
       
-      // Delete any PDF reference created today for this patient
-      const { error: deleteError } = await supabase
-        .from('pdf_files')
-        .delete()
-        .eq('patient_id', patient.id)
-        .gte('created_at', todayISOStart);
-        
-      if (deleteError) {
-        console.error("Error deleting existing PDF references:", deleteError);
-      }
-      
-      // Now save the new reference with the correct filename
-      await savePDFReference(patient.id, fileName);
-      
-      // Update the patient's pdf_exported flag to true and set status to completed
-      const updatedPatient = {
-        ...patient,
-        pdf_exported: true,
-        status: 'completed' as 'completed',
-        lastUpdated: new Date().toISOString()
-      };
-      
-      await updatePatient(updatedPatient);
-      
-      // Call update_patient_statuses database function to update status immediately
       try {
-        const { error } = await supabase.rpc('update_patient_statuses');
-        if (error) {
-          console.error("Error calling update_patient_statuses:", error);
+        // Delete any PDF reference created today for this patient
+        const { error: deleteError } = await supabase
+          .from('pdf_files')
+          .delete()
+          .eq('patient_id', patient.id)
+          .gte('created_at', todayISOStart);
+          
+        if (deleteError) {
+          console.error("Error deleting existing PDF references:", deleteError);
         }
-      } catch (funcError) {
-        console.error("Failed to call update_patient_statuses function:", funcError);
+        
+        // Now save the new reference with the correct filename
+        await savePDFReference(patient.id, fileName);
+        
+        // Update the patient's pdf_exported flag to true and set status to completed
+        const updatedPatient = {
+          ...patient,
+          pdf_exported: true,
+          status: 'completed' as 'completed',
+          lastUpdated: new Date().toISOString()
+        };
+        
+        await updatePatient(updatedPatient);
+        
+        // Call update_patient_statuses database function to update status immediately
+        try {
+          const { error } = await supabase.rpc('update_patient_statuses');
+          if (error) {
+            console.error("Error calling update_patient_statuses:", error);
+          }
+        } catch (funcError) {
+          console.error("Failed to call update_patient_statuses function:", funcError);
+        }
+      } catch (err) {
+        console.error("Error updating patient or PDF references:", err);
       }
     } else {
       // Fallback filename if no patient is found - should rarely happen in normal operation
@@ -84,7 +88,8 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       currentUser: currentUser?.name,
       pdfExported: patient?.pdf_exported,
       status: patient?.status,
-      fileName: fileName
+      fileName: fileName,
+      doctorName: formData.doctorName || "Not specified"
     });
     
     return fileName;

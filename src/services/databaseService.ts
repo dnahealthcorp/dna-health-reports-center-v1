@@ -1,4 +1,3 @@
-
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, User, PDFFile, Json,
@@ -449,7 +448,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       isFollowUp
     );
     
-    // Fix: Safely handle doctor_name by checking if it exists in the data object
+    // Safely handle doctor_name by checking if it exists in the data object
     // If it doesn't exist or is null, default to empty string
     const doctorName = data && 'doctor_name' in data ? (data.doctor_name as string) || '' : '';
     
@@ -520,7 +519,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       exercise_recommendations: formData.exerciseRecommendations,
       nurse_notes: formData.nurseNotes,
       doctor_notes: formData.doctorNotes,
-      doctor_name: formData.doctorName,
+      doctor_name: formData.doctorName || '',  // Ensure we save doctor_name correctly
       diagnosis: formData.diagnosis,
       treatment_plan: formData.treatmentPlan,
       show_insulin_resistance: formData.showInsulinResistance,
