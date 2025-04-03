@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -79,7 +78,6 @@ const PatientForm = () => {
         setMedications(medsData);
         setCurrentUser(userData);
         
-        // If formDataResult is null, initialize with default structure
         if (!formDataResult) {
           const defaultFormData: PatientFormData = {
             patientInfo: {
@@ -130,7 +128,6 @@ const PatientForm = () => {
           };
           setFormData(defaultFormData);
         } else {
-          // Initialize any missing fields in the existing form data
           const updatedFormData = {
             ...formDataResult,
             summaryFindings: {

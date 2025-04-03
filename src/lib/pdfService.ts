@@ -103,12 +103,12 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           console.error("Failed to call update_patient_statuses function:", funcError);
         }
         
-        // Download the PDF without opening it in a new tab
-        // Use one method only for download to prevent duplicate downloads
+        // Always trigger a download of the newly generated PDF
         downloadPDF(pdfBlob, fileName);
         
       } catch (err) {
         console.error("Error updating patient or PDF references:", err);
+        throw err;
       }
     } else {
       // Fallback filename if no patient is found - should rarely happen in normal operation
@@ -135,7 +135,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   }
 };
 
-// Helper function to download PDF to prevent duplicate downloads
+// Helper function to download PDF 
 const downloadPDF = (pdfBlob: Blob, fileName: string): void => {
   try {
     // Create a blob URL from the generated PDF blob directly

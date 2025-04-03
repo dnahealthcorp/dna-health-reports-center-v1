@@ -63,7 +63,7 @@ export const PatientHeader = ({
         created_at: item.created_at,
         created_by: item.created_by || "Unknown",
         url: item.url,
-        // Add aliases for compatibility with the rest of the code
+        // Aliases for compatibility with the rest of the code
         fileName: item.file_name,
         patientId: item.patient_id,
         createdAt: item.created_at,
