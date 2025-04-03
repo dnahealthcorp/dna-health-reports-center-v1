@@ -949,3 +949,23 @@ export const generateMRN = (): string => {
     return `MRN-${Date.now()}`;
   }
 };
+
+export async function getAllDoctors(): Promise<User[]> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', 'doctor')
+      .order('name');
+    
+    if (error) {
+      console.error('Error fetching doctors:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching doctors:', error);
+    return [];
+  }
+}

@@ -547,15 +547,55 @@ const PatientForm = () => {
         />
 
         <Tabs defaultValue="vitals" className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-          <TabsList className="mb-6 flex flex-wrap">
-            <TabsTrigger value="vitals">Vitals</TabsTrigger>
-            <TabsTrigger value="summaryFindings">Summary Findings</TabsTrigger>
-            <TabsTrigger value="insulinResistance">Insulin Resistance</TabsTrigger>
-            <TabsTrigger value="cardiovascularRisk">Cardiovascular Risk</TabsTrigger>
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="supplements">Supplements</TabsTrigger>
-            <TabsTrigger value="docRecommendations">Doctor Recommendations</TabsTrigger>
-            <TabsTrigger value="followUps">Follow-ups</TabsTrigger>
+          <TabsList className="mb-6 flex flex-wrap w-full bg-gray-300 p-1 rounded-lg">
+            <TabsTrigger 
+              value="vitals" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Vitals
+            </TabsTrigger>
+            <TabsTrigger 
+              value="summaryFindings" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Summary Findings
+            </TabsTrigger>
+            <TabsTrigger 
+              value="insulinResistance" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Insulin Resistance
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cardiovascularRisk" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Cardiovascular Risk
+            </TabsTrigger>
+            <TabsTrigger 
+              value="medications" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Medications
+            </TabsTrigger>
+            <TabsTrigger 
+              value="supplements" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Supplements
+            </TabsTrigger>
+            <TabsTrigger 
+              value="docRecommendations" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Doctor Recommendations
+            </TabsTrigger>
+            <TabsTrigger 
+              value="followUps" 
+              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
+            >
+              Follow-ups
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="vitals" className="mt-0">

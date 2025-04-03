@@ -1,10 +1,21 @@
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { PatientFormData } from "@/types";
+import { PatientFormData, User } from "@/types";
 import { ClipboardCheck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getAllDoctors } from "@/services/databaseService";
 
 interface DoctorRecommendationsTabProps {
   formData: PatientFormData;
@@ -17,6 +28,29 @@ export const DoctorRecommendationsTab = ({
   handleInputChange,
   canEditDoctorSection
 }: DoctorRecommendationsTabProps) => {
+  const [doctors, setDoctors] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setIsLoading(true);
+        const doctorsData = await getAllDoctors();
+        setDoctors(doctorsData);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
+
+  const handleDoctorSelect = (value: string) => {
+    handleInputChange("", "doctorName", value);
+  };
+
   return (
     <div className="grid gap-6">
       {/* Doctor Name Field */}
@@ -30,14 +64,36 @@ export const DoctorRecommendationsTab = ({
         <CardContent>
           <div>
             <Label htmlFor="doctorName">Doctor Name (will appear in the signature)</Label>
-            <Input
-              id="doctorName"
-              value={formData.doctorName || ''}
-              onChange={(e) => handleInputChange("", "doctorName", e.target.value)}
-              disabled={!canEditDoctorSection}
-              placeholder="Dr. Full Name"
-              className="mt-1"
-            />
+            <div className="mt-1 relative">
+              <Select
+                value={formData.doctorName || ''}
+                onValueChange={handleDoctorSelect}
+                disabled={!canEditDoctorSection || isLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a doctor" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="w-full bg-white">
+                  <SelectGroup>
+                    <SelectLabel>Doctors</SelectLabel>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.name}>
+                        {doctor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {!formData.doctorName && canEditDoctorSection && (
+                <Input
+                  id="customDoctorName"
+                  value={formData.doctorName || ''}
+                  onChange={(e) => handleInputChange("", "doctorName", e.target.value)}
+                  className="mt-2"
+                  placeholder="Or enter custom name"
+                />
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
