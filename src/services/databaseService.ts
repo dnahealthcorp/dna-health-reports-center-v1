@@ -299,14 +299,18 @@ const createEmptyPatientFormData = async (patientId: string): Promise<void> => {
       },
       summaryFindings: {
         glucoseMetabolism: '',
+        proteins: '',
         lipidProfile: '',
         inflammation: '',
-        uricAcid: '',
-        vitamins: '',
-        minerals: '',
+        metabolic: '',
+        homocysteine: '',
+        vitaminsMinerals: '',
+        ironProfile: '',
         sexHormones: '',
-        renalLiverFunction: '',
-        cancerMarkers: ''
+        kidneyFunctionElectrolytes: '',
+        liverFunctions: '',
+        tumorMarkers: '',
+        bloodCounts: ''
       },
       medications: [],
       supplements: [],
@@ -315,17 +319,19 @@ const createEmptyPatientFormData = async (patientId: string): Promise<void> => {
       doctorNotes: '',
       diagnosis: '',
       treatmentPlan: '',
+      doctorName: '',
       showInsulinResistance: false,
       nutritionRecommendations: {
-        nutritionalPlan: '',
+        nutritionalStyle: '',
         proteinConsumption: '',
-        omissions: '',
+        eatingWindow: '',
+        limitations: '',
         additionalConsiderations: ''
       },
       exerciseDetail: {
         focusOn: '',
         walking: '',
-        avoid: '',
+        restRecovery: '',
         tracking: ''
       },
       sleepStressRecommendations: {
@@ -372,27 +378,32 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
     
     const defaultSummaryFindings: SummaryFinding = {
       glucoseMetabolism: '',
+      proteins: '',
       lipidProfile: '',
       inflammation: '',
-      uricAcid: '',
-      vitamins: '',
-      minerals: '',
+      metabolic: '',
+      homocysteine: '',
+      vitaminsMinerals: '',
+      ironProfile: '',
       sexHormones: '',
-      renalLiverFunction: '',
-      cancerMarkers: ''
+      kidneyFunctionElectrolytes: '',
+      liverFunctions: '',
+      tumorMarkers: '',
+      bloodCounts: ''
     };
     
     const defaultNutritionRecs: NutritionRecommendation = {
-      nutritionalPlan: '',
+      nutritionalStyle: '',
       proteinConsumption: '',
-      omissions: '',
+      eatingWindow: '',
+      limitations: '',
       additionalConsiderations: ''
     };
     
     const defaultExerciseDetail: ExerciseRecommendation = {
       focusOn: '',
       walking: '',
-      avoid: '',
+      restRecovery: '',
       tracking: ''
     };
     
@@ -453,6 +464,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       doctorNotes: data.doctor_notes || '',
       diagnosis: data.diagnosis || '',
       treatmentPlan: data.treatment_plan || '',
+      doctorName: data.doctor_name || '',
       showInsulinResistance: Boolean(data.show_insulin_resistance),
       nutritionRecommendations,
       exerciseDetail,
@@ -503,6 +515,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       exercise_recommendations: formData.exerciseRecommendations,
       nurse_notes: formData.nurseNotes,
       doctor_notes: formData.doctorNotes,
+      doctor_name: formData.doctorName,
       diagnosis: formData.diagnosis,
       treatment_plan: formData.treatmentPlan,
       show_insulin_resistance: formData.showInsulinResistance,

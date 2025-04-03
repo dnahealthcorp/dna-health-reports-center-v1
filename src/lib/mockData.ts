@@ -1,3 +1,4 @@
+
 import { 
   Medication, Patient, User, SummaryFinding, 
   NutritionRecommendation, ExerciseRecommendation, 
@@ -175,27 +176,32 @@ export const getPatientFormData = (patientId: string) => {
   // Initialize empty SummaryFinding object
   const emptySummaryFinding: SummaryFinding = {
     glucoseMetabolism: '',
+    proteins: '',
     lipidProfile: '',
     inflammation: '',
-    uricAcid: '',
-    vitamins: '',
-    minerals: '',
+    metabolic: '',
+    homocysteine: '',
+    vitaminsMinerals: '',
+    ironProfile: '',
     sexHormones: '',
-    renalLiverFunction: '',
-    cancerMarkers: ''
+    kidneyFunctionElectrolytes: '',
+    liverFunctions: '',
+    tumorMarkers: '',
+    bloodCounts: ''
   };
 
   const emptyNutritionRecommendation: NutritionRecommendation = {
-    nutritionalPlan: '',
+    nutritionalStyle: '',
     proteinConsumption: '',
-    omissions: '',
+    eatingWindow: '',
+    limitations: '',
     additionalConsiderations: ''
   };
 
   const emptyExerciseRecommendation: ExerciseRecommendation = {
     focusOn: '',
     walking: '',
-    avoid: '',
+    restRecovery: '',
     tracking: ''
   };
 
@@ -246,6 +252,7 @@ export const getPatientFormData = (patientId: string) => {
     doctorNotes: "",
     diagnosis: "",
     treatmentPlan: "",
+    doctorName: "",
     showInsulinResistance: false,
     nutritionRecommendations: emptyNutritionRecommendation,
     exerciseDetail: emptyExerciseRecommendation,
