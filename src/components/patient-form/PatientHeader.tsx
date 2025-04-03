@@ -129,7 +129,7 @@ export const PatientHeader = ({
       // Clean up
       setTimeout(() => {
         URL.revokeObjectURL(link.href);
-      }, 100);
+      }, 1000);
       
       toast({
         title: "Download started",
