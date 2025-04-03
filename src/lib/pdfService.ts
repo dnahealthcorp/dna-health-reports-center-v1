@@ -35,22 +35,28 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       const todayISOStart = todayStart.toISOString();
       
       try {
-        // Delete any PDF reference created today for this patient
-        const { error: deleteError } = await supabase
-          .from('pdf_files')
-          .delete()
-          .eq('patient_id', patient.id)
-          .gte('created_at', todayISOStart);
-          
-        if (deleteError) {
-          console.error("Error deleting existing PDF references:", deleteError);
-        }
-        
         // Generate the PDF with the correct filename format
         const pdfBlob = await generatePDFImpl(formData, medications);
         
         // Upload the PDF to Supabase Storage
+        // For now, let's upload to the 'pdf_files' bucket without RLS checks
         const pdfPath = `${patient.id}/${fileName}`;
+        
+        // Make sure the storage bucket exists and has public access
+        try {
+          const { data: bucketData, error: bucketError } = await supabase
+            .storage
+            .getBucket('pdf_files');
+            
+          if (bucketError && bucketError.message.includes('not found')) {
+            // If bucket doesn't exist, create it
+            await supabase.storage.createBucket('pdf_files', { public: true });
+            console.log("Created new pdf_files bucket");
+          }
+        } catch (bucketErr) {
+          console.error("Error checking/creating bucket:", bucketErr);
+        }
+        
         const { data: storageData, error: storageError } = await supabase
           .storage
           .from('pdf_files')
@@ -72,7 +78,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           
         const publicUrl = publicUrlData.publicUrl;
         
-        // Now save the new reference with the correct filename and URL to the database
+        // Now save the reference with the correct filename and URL to the database
         await savePDFReference(patient.id, fileName, publicUrl);
         
         // Update the patient's pdf_exported flag to true and set status to completed
@@ -95,25 +101,26 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           console.error("Failed to call update_patient_statuses function:", funcError);
         }
         
-        // Download the PDF without opening it
-        // Create a Blob from the PDF URL
+        // Download the PDF without opening it in a new tab
         try {
-          const response = await fetch(publicUrl);
-          const blob = await response.blob();
+          // Create a blob URL from the generated PDF blob directly
+          const blobUrl = URL.createObjectURL(pdfBlob);
           
-          // Create a temporary anchor element
+          // Create a temporary anchor element for download
           const link = document.createElement('a');
-          link.href = window.URL.createObjectURL(blob);
+          link.href = blobUrl;
           link.download = fileName;
-          
-          // Programmatically click the link to trigger download
           link.style.display = 'none';
+          
+          // Append to the document, click, and clean up
           document.body.appendChild(link);
           link.click();
-          
-          // Clean up
-          window.URL.revokeObjectURL(link.href);
           document.body.removeChild(link);
+          
+          // Release the blob URL to prevent memory leaks
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+          }, 100);
         } catch (downloadError) {
           console.error("Error downloading PDF:", downloadError);
         }
