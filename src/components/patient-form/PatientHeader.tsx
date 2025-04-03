@@ -107,18 +107,30 @@ export const PatientHeader = ({
   
   const handleDownloadPDF = async (pdfFile: PDFFile) => {
     try {
+      // Append timestamp to avoid browser caching
+      const timestamp = Date.now();
+      const modifiedUrl = pdfFile.url.includes('?') 
+        ? `${pdfFile.url}&t=${timestamp}` 
+        : `${pdfFile.url}?t=${timestamp}`;
+      
       // Fetch the file from the URL
-      const response = await fetch(pdfFile.url);
+      const response = await fetch(modifiedUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
       }
       
       const blob = await response.blob();
       
+      // Create a dynamic filename with timestamp to prevent caching
+      const filenameParts = pdfFile.file_name.split('.');
+      const extension = filenameParts.pop();
+      const baseFilename = filenameParts.join('.');
+      const downloadFilename = `${baseFilename}_${timestamp}.${extension}`;
+      
       // Create a temporary anchor element
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = pdfFile.file_name;
+      link.download = downloadFilename;
       link.style.display = 'none';
       
       // Programmatically click the link to trigger download
@@ -129,7 +141,7 @@ export const PatientHeader = ({
       // Clean up
       setTimeout(() => {
         URL.revokeObjectURL(link.href);
-      }, 1000);
+      }, 2000); // Longer timeout to ensure download starts
       
       toast({
         title: "Download started",

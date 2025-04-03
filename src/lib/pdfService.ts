@@ -104,7 +104,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         }
         
         // Always trigger a download of the newly generated PDF
-        await downloadPDF(pdfBlob, fileName);
+        // Add timestamp to file name to force browser to download a new copy every time
+        const downloadFileName = `${fileName.split('.')[0]}_${Date.now()}.pdf`;
+        await downloadPDF(pdfBlob, downloadFileName);
         
         return fileName;
       } catch (err) {
@@ -157,7 +159,7 @@ const downloadPDF = async (pdfBlob: Blob, fileName: string): Promise<void> => {
     // to ensure download has started
     setTimeout(() => {
       URL.revokeObjectURL(blobUrl);
-    }, 1000); // Longer timeout to ensure download starts
+    }, 2000); // Longer timeout to ensure download starts
   } catch (downloadError) {
     console.error("Error downloading PDF:", downloadError);
   }
