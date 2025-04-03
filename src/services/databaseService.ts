@@ -448,6 +448,10 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       isFollowUp
     );
     
+    // Fix: Safely handle doctor_name by checking if it exists in the data object
+    // If it doesn't exist or is null, default to empty string
+    const doctorName = 'doctor_name' in data ? data.doctor_name || '' : '';
+    
     const formData: PatientFormData = {
       patientInfo: {
         name: '',
@@ -464,7 +468,7 @@ export const getPatientFormData = async (patientId: string): Promise<PatientForm
       doctorNotes: data.doctor_notes || '',
       diagnosis: data.diagnosis || '',
       treatmentPlan: data.treatment_plan || '',
-      doctorName: data.doctor_name || '',
+      doctorName: doctorName,
       showInsulinResistance: Boolean(data.show_insulin_resistance),
       nutritionRecommendations,
       exerciseDetail,
