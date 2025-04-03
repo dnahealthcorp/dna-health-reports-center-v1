@@ -18,10 +18,10 @@ export interface Patient {
 
 export interface PDFFile {
   id: string;
-  patientId: string;
+  patient_id: string;
   fileName: string;
-  createdAt: string;
-  createdBy: string;
+  created_at: string;
+  created_by: string;
   url: string;
 }
 

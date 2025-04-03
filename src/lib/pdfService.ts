@@ -72,7 +72,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           
         const publicUrl = publicUrlData.publicUrl;
         
-        // Now save the new reference with the correct filename and URL
+        // Now save the new reference with the correct filename and URL to the database
         await savePDFReference(patient.id, fileName, publicUrl);
         
         // Update the patient's pdf_exported flag to true and set status to completed
@@ -95,13 +95,28 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           console.error("Failed to call update_patient_statuses function:", funcError);
         }
         
-        // Download the PDF by opening the URL in a new window
-        const link = document.createElement('a');
-        link.href = publicUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Download the PDF without opening it
+        // Create a Blob from the PDF URL
+        try {
+          const response = await fetch(publicUrl);
+          const blob = await response.blob();
+          
+          // Create a temporary anchor element
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = fileName;
+          
+          // Programmatically click the link to trigger download
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          
+          // Clean up
+          window.URL.revokeObjectURL(link.href);
+          document.body.removeChild(link);
+        } catch (downloadError) {
+          console.error("Error downloading PDF:", downloadError);
+        }
       } catch (err) {
         console.error("Error updating patient or PDF references:", err);
       }

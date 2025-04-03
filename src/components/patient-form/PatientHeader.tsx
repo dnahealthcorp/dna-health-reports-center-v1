@@ -1,8 +1,17 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Save, Loader2 } from "lucide-react";
-import { Patient } from "@/types";
+import { ArrowLeft, Download, Save, Loader2, FileText } from "lucide-react";
+import { Patient, PDFFile } from "@/types";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PatientHeaderProps {
   patient: Patient;
@@ -20,6 +29,74 @@ export const PatientHeader = ({
   isExportingPDF = false
 }: PatientHeaderProps) => {
   const navigate = useNavigate();
+  const [pdfFiles, setPdfFiles] = useState<PDFFile[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchPDFFiles = async () => {
+      if (!patient?.id) return;
+      
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('pdf_files')
+          .select('*')
+          .eq('patient_id', patient.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching PDF files:", error);
+          return;
+        }
+        
+        setPdfFiles(data || []);
+      } catch (error) {
+        console.error("Error fetching PDF files:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPDFFiles();
+    
+    // Subscribe to changes in the pdf_files table for this patient
+    const channel = supabase
+      .channel('pdf-files-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'pdf_files',
+        filter: `patient_id=eq.${patient?.id}`
+      }, (payload) => {
+        console.log('PDF files updated:', payload);
+        fetchPDFFiles();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [patient?.id]);
+  
+  const handleDownloadPDF = async (pdfFile: PDFFile) => {
+    try {
+      // Create a temporary anchor element
+      const link = document.createElement('a');
+      link.href = pdfFile.url;
+      link.download = pdfFile.fileName;
+      link.target = '_blank';
+      
+      // Programmatically click the link to trigger download
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+    }
+  };
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
@@ -43,6 +120,38 @@ export const PatientHeader = ({
         </div>
       </div>
       <div className="flex gap-3">
+        {pdfFiles.length > 0 ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <FileText className="mr-2 h-4 w-4" />
+                      PDF Files ({pdfFiles.length})
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {pdfFiles.map((file) => (
+                      <DropdownMenuItem 
+                        key={file.id} 
+                        onClick={() => handleDownloadPDF(file)}
+                        className="cursor-pointer"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        {file.fileName}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download previous PDF exports</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : null}
+        
         <Button 
           variant="outline" 
           onClick={handleExportPDF} 
