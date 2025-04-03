@@ -23,7 +23,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     // Format the filename according to requirements: patient's_name's Health Screening - Date
     // Handle apostrophe formatting for names ending with 's'
     let fileName = "";
-    const uniqueID = Date.now(); // Add this for unique filenames
+    const uniqueID = uuidv4().slice(0, 8); // Use UUID for truly unique identifiers
     
     if (patient) {
       const patientName = patient.name.replace(/\s+/g, '_');
