@@ -28,18 +28,11 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       const apostrophe = patientName.endsWith('s') ? "'" : "'s";
       fileName = `${patientName}${apostrophe} Health Screening - ${currentDate}.pdf`;
       
-      // First, check and remove any entries from today with different naming patterns
-      // This prevents the duplicate entries issue
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayISOStart = todayStart.toISOString();
-      
       try {
         // Generate the PDF with the correct filename format
         const pdfBlob = await generatePDFImpl(formData, medications);
         
         // Upload the PDF to Supabase Storage
-        // For now, let's upload to the 'pdf_files' bucket without RLS checks
         const pdfPath = `${patient.id}/${fileName}`;
         
         // Make sure the storage bucket exists and has public access
@@ -52,6 +45,15 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
             // If bucket doesn't exist, create it
             await supabase.storage.createBucket('pdf_files', { public: true });
             console.log("Created new pdf_files bucket");
+          } else if (bucketData && !bucketData.public) {
+            // If bucket exists but isn't public, make it public
+            const { error: updateBucketError } = await supabase
+              .storage
+              .updateBucket('pdf_files', { public: true });
+              
+            if (updateBucketError) {
+              console.error("Error updating bucket to public:", updateBucketError);
+            }
           }
         } catch (bucketErr) {
           console.error("Error checking/creating bucket:", bucketErr);
@@ -102,28 +104,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         }
         
         // Download the PDF without opening it in a new tab
-        try {
-          // Create a blob URL from the generated PDF blob directly
-          const blobUrl = URL.createObjectURL(pdfBlob);
-          
-          // Create a temporary anchor element for download
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = fileName;
-          link.style.display = 'none';
-          
-          // Append to the document, click, and clean up
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          // Release the blob URL to prevent memory leaks
-          setTimeout(() => {
-            URL.revokeObjectURL(blobUrl);
-          }, 100);
-        } catch (downloadError) {
-          console.error("Error downloading PDF:", downloadError);
-        }
+        // Use one method only for download to prevent duplicate downloads
+        downloadPDF(pdfBlob, fileName);
+        
       } catch (err) {
         console.error("Error updating patient or PDF references:", err);
       }
@@ -149,5 +132,31 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
     console.error("Error generating PDF:", error);
     // Return a default filename in case of error
     return `Error_Report_${Date.now()}.pdf`;
+  }
+};
+
+// Helper function to download PDF to prevent duplicate downloads
+const downloadPDF = (pdfBlob: Blob, fileName: string): void => {
+  try {
+    // Create a blob URL from the generated PDF blob directly
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    
+    // Create a temporary anchor element for download
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    
+    // Append to the document, click, and clean up
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Release the blob URL to prevent memory leaks
+    setTimeout(() => {
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
+  } catch (downloadError) {
+    console.error("Error downloading PDF:", downloadError);
   }
 };

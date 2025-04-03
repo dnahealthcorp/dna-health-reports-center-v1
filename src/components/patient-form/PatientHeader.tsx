@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 interface PatientHeaderProps {
   patient: Patient;
@@ -31,47 +32,58 @@ export const PatientHeader = ({
   const navigate = useNavigate();
   const [pdfFiles, setPdfFiles] = useState<PDFFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchPDFFiles = async () => {
-      if (!patient?.id) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('pdf_files')
-          .select('*')
-          .eq('patient_id', patient.id)
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching PDF files:", error);
-          return;
-        }
-        
-        // Transform the data to match our PDFFile interface
-        const transformedData: PDFFile[] = (data || []).map(item => ({
-          id: item.id,
-          patient_id: item.patient_id,
-          file_name: item.file_name,
-          created_at: item.created_at,
-          created_by: item.created_by || "Unknown",
-          url: item.url,
-          // Add aliases for compatibility with the rest of the code
-          fileName: item.file_name,
-          patientId: item.patient_id,
-          createdAt: item.created_at,
-          createdBy: item.created_by || "Unknown"
-        }));
-        
-        setPdfFiles(transformedData);
-      } catch (error) {
-        console.error("Error fetching PDF files:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPDFFiles = async () => {
+    if (!patient?.id) return;
     
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('pdf_files')
+        .select('*')
+        .eq('patient_id', patient.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error("Error fetching PDF files:", error);
+        toast({
+          title: "Error",
+          description: "Could not load PDF files",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Transform the data to match our PDFFile interface
+      const transformedData: PDFFile[] = (data || []).map(item => ({
+        id: item.id,
+        patient_id: item.patient_id,
+        file_name: item.file_name,
+        created_at: item.created_at,
+        created_by: item.created_by || "Unknown",
+        url: item.url,
+        // Add aliases for compatibility with the rest of the code
+        fileName: item.file_name,
+        patientId: item.patient_id,
+        createdAt: item.created_at,
+        createdBy: item.created_by || "Unknown"
+      }));
+      
+      setPdfFiles(transformedData);
+    } catch (error) {
+      console.error("Error fetching PDF files:", error);
+      toast({
+        title: "Error",
+        description: "Could not load PDF files",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchPDFFiles();
     
     // Subscribe to changes in the pdf_files table for this patient
@@ -95,21 +107,41 @@ export const PatientHeader = ({
   
   const handleDownloadPDF = async (pdfFile: PDFFile) => {
     try {
+      // Fetch the file from the URL
+      const response = await fetch(pdfFile.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      
       // Create a temporary anchor element
       const link = document.createElement('a');
-      link.href = pdfFile.url;
-      link.download = pdfFile.file_name; // Use file_name instead of fileName
-      link.target = '_blank';
+      link.href = URL.createObjectURL(blob);
+      link.download = pdfFile.file_name;
+      link.style.display = 'none';
       
       // Programmatically click the link to trigger download
-      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       
       // Clean up
-      document.body.removeChild(link);
+      setTimeout(() => {
+        URL.revokeObjectURL(link.href);
+      }, 100);
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${pdfFile.file_name}`,
+      });
     } catch (error) {
       console.error("Error downloading PDF:", error);
+      toast({
+        title: "Error",
+        description: "Could not download the PDF file",
+        variant: "destructive"
+      });
     }
   };
 
@@ -146,7 +178,7 @@ export const PatientHeader = ({
                       PDF Files ({pdfFiles.length})
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
                     {pdfFiles.map((file) => (
                       <DropdownMenuItem 
                         key={file.id} 
