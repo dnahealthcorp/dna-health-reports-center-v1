@@ -97,13 +97,14 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           return fileName;
         }
         
-        // Get the public URL for the file
+        // Get the public URL for the file with a cache-busting parameter
         const { data: publicUrlData } = supabase
           .storage
           .from('pdf_files')
           .getPublicUrl(pdfPath);
           
-        const publicUrl = publicUrlData.publicUrl;
+        // Add a timestamp to the URL to prevent caching
+        const publicUrl = publicUrlData.publicUrl + `?t=${uniqueID}`;
         
         // Now save the reference with the unique filename and URL to the database
         await savePDFReference(patient.id, fileName, publicUrl);

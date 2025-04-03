@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Save, Loader2, FileText } from "lucide-react";
@@ -53,6 +54,8 @@ export const PatientHeader = ({
         });
         return;
       }
+      
+      console.log("PDF files fetched:", data?.length || 0, "files");
       
       // Transform the data to match our PDFFile interface
       const transformedData: PDFFile[] = (data || []).map(item => ({
@@ -178,7 +181,12 @@ export const PatientHeader = ({
         </div>
       </div>
       <div className="flex gap-3">
-        {pdfFiles.length > 0 ? (
+        {loading ? (
+          <Button variant="outline" disabled>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading files...
+          </Button>
+        ) : pdfFiles.length > 0 ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -208,7 +216,12 @@ export const PatientHeader = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        ) : null}
+        ) : (
+          <Button variant="outline" disabled>
+            <FileText className="mr-2 h-4 w-4" />
+            No PDF Files
+          </Button>
+        )}
         
         <Button 
           variant="outline" 
