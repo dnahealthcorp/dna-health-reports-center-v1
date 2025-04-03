@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,7 +75,6 @@ const UserManagement = () => {
   useEffect(() => {
     const checkAdminAndLoadUsers = async () => {
       try {
-        // Check if current user is admin
         const user = await getCurrentUser();
         if (!user || user.role !== 'admin') {
           toast({
@@ -91,7 +89,6 @@ const UserManagement = () => {
         
         setIsAdmin(true);
         
-        // Load users
         const fetchedUsers = await getUsers();
         setUsers(fetchedUsers);
       } catch (error) {
@@ -154,6 +151,7 @@ const UserManagement = () => {
   };
 
   const handleCreateUser = async () => {
+    console.log("HandleCreateUser function called");
     try {
       if (!formData.name || !formData.email) {
         toast({
@@ -171,9 +169,9 @@ const UserManagement = () => {
         role: formData.role
       };
 
+      console.log("Attempting to add user:", newUser);
       await addUser(newUser);
       
-      // Refresh user list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
       
@@ -214,7 +212,6 @@ const UserManagement = () => {
 
       await updateUser(updatedUser);
       
-      // Refresh user list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
       
@@ -248,7 +245,6 @@ const UserManagement = () => {
 
       await deleteUser(currentUser.id);
       
-      // Refresh user list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
       
@@ -374,7 +370,6 @@ const UserManagement = () => {
         </Card>
       </div>
 
-      {/* Create User Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -428,10 +423,7 @@ const UserManagement = () => {
             </Button>
             <Button 
               type="button" 
-              onClick={() => {
-                console.log("Create user button clicked");
-                handleCreateUser();
-              }}
+              onClick={handleCreateUser}
               className="bg-green-500 hover:bg-green-600"
             >
               <Check className="mr-2 h-4 w-4" /> Create User
@@ -440,7 +432,6 @@ const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -499,7 +490,6 @@ const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete User Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

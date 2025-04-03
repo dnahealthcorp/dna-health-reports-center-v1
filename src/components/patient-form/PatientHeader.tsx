@@ -33,7 +33,7 @@ export const PatientHeader = ({
   const [pdfFiles, setPdfFiles] = useState<PDFFile[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-
+  
   // Force refetching PDF files whenever this changes
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
@@ -95,9 +95,10 @@ export const PatientHeader = ({
     fetchPDFFiles();
     
     // Set up a refresh interval to make sure we always have the latest data
+    // Using 5 minutes (300000 ms) as requested
     const refreshInterval = setInterval(() => {
       setRefetchTrigger(prev => prev + 1);
-    }, 5000); // Refresh every 5 seconds
+    }, 300000); // 5 minutes
     
     // Subscribe to changes in the pdf_files table for this patient
     const channel = supabase

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, ExternalLink } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { Medication, PatientFormData } from "@/types";
 
 interface MedicationsTabProps {
@@ -89,22 +89,7 @@ export const MedicationsTab = ({
                   </div>
                 </div>
                 
-                {/* Show medication information link if available */}
-                {med.medicationId && (
-                  <div className="col-span-full mt-2">
-                    {medications.find(m => m.id === med.medicationId)?.link && (
-                      <a 
-                        href={medications.find(m => m.id === med.medicationId)?.link || "#"} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary text-sm flex items-center gap-1"
-                      >
-                        <ExternalLink size={14} />
-                        View medication information
-                      </a>
-                    )}
-                  </div>
-                )}
+                {/* Removed the medication information links as requested */}
               </div>
             ))}
           </div>

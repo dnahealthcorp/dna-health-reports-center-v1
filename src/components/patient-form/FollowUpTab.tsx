@@ -4,7 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PatientFormData } from "@/types";
-import { CalendarClock, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface FollowUpTabProps {
   formData: PatientFormData;
@@ -22,6 +31,12 @@ export const FollowUpTab = ({
   canEditDoctorSection
 }: FollowUpTabProps) => {
   const followUps = formData.followUps || [];
+  
+  const handleDateSelect = (index: number, date: Date | undefined) => {
+    if (date) {
+      handleFollowUpChange(index, "date", format(date, "yyyy-MM-dd"));
+    }
+  };
   
   return (
     <Card>
@@ -59,12 +74,30 @@ export const FollowUpTab = ({
                   </div>
                   <div>
                     <Label htmlFor={`followUp-date-${index}`}>Date</Label>
-                    <Input
-                      id={`followUp-date-${index}`}
-                      value={followUp.date}
-                      onChange={(e) => handleFollowUpChange(index, "date", e.target.value)}
-                      disabled={!canEditDoctorSection}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !followUp.date && "text-muted-foreground"
+                          )}
+                          disabled={!canEditDoctorSection}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {followUp.date ? format(new Date(followUp.date), "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={followUp.date ? new Date(followUp.date) : undefined}
+                          onSelect={(date) => handleDateSelect(index, date)}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 {canEditDoctorSection && (
