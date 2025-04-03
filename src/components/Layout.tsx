@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LucideHome, Users, LogOut, Menu, X, Pill, Settings } from "lucide-react";
+import { LucideHome, Users, LogOut, Menu, X, Pill, Settings, UserCog } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getCurrentUser, logoutUser } from "@/services/databaseService";
 import { User } from "@/types";
@@ -93,6 +93,13 @@ const Layout = ({
       label: "Settings",
       href: "/settings",
       icon: Settings
+    });
+    
+    // Add User Management for admins
+    navItems.push({
+      label: "User Management",
+      href: "/user-management",
+      icon: UserCog
     });
   }
 

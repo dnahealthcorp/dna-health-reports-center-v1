@@ -771,6 +771,76 @@ export const setCurrentUser = async (user: User): Promise<User> => {
   }
 };
 
+export const addUser = async (user: User): Promise<User> => {
+  try {
+    // Verify user has a valid UUID
+    if (!user.id || user.id.trim() === '') {
+      throw new Error('User ID cannot be empty');
+    }
+    
+    // Insert new user
+    const { error } = await supabase
+      .from('users')
+      .insert([{
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        created_at: new Date().toISOString()
+      }]);
+      
+    if (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error("Error adding user to Supabase:", error);
+    throw error;
+  }
+};
+
+export const updateUser = async (user: User): Promise<User> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({
+        name: user.name,
+        email: user.email,
+        role: user.role
+      })
+      .eq('id', user.id);
+      
+    if (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error(`Error updating user ${user.id} in Supabase:`, error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error(`Error deleting user ${id} from Supabase:`, error);
+    throw error;
+  }
+};
+
 export const logoutUser = async (): Promise<void> => {
   try {
     const { error } = await supabase.auth.signOut();
