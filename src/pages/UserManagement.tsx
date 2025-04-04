@@ -91,7 +91,13 @@ const UserManagement = () => {
         throw error;
       }
       
-      setInvitations(data || []);
+      // Convert the role strings to the proper union type
+      const typedInvitations: UserInvite[] = (data || []).map(inv => ({
+        ...inv,
+        role: ensureValidRole(inv.role)
+      }));
+      
+      setInvitations(typedInvitations);
     } catch (error: any) {
       console.error("Error fetching invitations:", error);
       toast({
@@ -113,7 +119,7 @@ const UserManagement = () => {
   const handleRoleChange = (value: string) => {
     setFormData({
       ...formData,
-      role: value as 'nurse' | 'doctor' | 'admin'
+      role: ensureValidRole(value)
     });
   };
 

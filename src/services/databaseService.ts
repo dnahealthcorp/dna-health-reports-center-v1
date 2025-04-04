@@ -52,12 +52,8 @@ const mapPatientFromDB = (dbPatient: any): Patient => {
 
 const mapUserFromDB = (dbUser: any): User => {
   // Ensure role is one of the allowed values
-  let role: 'nurse' | 'doctor' | 'admin' = 'nurse'; // Default
+  let role = ensureValidRole(dbUser.role);
   
-  if (dbUser.role === 'nurse' || dbUser.role === 'doctor' || dbUser.role === 'admin') {
-    role = dbUser.role as 'nurse' | 'doctor' | 'admin';
-  }
-
   return {
     id: dbUser.id,
     name: dbUser.name || dbUser.profiles?.name || 'Unknown',
@@ -681,12 +677,12 @@ export const getUsers = async (): Promise<User[]> => {
     }
     
     if (profileData && profileData.length > 0) {
-      // If we successfully got profiles, use those
+      // If we successfully got profiles, use those, making sure to validate roles
       return profileData.map(profile => ({
         id: profile.id,
         name: profile.name || 'Unknown',
         email: profile.email || '',
-        role: (profile.role as 'nurse' | 'doctor' | 'admin') || 'nurse'
+        role: ensureValidRole(profile.role)
       }));
     }
     
@@ -729,7 +725,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
         id: profileData.id,
         name: profileData.name || 'Unknown',
         email: profileData.email || authData.session.user.email || '',
-        role: (profileData.role as 'nurse' | 'doctor' | 'admin') || 'nurse'
+        role: ensureValidRole(profileData.role)
       };
     }
     
@@ -1018,7 +1014,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
         id: profileData.id,
         name: profileData.name || 'Unknown',
         email: profileData.email || data.user.email || '',
-        role: (profileData.role as 'nurse' | 'doctor' | 'admin') || 'nurse'
+        role: ensureValidRole(profileData.role)
       };
     }
     
@@ -1199,3 +1195,24 @@ export async function getAllDoctors(): Promise<User[]> {
     return [];
   }
 }
+
+// Set up the types for nutrition, exercise, and sleep/stress recommendations
+type NutritionRecommendation = {
+  nutritionalStyle: string;
+  proteinConsumption: string;
+  eatingWindow: string;
+  limitations: string;
+  additionalConsiderations: string;
+};
+
+type ExerciseRecommendation = {
+  focusOn: string;
+  walking: string;
+  restRecovery: string;
+  tracking: string;
+};
+
+type SleepStressRecommendation = {
+  sleep: string;
+  stress: string;
+};
