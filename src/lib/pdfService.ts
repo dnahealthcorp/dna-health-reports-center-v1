@@ -2,7 +2,8 @@
 // Entry point for PDF service - redirects to the new modular implementation
 import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
-import { getPatientById, getCurrentUser, savePDFReference, updatePatient } from "@/services/databaseService";
+import { getPatientById, getCurrentUser, updatePatient } from "@/services/databaseService";
+import { savePDFReference } from "@/services/pdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -103,6 +104,11 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
           .from('pdf_files')
           .getPublicUrl(pdfPath);
           
+        if (!publicUrlData) {
+          console.error("Failed to get public URL for uploaded PDF");
+          return fileName;
+        }
+        
         // Add a timestamp to the URL to prevent caching
         const publicUrl = publicUrlData.publicUrl + `?t=${uniqueID}`;
         
