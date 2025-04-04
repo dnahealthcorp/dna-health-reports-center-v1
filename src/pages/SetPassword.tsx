@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -111,14 +110,12 @@ const SetPassword = () => {
     setIsLoading(true);
     
     try {
-      // Update the user's password and profile information
+      // Update the user's password and profile information using the token directly
       const { data, error } = await supabase.auth.updateUser({
         password,
         data: { 
           name: name
         }
-      }, {
-        authtoken: token
       });
       
       if (error) {
