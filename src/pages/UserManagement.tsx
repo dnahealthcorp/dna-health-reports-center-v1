@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/components/ui/use-toast";
 import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
 import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
-import { User as UserType } from "@/types";
+import { User as UserType, UserInvite } from "@/types/users";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,6 +26,7 @@ interface UserFormData {
 
 const UserManagement = () => {
   const [users, setUsers] = useState<UserType[]>([]);
+  const [invitations, setInvitations] = useState<UserInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -58,8 +59,12 @@ const UserManagement = () => {
         
         setIsAdmin(true);
         
+        // Fetch users
         const fetchedUsers = await getUsers();
         setUsers(fetchedUsers);
+        
+        // Fetch invitations
+        await fetchInvitations();
       } catch (error) {
         console.error("Error initializing user management:", error);
         toast({
@@ -74,6 +79,28 @@ const UserManagement = () => {
     
     checkAdminAndLoadUsers();
   }, [toast, navigate]);
+
+  const fetchInvitations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_invitations')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        throw error;
+      }
+      
+      setInvitations(data || []);
+    } catch (error: any) {
+      console.error("Error fetching invitations:", error);
+      toast({
+        title: "Error",
+        description: `Failed to load invitations: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -134,13 +161,13 @@ const UserManagement = () => {
         return;
       }
 
-      // Step 1: Get current user ID for tracking who sent the invite
+      // Get current admin user for tracking
       const adminUser = await getCurrentUser();
       if (!adminUser?.id) {
         throw new Error("Admin user ID not found");
       }
 
-      // Step 2: Store the invitation in our custom table
+      // First, store the invitation in our user_invitations table
       const { error: inviteError } = await supabase
         .from('user_invitations')
         .insert({
@@ -162,10 +189,10 @@ const UserManagement = () => {
         throw inviteError;
       }
 
-      // Step 3: Send the invitation email via Supabase Auth
-      const { error: authError } = await supabase.auth.admin.inviteUserByEmail(
+      // Then, send the invitation email via Supabase Auth
+      const { data, error: authError } = await supabase.auth.admin.inviteUserByEmail(
         formData.email,
-        {
+        { 
           data: {
             name: formData.name,
             role: formData.role
@@ -174,8 +201,8 @@ const UserManagement = () => {
       );
       
       if (authError) {
-        console.error("Error inviting user:", authError);
-        // Try to clean up the invitation record if the auth invite fails
+        console.error("Error sending invitation:", authError);
+        // Clean up the invitation record if the auth invite fails
         await supabase
           .from('user_invitations')
           .delete()
@@ -188,7 +215,9 @@ const UserManagement = () => {
         });
         return;
       }
-
+      
+      console.log("Invitation sent successfully:", data);
+      
       toast({
         title: "Success",
         description: "User invitation sent successfully"
@@ -197,6 +226,9 @@ const UserManagement = () => {
       setShowCreateDialog(false);
       resetForm();
 
+      // Refresh the invitations list
+      await fetchInvitations();
+      
       // Refresh the users list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
@@ -237,7 +269,7 @@ const UserManagement = () => {
       // Update user in the users table
       await updateUser(updatedUser);
       
-      // Also update the user_profiles table
+      // Also update the user_profiles table directly
       const { error: profileError } = await supabase
         .from('user_profiles')
         .update({
@@ -327,6 +359,63 @@ const UserManagement = () => {
     }
   };
 
+  const resendInvitation = async (invitation: UserInvite) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Send the invitation email via Supabase Auth
+      const { error } = await supabase.auth.admin.inviteUserByEmail(
+        invitation.email
+      );
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Success",
+        description: `Invitation resent to ${invitation.email}`
+      });
+    } catch (error: any) {
+      console.error("Error resending invitation:", error);
+      toast({
+        title: "Error",
+        description: `Failed to resend invitation: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const deleteInvitation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_invitations')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Refresh invitations list
+      await fetchInvitations();
+      
+      toast({
+        title: "Success",
+        description: "Invitation deleted successfully"
+      });
+    } catch (error: any) {
+      console.error("Error deleting invitation:", error);
+      toast({
+        title: "Error",
+        description: `Failed to delete invitation: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!isAdmin) {
     return null;
   }
@@ -338,6 +427,7 @@ const UserManagement = () => {
           <User className="mr-2" /> User Management
         </h1>
         
+        {/* Users Section */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -427,6 +517,100 @@ const UserManagement = () => {
             ) : (
               <div className="text-center py-6 text-muted-foreground">
                 No users found. Invite a new user to get started.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Invitations Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Pending Invitations</CardTitle>
+            <CardDescription>Track and manage sent invitations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {invitations.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Date Sent</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invitations.map((invitation) => (
+                      <TableRow key={invitation.id}>
+                        <TableCell>{invitation.email}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            invitation.role === 'admin' 
+                              ? 'bg-purple-100 text-purple-800' 
+                              : invitation.role === 'doctor' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-green-100 text-green-800'
+                          }`}>
+                            {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{new Date(invitation.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {invitation.accepted_at 
+                            ? <span className="text-green-600">Accepted</span>
+                            : <span className="text-amber-600">Pending</span>
+                          }
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!invitation.accepted_at && (
+                            <div className="flex justify-end gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => resendInvitation(invitation)}
+                                      disabled={isSubmitting}
+                                    >
+                                      <Mail className="h-4 w-4 text-blue-500" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Resend Invitation</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => deleteInvitation(invitation.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete Invitation</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                No pending invitations.
               </div>
             )}
           </CardContent>
