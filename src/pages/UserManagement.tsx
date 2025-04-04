@@ -58,10 +58,23 @@ const UserManagement = () => {
         
         setIsAdmin(true);
         
-        const fetchedUsers = await getUsers();
-        setUsers(fetchedUsers);
+        try {
+          const fetchedUsers = await getUsers();
+          setUsers(fetchedUsers);
+        } catch (error) {
+          console.error("Error loading users:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load users. Using cached data if available.",
+            variant: "destructive"
+          });
+        }
         
-        await fetchInvitations();
+        try {
+          await fetchInvitations();
+        } catch (error) {
+          console.error("Error loading invitations:", error);
+        }
       } catch (error) {
         console.error("Error initializing user management:", error);
         toast({
@@ -79,7 +92,7 @@ const UserManagement = () => {
 
   const fetchInvitations = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('user_invitations')
         .select('*')
         .order('created_at', { ascending: false });
@@ -98,7 +111,7 @@ const UserManagement = () => {
       console.error("Error fetching invitations:", error);
       toast({
         title: "Error",
-        description: `Failed to load invitations: ${error.message}`,
+        description: `Failed to load invitations: ${error.message || error}`,
         variant: "destructive"
       });
     }
@@ -169,7 +182,9 @@ const UserManagement = () => {
         throw new Error("Admin user ID not found");
       }
 
-      const { data: inviteData, error: inviteError } = await supabase
+      console.log("Creating invitation record...");
+      
+      const { data: inviteData, error: inviteError } = await supabaseAdmin
         .from('user_invitations')
         .insert({
           email: formData.email,
@@ -179,6 +194,7 @@ const UserManagement = () => {
         .select();
 
       if (inviteError) {
+        console.error("Error creating invitation record:", inviteError);
         if (inviteError.message.includes('duplicate key')) {
           toast({
             title: "Invitation Error",
@@ -192,7 +208,8 @@ const UserManagement = () => {
       }
 
       console.log("Invitation record created:", inviteData);
-
+      console.log("Sending invitation email...");
+      
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(formData.email, {
         data: {
           name: formData.name,
@@ -203,6 +220,18 @@ const UserManagement = () => {
       
       if (authError) {
         console.error("Auth error details:", authError);
+        
+        try {
+          if (inviteData && inviteData[0]) {
+            await supabaseAdmin
+              .from('user_invitations')
+              .delete()
+              .eq('id', inviteData[0].id);
+          }
+        } catch (cleanupError) {
+          console.error("Failed to clean up invitation record:", cleanupError);
+        }
+        
         throw authError;
       }
       
@@ -222,7 +251,7 @@ const UserManagement = () => {
       console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: `Failed to create user: ${error.message || 'Unknown error'}`,
+        description: `Failed to create user: ${error.message || error || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -345,6 +374,8 @@ const UserManagement = () => {
     try {
       setIsSubmitting(true);
       
+      console.log("Resending invitation to:", invitation.email);
+      
       const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
         invitation.email, {
           data: {
@@ -370,7 +401,7 @@ const UserManagement = () => {
       console.error("Error resending invitation:", error);
       toast({
         title: "Error",
-        description: `Failed to resend invitation: ${error.message}`,
+        description: `Failed to resend invitation: ${error.message || error}`,
         variant: "destructive"
       });
     } finally {
@@ -380,7 +411,10 @@ const UserManagement = () => {
 
   const deleteInvitation = async (id: string) => {
     try {
-      const { error } = await supabase
+      setIsSubmitting(true);
+      console.log("Deleting invitation:", id);
+      
+      const { error } = await supabaseAdmin
         .from('user_invitations')
         .delete()
         .eq('id', id);
@@ -399,9 +433,11 @@ const UserManagement = () => {
       console.error("Error deleting invitation:", error);
       toast({
         title: "Error",
-        description: `Failed to delete invitation: ${error.message}`,
+        description: `Failed to delete invitation: ${error.message || error}`,
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -652,7 +688,10 @@ const UserManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={isSubmitting}>
+            <Button variant="outline" onClick={() => {
+              setShowCreateDialog(false);
+              resetForm();
+            }} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button 
@@ -727,7 +766,10 @@ const UserManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSubmitting}>
+            <Button variant="outline" onClick={() => {
+              setShowEditDialog(false);
+              resetForm();
+            }} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button 
