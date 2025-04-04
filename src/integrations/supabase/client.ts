@@ -27,6 +27,3 @@ export const supabaseAdmin = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_K
     persistSession: false
   }
 });
-
-// Export admin.auth for compatibility
-supabase.auth.admin = supabaseAdmin.auth.admin;

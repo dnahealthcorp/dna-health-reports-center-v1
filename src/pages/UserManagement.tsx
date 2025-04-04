@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
-import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
+import { getUsers, updateUser, deleteUser, getCurrentUser, inviteUser } from "@/services/databaseService";
 import { User as UserType, UserInvite, ensureValidRole } from "@/types/users";
 import { useNavigate } from "react-router-dom";
 import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
@@ -49,7 +49,8 @@ const UserManagement = () => {
           toast({
             title: "Access Denied",
             description: "Only administrators can access user management",
-            variant: "destructive"
+            variant: "destructive",
+            duration: 5000,
           });
           setIsAdmin(false);
           navigate("/");
@@ -66,7 +67,8 @@ const UserManagement = () => {
           toast({
             title: "Error",
             description: "Failed to load users. Using cached data if available.",
-            variant: "destructive"
+            variant: "destructive",
+            duration: 5000,
           });
         }
         
@@ -80,7 +82,8 @@ const UserManagement = () => {
         toast({
           title: "Error",
           description: "Failed to load users. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
+          duration: 5000,
         });
       } finally {
         setIsLoading(false);
@@ -112,7 +115,8 @@ const UserManagement = () => {
       toast({
         title: "Error",
         description: `Failed to load invitations: ${error.message || error}`,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -171,80 +175,27 @@ const UserManagement = () => {
         toast({
           title: "Validation Error",
           description: "Name and email are required",
-          variant: "destructive"
+          variant: "destructive",
+          duration: 5000,
         });
-        setIsSubmitting(false);
         return;
       }
 
-      const adminUser = await getCurrentUser();
-      if (!adminUser?.id) {
-        throw new Error("Admin user ID not found");
+      console.log("Sending invitation via secure edge function...");
+      const result = await inviteUser(formData.name, formData.email, formData.role);
+      
+      if (!result.success) {
+        throw new Error(result.error || "Failed to send invitation");
       }
-
-      console.log("Creating invitation record...");
-      
-      const { data: inviteData, error: inviteError } = await supabaseAdmin
-        .from('user_invitations')
-        .insert({
-          email: formData.email,
-          role: formData.role,
-          invited_by: adminUser.id
-        })
-        .select();
-
-      if (inviteError) {
-        console.error("Error creating invitation record:", inviteError);
-        if (inviteError.message.includes('duplicate key')) {
-          toast({
-            title: "Invitation Error",
-            description: "A user with this email has already been invited",
-            variant: "destructive"
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        throw inviteError;
-      }
-
-      console.log("Invitation record created:", inviteData);
-      console.log("Sending invitation email...");
-      
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(formData.email, {
-        data: {
-          name: formData.name,
-          role: formData.role
-        },
-        redirectTo: `${window.location.origin}/set-password`
-      });
-      
-      if (authError) {
-        console.error("Auth error details:", authError);
-        
-        try {
-          if (inviteData && inviteData[0]) {
-            await supabaseAdmin
-              .from('user_invitations')
-              .delete()
-              .eq('id', inviteData[0].id);
-          }
-        } catch (cleanupError) {
-          console.error("Failed to clean up invitation record:", cleanupError);
-        }
-        
-        throw authError;
-      }
-      
-      console.log("Invitation sent successfully:", authData);
       
       toast({
         title: "Success",
-        description: "User invitation sent successfully"
+        description: "User invitation sent successfully",
+        duration: 5000,
       });
       
       setShowCreateDialog(false);
       resetForm();
-
       await fetchInvitations();
       
     } catch (error: any) {
@@ -252,7 +203,8 @@ const UserManagement = () => {
       toast({
         title: "Error",
         description: `Failed to create user: ${error.message || error || 'Unknown error'}`,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 10000,
       });
     } finally {
       setIsSubmitting(false);
@@ -427,14 +379,16 @@ const UserManagement = () => {
       
       toast({
         title: "Success",
-        description: "Invitation deleted successfully"
+        description: "Invitation deleted successfully",
+        duration: 5000,
       });
     } catch (error: any) {
       console.error("Error deleting invitation:", error);
       toast({
         title: "Error",
         description: `Failed to delete invitation: ${error.message || error}`,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsSubmitting(false);

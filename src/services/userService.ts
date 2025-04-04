@@ -1,7 +1,6 @@
-
 // User-related database operations
 import { User, ensureValidRole, isValidRole } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 
 // Helper function to convert snake_case database objects to camelCase application objects
 const mapUserFromDB = (dbUser: any): User => {
@@ -429,3 +428,27 @@ export async function getAllDoctors(): Promise<User[]> {
     return [];
   }
 }
+
+// New function for inviting users through the edge function
+export const inviteUser = async (name: string, email: string, role: 'nurse' | 'doctor' | 'admin'): Promise<{success: boolean, message?: string, error?: string}> => {
+  try {
+    // Get current user for the invited_by field
+    const currentSession = await supabase.auth.getSession();
+    const invitedById = currentSession.data.session?.user.id;
+
+    // Call the edge function
+    const { data, error } = await supabase.functions.invoke('invite-user', {
+      body: { name, email, role, invitedById }
+    });
+
+    if (error) {
+      console.error("Error from invite-user function:", error);
+      return { success: false, error: error.message || "Failed to send invitation" };
+    }
+
+    return { success: true, message: "User invitation sent successfully" };
+  } catch (error: any) {
+    console.error("Error in inviteUser:", error);
+    return { success: false, error: error.message || "An unexpected error occurred" };
+  }
+};
