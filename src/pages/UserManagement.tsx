@@ -14,7 +14,7 @@ import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
 import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
 import { User as UserType, UserInvite, ensureValidRole } from "@/types/users";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 
 interface UserFormData {
   id?: string;
@@ -58,11 +58,9 @@ const UserManagement = () => {
         
         setIsAdmin(true);
         
-        // Fetch users
         const fetchedUsers = await getUsers();
         setUsers(fetchedUsers);
         
-        // Fetch invitations
         await fetchInvitations();
       } catch (error) {
         console.error("Error initializing user management:", error);
@@ -90,7 +88,6 @@ const UserManagement = () => {
         throw error;
       }
       
-      // Convert the role strings to the proper union type
       const typedInvitations: UserInvite[] = (data || []).map(inv => ({
         ...inv,
         role: ensureValidRole(inv.role)
@@ -167,23 +164,21 @@ const UserManagement = () => {
         return;
       }
 
-      // Get current admin user for tracking
       const adminUser = await getCurrentUser();
       if (!adminUser?.id) {
         throw new Error("Admin user ID not found");
       }
 
-      // First, store the invitation in our user_invitations table
-      const { error: inviteError } = await supabase
+      const { data: inviteData, error: inviteError } = await supabase
         .from('user_invitations')
         .insert({
           email: formData.email,
           role: formData.role,
           invited_by: adminUser.id
-        });
+        })
+        .select();
 
       if (inviteError) {
-        // Check if this is a duplicate email error
         if (inviteError.message.includes('duplicate key')) {
           toast({
             title: "Invitation Error",
@@ -196,63 +191,32 @@ const UserManagement = () => {
         throw inviteError;
       }
 
-      // Send the invitation email via Service Role API
-      try {
-        const { data, error: authError } = await supabase.auth.admin.inviteUserByEmail(formData.email, {
-          data: {
-            name: formData.name,
-            role: formData.role
-          },
-          redirectTo: `${window.location.origin}/set-password`
-        });
-        
-        if (authError) {
-          throw authError;
-        }
-        
-        console.log("Invitation sent successfully:", data);
-        
-        toast({
-          title: "Success",
-          description: "User invitation sent successfully"
-        });
-        
-        setShowCreateDialog(false);
-        resetForm();
+      console.log("Invitation record created:", inviteData);
 
-        // Refresh the invitations list
-        await fetchInvitations();
-        
-      } catch (authError: any) {
-        console.error("Error sending invitation:", authError);
-        
-        // Clean up the invitation record if the auth invite fails
-        await supabase
-          .from('user_invitations')
-          .delete()
-          .eq('email', formData.email);
-          
-        // Provide a specific error message for unauthorized errors
-        if (authError.status === 401 || authError.message?.includes("not authorized")) {
-          toast({
-            title: "Authorization Error",
-            description: "You are not authorized to send invitations. Please check your admin rights or contact support.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: `Failed to send invitation: ${authError.message || 'Unknown error'}`,
-            variant: "destructive"
-          });
-        }
-        setIsSubmitting(false);
-        return;
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(formData.email, {
+        data: {
+          name: formData.name,
+          role: formData.role
+        },
+        redirectTo: `${window.location.origin}/set-password`
+      });
+      
+      if (authError) {
+        console.error("Auth error details:", authError);
+        throw authError;
       }
       
-      // Refresh the users list
-      const updatedUsers = await getUsers();
-      setUsers(updatedUsers);
+      console.log("Invitation sent successfully:", authData);
+      
+      toast({
+        title: "Success",
+        description: "User invitation sent successfully"
+      });
+      
+      setShowCreateDialog(false);
+      resetForm();
+
+      await fetchInvitations();
       
     } catch (error: any) {
       console.error("Error creating user:", error);
@@ -288,10 +252,8 @@ const UserManagement = () => {
         role: formData.role
       };
 
-      // Update user in the users table
       await updateUser(updatedUser);
       
-      // Also update the user_profiles table directly
       const { error: profileError } = await supabase
         .from('user_profiles')
         .update({
@@ -346,8 +308,7 @@ const UserManagement = () => {
         return;
       }
 
-      // First try to delete the user from Supabase Auth
-      const { error: authError } = await supabase.auth.admin.deleteUser(
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
         currentUser.id
       );
 
@@ -355,10 +316,7 @@ const UserManagement = () => {
         console.error("Error deleting user from auth:", authError);
       }
 
-      // Delete from our users table
       await deleteUser(currentUser.id);
-      
-      // The user_profiles table should be automatically cleaned up due to ON DELETE CASCADE
       
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
@@ -387,11 +345,10 @@ const UserManagement = () => {
     try {
       setIsSubmitting(true);
       
-      // Send the invitation email via Supabase Auth
-      const { error } = await supabase.auth.admin.inviteUserByEmail(
+      const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
         invitation.email, {
           data: {
-            name: "", // We might not have name data in the invitation
+            name: "",
             role: invitation.role
           },
           redirectTo: `${window.location.origin}/set-password`
@@ -399,8 +356,11 @@ const UserManagement = () => {
       );
       
       if (error) {
+        console.error("Error details from resend:", error);
         throw error;
       }
+      
+      console.log("Resend invitation successful:", data);
       
       toast({
         title: "Success",
@@ -429,7 +389,6 @@ const UserManagement = () => {
         throw error;
       }
       
-      // Refresh invitations list
       await fetchInvitations();
       
       toast({
@@ -457,7 +416,6 @@ const UserManagement = () => {
           <User className="mr-2" /> User Management
         </h1>
         
-        {/* Users Section */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -552,7 +510,6 @@ const UserManagement = () => {
           </CardContent>
         </Card>
 
-        {/* Pending Invitations Section */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Pending Invitations</CardTitle>
@@ -695,7 +652,7 @@ const UserManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button 
@@ -770,7 +727,7 @@ const UserManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button 
@@ -804,7 +761,7 @@ const UserManagement = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteUser} 
               className="bg-destructive text-destructive-foreground"
