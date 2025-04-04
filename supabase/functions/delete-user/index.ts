@@ -7,7 +7,22 @@ interface RequestData {
   userId: string;
 }
 
+// Define CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json'
+};
+
 serve(async (req: Request) => {
+  // Handle CORS preflight request
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    });
+  }
+  
   try {
     // Initialize Supabase admin client with the project URL and service role key
     const supabaseAdmin = createClient(
@@ -22,13 +37,24 @@ serve(async (req: Request) => {
     );
 
     // Parse request body
-    const { userId }: RequestData = await req.json();
+    let requestData: RequestData;
+    try {
+      requestData = await req.json();
+    } catch (error) {
+      console.error("Error parsing request JSON:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders } }
+      );
+    }
+    
+    const { userId } = requestData;
     
     // Validate inputs
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "User ID is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders } }
       );
     }
 
@@ -41,7 +67,7 @@ serve(async (req: Request) => {
       console.error("Error deleting user:", error);
       return new Response(
         JSON.stringify({ error: error.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders } }
       );
     }
 
@@ -53,14 +79,14 @@ serve(async (req: Request) => {
       }),
       { 
         status: 200,
-        headers: { "Content-Type": "application/json" }
+        headers: { ...corsHeaders }
       }
     );
   } catch (err) {
     console.error("Server error:", err);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Internal server error", details: err.message }),
+      { status: 500, headers: { ...corsHeaders } }
     );
   }
 });

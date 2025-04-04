@@ -178,6 +178,7 @@ const UserManagement = () => {
       });
 
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(`Function error: ${error.message}`);
       }
       
@@ -245,6 +246,7 @@ const UserManagement = () => {
         });
         
         if (pwError) {
+          console.error("Edge function error:", pwError);
           throw new Error(`Function error: ${pwError.message}`);
         }
         
@@ -294,6 +296,7 @@ const UserManagement = () => {
       });
 
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(`Function error: ${error.message}`);
       }
       
