@@ -1,10 +1,11 @@
+
 // Database service implementation using Supabase
 import { 
   Patient, PatientFormData, User, PDFFile, Json,
   isVital, isSummaryFinding, isNutritionRecommendation, isExerciseRecommendation,
   isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem,
   MedicationItem, SupplementItem, Vital, SummaryFinding, FollowUp,
-  toJson, safeJsonArray, Medication, ensureValidRole
+  toJson, safeJsonArray, Medication, ensureValidRole, isValidRole
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
@@ -695,7 +696,8 @@ export const getUsers = async (): Promise<User[]> => {
       throw error;
     }
     
-    return (data || []).map(mapUserFromDB);
+    // Make sure to validate role for each user
+    return (data || []).map(user => mapUserFromDB(user));
   } catch (error) {
     console.error("Error getting users from Supabase:", error);
     
@@ -1031,7 +1033,7 @@ export const loginUser = async (email: string, password: string): Promise<User |
         id: data.user.id,
         name: data.user.user_metadata?.name || 'User',
         email: data.user.email || '',
-        role: 'nurse'
+        role: 'nurse' as const
       };
     }
     
@@ -1189,7 +1191,13 @@ export async function getAllDoctors(): Promise<User[]> {
       return [];
     }
     
-    return data || [];
+    // Make sure to validate roles when returning users
+    return (data || []).map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: ensureValidRole(user.role)
+    }));
   } catch (error) {
     console.error('Error fetching doctors:', error);
     return [];
