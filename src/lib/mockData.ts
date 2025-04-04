@@ -1,7 +1,8 @@
+
 import { 
   Medication, Patient, User, SummaryFinding, 
   NutritionRecommendation, ExerciseRecommendation, 
-  SleepStressRecommendation, FollowUp 
+  SleepStressRecommendation, FollowUp, PatientFormData
 } from "@/types";
 
 export const mockMedications: Medication[] = [
@@ -153,25 +154,32 @@ export const mockUsers: User[] = [
   }
 ];
 
-export const getPatients = () => {
-  return Promise.resolve(mockPatients);
+// Function to initialize mock data for fallback
+export const initializeMockData = async () => {
+  try {
+    return {
+      mockPatients,
+      mockMedications,
+      mockUsers,
+      getPatientFormData: getMockPatientFormData
+    };
+  } catch (error) {
+    console.error("Failed to initialize mock data:", error);
+    return {
+      mockPatients: [],
+      mockMedications: [],
+      mockUsers: [],
+      getPatientFormData: () => Promise.resolve(null)
+    };
+  }
 };
 
-export const getPatientById = (id: string) => {
-  const patient = mockPatients.find(p => p.id === id);
-  return Promise.resolve(patient);
-};
+// Export getter functions for different mock data types
+export const getMockPatients = async () => mockPatients;
+export const getMockMedications = async () => mockMedications;
+export const getMockUsers = async () => mockUsers;
 
-export const getMedications = () => {
-  return Promise.resolve(mockMedications);
-};
-
-export const getCurrentUser = () => {
-  // For demo purposes, we'll default to nurse
-  return Promise.resolve(mockUsers[1]);
-};
-
-export const getPatientFormData = (patientId: string) => {
+export const getMockPatientFormData = async (patientId: string): Promise<PatientFormData | null> => {
   // Initialize empty SummaryFinding object
   const emptySummaryFinding: SummaryFinding = {
     glucoseMetabolism: '',
@@ -215,13 +223,19 @@ export const getPatientFormData = (patientId: string) => {
     date: '23/10/2025'
   };
 
+  // Find the matching patient
+  const patient = mockPatients.find(p => p.id === patientId);
+  if (!patient) {
+    return null;
+  }
+
   // Mock form data for a patient
-  return Promise.resolve({
+  return {
     patientInfo: {
-      name: mockPatients.find(p => p.id === patientId)?.name || "",
-      dateOfBirth: mockPatients.find(p => p.id === patientId)?.dateOfBirth || "",
-      gender: mockPatients.find(p => p.id === patientId)?.gender || "",
-      medicalRecordNumber: mockPatients.find(p => p.id === patientId)?.medicalRecordNumber || ""
+      name: patient.name,
+      dateOfBirth: patient.dateOfBirth,
+      gender: patient.gender,
+      medicalRecordNumber: patient.medicalRecordNumber
     },
     vitals: {
       bloodPressure: "120/80",
@@ -257,5 +271,5 @@ export const getPatientFormData = (patientId: string) => {
     exerciseDetail: emptyExerciseRecommendation,
     sleepStressRecommendations: emptySleepStressRecommendation,
     followUps: [emptyFollowUp]
-  });
+  };
 };
