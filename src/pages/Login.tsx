@@ -4,42 +4,24 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { loginUser, getUsers } from "@/services/databaseService";
-import { User } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [demoUsers, setDemoUsers] = useState<User[]>([]);
-  const [showDemo, setShowDemo] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, login, loginWithGoogle, isLoading: authLoading } = useAuth();
   
   // Check if user is already logged in
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate('/');
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
   
-  // Fetch demo users on mount
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const users = await getUsers();
-      setDemoUsers(users || []);
-    };
-    
-    fetchUsers();
-  }, []);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -55,59 +37,37 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const user = await loginUser(email, password);
-      
-      if (user) {
-        toast({
-          title: "Success",
-          description: `Welcome back, ${user.name}!`
-        });
-        
-        navigate("/");
-      } else {
-        toast({
-          title: "Error",
-          description: "Invalid email or password",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
+      await login(email, password);
+      navigate("/");
+    } catch (error: any) {
       console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: "An error occurred during login",
-        variant: "destructive"
+        title: "Login Failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleDemoLogin = async (demoUser: User) => {
-    setIsLoading(true);
-    
+  const handleGoogleLogin = async () => {
     try {
-      const user = await loginUser(demoUser.email, "password");
-      
-      if (user) {
-        toast({
-          title: "Success",
-          description: `Welcome to demo account, ${user.name}!`
-        });
-        
-        navigate("/");
-      }
+      await loginWithGoogle();
     } catch (error) {
-      console.error("Demo login error:", error);
-      toast({
-        title: "Error",
-        description: "Could not log in with demo account",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+      console.error("Google login error:", error);
     }
   };
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -151,38 +111,27 @@ const Login = () => {
             </Button>
           </form>
           
-          <div className="mt-6 pt-4 border-t border-border">
-            <button
-              type="button"
-              className="text-sm text-primary hover:underline"
-              onClick={() => setShowDemo(!showDemo)}
-            >
-              {showDemo ? "Hide demo accounts" : "Show demo accounts"}
-            </button>
-            
-            {showDemo && (
-              <div className="mt-4 space-y-2">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Click to sign in with a demo account:
-                </p>
-                {demoUsers.map((user) => (
-                  <Button
-                    key={user.id}
-                    variant="outline"
-                    className="w-full justify-start text-left mb-2"
-                    onClick={() => handleDemoLogin(user)}
-                  >
-                    <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {user.email} ({user.role})
-                      </div>
-                    </div>
-                  </Button>
-                ))}
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
               </div>
-            )}
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
           </div>
+          
+          <Button 
+            variant="outline" 
+            type="button" 
+            className="w-full mt-4"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5 w-5 mr-2" alt="Google logo" />
+            Google
+          </Button>
         </div>
       </div>
     </div>

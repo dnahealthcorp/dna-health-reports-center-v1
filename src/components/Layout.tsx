@@ -4,10 +4,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LucideHome, Users, LogOut, Menu, X, Pill, Settings, UserCog } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getCurrentUser, logoutUser } from "@/services/databaseService";
-import { User } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,56 +15,23 @@ const Layout = ({
   children
 }: LayoutProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isLoading, logout } = useAuth();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setIsLoading(true);
-        const user = await getCurrentUser();
-        setCurrentUser(user);
-
-        // If no user is logged in, redirect to login
-        if (!user && location.pathname !== "/login" && location.pathname !== "/set-password") {
-          navigate("/login");
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again",
-          variant: "destructive"
-        });
-        navigate("/login");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setCurrentUser(null);
-          navigate("/login");
-        } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-          // Refresh user data
-          fetchUser();
-        }
-      }
-    );
-    
-    fetchUser();
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [location.pathname, navigate, toast]);
+    // If no user is logged in and not on login page, redirect to login
+    if (!isLoading && !user && location.pathname !== "/login" && location.pathname !== "/set-password" && !location.pathname.startsWith("/auth/")) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to continue",
+        variant: "destructive"
+      });
+      navigate("/login");
+    }
+  }, [user, isLoading, location.pathname, navigate, toast]);
 
   useEffect(() => {
     if (isMobile && isOpen) {
@@ -81,13 +46,7 @@ const Layout = ({
 
   const handleSignOut = async () => {
     try {
-      await logoutUser();
-      setCurrentUser(null);
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully"
-      });
-      navigate("/login");
+      await logout();
     } catch (error) {
       console.error("Error signing out:", error);
       toast({
@@ -105,6 +64,11 @@ const Layout = ({
         <div className="animate-pulse text-lg">Loading...</div>
       </div>
     );
+  }
+  
+  // If no user, don't render layout
+  if (!user) {
+    return null;
   }
 
   const navItems = [
@@ -142,7 +106,7 @@ const Layout = ({
   
   // Filter nav items based on user role
   const allowedNavItems = navItems.filter(item => 
-    currentUser && item.roles.includes(currentUser.role)
+    user && item.roles.includes(user.role)
   );
 
   return (
@@ -200,14 +164,14 @@ const Layout = ({
 
           {/* User section */}
           <div className="p-4 border-t border-border">
-            {currentUser && (
+            {user && (
               <div className="flex items-center mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  {currentUser.name?.charAt(0)}
+                  {user.name?.charAt(0)}
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-brand-text">{currentUser.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize text-left">{currentUser.role}</p>
+                  <p className="text-sm font-medium text-brand-text">{user.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize text-left">{user.role}</p>
                 </div>
               </div>
             )}

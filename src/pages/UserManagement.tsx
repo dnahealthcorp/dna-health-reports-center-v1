@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,73 +11,58 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
-import { getUsers, updateUser, deleteUser, getCurrentUser, inviteUser } from "@/services/databaseService";
-import { User as UserType, UserInvite, ensureValidRole } from "@/types/users";
+import { User, Edit, Trash2, UserPlus } from "lucide-react";
+import { User as UserType } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserFormData {
   id?: string;
   name: string;
   email: string;
   role: 'nurse' | 'doctor' | 'admin';
+  password?: string;
 }
 
 const UserManagement = () => {
   const [users, setUsers] = useState<UserType[]>([]);
-  const [invitations, setInvitations] = useState<UserInvite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserFormData | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
-    role: "nurse"
+    role: "nurse",
+    password: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     const checkAdminAndLoadUsers = async () => {
       try {
-        const user = await getCurrentUser();
-        if (!user || user.role !== 'admin') {
+        if (!authUser) {
+          navigate("/login");
+          return;
+        }
+        
+        if (authUser.role !== 'admin') {
           toast({
             title: "Access Denied",
             description: "Only administrators can access user management",
             variant: "destructive",
             duration: 5000,
           });
-          setIsAdmin(false);
           navigate("/");
           return;
         }
         
-        setIsAdmin(true);
-        
-        try {
-          const fetchedUsers = await getUsers();
-          setUsers(fetchedUsers);
-        } catch (error) {
-          console.error("Error loading users:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load users. Using cached data if available.",
-            variant: "destructive",
-            duration: 5000,
-          });
-        }
-        
-        try {
-          await fetchInvitations();
-        } catch (error) {
-          console.error("Error loading invitations:", error);
-        }
+        await fetchUsers();
       } catch (error) {
         console.error("Error initializing user management:", error);
         toast({
@@ -91,30 +77,30 @@ const UserManagement = () => {
     };
     
     checkAdminAndLoadUsers();
-  }, [toast, navigate]);
+  }, [toast, navigate, authUser]);
 
-  const fetchInvitations = async () => {
+  const fetchUsers = async () => {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('user_invitations')
+      const { data, error } = await supabase
+        .from('users')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('name');
         
       if (error) {
         throw error;
       }
       
-      const typedInvitations: UserInvite[] = (data || []).map(inv => ({
-        ...inv,
-        role: ensureValidRole(inv.role)
-      }));
-      
-      setInvitations(typedInvitations);
-    } catch (error: any) {
-      console.error("Error fetching invitations:", error);
+      setUsers(data.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as 'nurse' | 'doctor' | 'admin'
+      })));
+    } catch (error) {
+      console.error("Error loading users:", error);
       toast({
         title: "Error",
-        description: `Failed to load invitations: ${error.message || error}`,
+        description: "Failed to load users.",
         variant: "destructive",
         duration: 5000,
       });
@@ -132,7 +118,7 @@ const UserManagement = () => {
   const handleRoleChange = (value: string) => {
     setFormData({
       ...formData,
-      role: ensureValidRole(value)
+      role: value as 'nurse' | 'doctor' | 'admin'
     });
   };
 
@@ -140,7 +126,8 @@ const UserManagement = () => {
     setFormData({
       name: "",
       email: "",
-      role: "nurse"
+      role: "nurse",
+      password: ""
     });
   };
 
@@ -171,32 +158,57 @@ const UserManagement = () => {
     try {
       setIsSubmitting(true);
       
-      if (!formData.name || !formData.email) {
+      if (!formData.name || !formData.email || !formData.password) {
         toast({
           title: "Validation Error",
-          description: "Name and email are required",
+          description: "Name, email, and password are required",
           variant: "destructive",
           duration: 5000,
         });
         return;
       }
 
-      console.log("Sending invitation via secure edge function...");
-      const result = await inviteUser(formData.name, formData.email, formData.role);
+      // 1. Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: formData.email,
+        password: formData.password,
+        email_confirm: true,
+        user_metadata: {
+          name: formData.name
+        }
+      });
       
-      if (!result.success) {
-        throw new Error(result.error || "Failed to send invitation");
+      if (authError) {
+        throw authError;
+      }
+      
+      if (!authData.user) {
+        throw new Error("Failed to create user");
+      }
+      
+      // 2. Set user role in the users table
+      const { error: dbError } = await supabaseAdmin
+        .from('users')
+        .upsert([{
+          id: authData.user.id,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role
+        }]);
+      
+      if (dbError) {
+        throw dbError;
       }
       
       toast({
         title: "Success",
-        description: "User invitation sent successfully",
+        description: "User created successfully",
         duration: 5000,
       });
       
       setShowCreateDialog(false);
       resetForm();
-      await fetchInvitations();
+      await fetchUsers();
       
     } catch (error: any) {
       console.error("Error creating user:", error);
@@ -226,34 +238,33 @@ const UserManagement = () => {
         return;
       }
 
-      const updatedUser: UserType = {
-        id: formData.id,
-        name: formData.name,
-        email: formData.email,
-        role: formData.role
-      };
-
-      await updateUser(updatedUser);
-      
-      const { error: profileError } = await supabase
-        .from('user_profiles')
+      // Update user in the database
+      const { error } = await supabaseAdmin
+        .from('users')
         .update({
           name: formData.name,
-          role: formData.role,
-          updated_at: new Date().toISOString()
+          email: formData.email,
+          role: formData.role
         })
         .eq('id', formData.id);
         
-      if (profileError) {
-        console.error("Error updating user profile:", profileError);
-        toast({
-          title: "Warning",
-          description: "User updated but profile details may not be updated completely",
-        });
+      if (error) {
+        throw error;
       }
       
-      const updatedUsers = await getUsers();
-      setUsers(updatedUsers);
+      // If password is provided, update it
+      if (formData.password) {
+        const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
+          formData.id,
+          { password: formData.password }
+        );
+        
+        if (passwordError) {
+          throw passwordError;
+        }
+      }
+      
+      await fetchUsers();
       
       toast({
         title: "Success",
@@ -289,18 +300,16 @@ const UserManagement = () => {
         return;
       }
 
-      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
+      // Delete user from auth and the database
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(
         currentUser.id
       );
 
-      if (authError) {
-        console.error("Error deleting user from auth:", authError);
+      if (error) {
+        throw error;
       }
-
-      await deleteUser(currentUser.id);
       
-      const updatedUsers = await getUsers();
-      setUsers(updatedUsers);
+      await fetchUsers();
       
       toast({
         title: "Success",
@@ -320,85 +329,6 @@ const UserManagement = () => {
     }
   };
 
-  const resendInvitation = async (invitation: UserInvite) => {
-    if (isSubmitting) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      console.log("Resending invitation to:", invitation.email);
-      
-      const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        invitation.email, {
-          data: {
-            name: "",
-            role: invitation.role
-          },
-          redirectTo: `${window.location.origin}/set-password`
-        }
-      );
-      
-      if (error) {
-        console.error("Error details from resend:", error);
-        throw error;
-      }
-      
-      console.log("Resend invitation successful:", data);
-      
-      toast({
-        title: "Success",
-        description: `Invitation resent to ${invitation.email}`
-      });
-    } catch (error: any) {
-      console.error("Error resending invitation:", error);
-      toast({
-        title: "Error",
-        description: `Failed to resend invitation: ${error.message || error}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const deleteInvitation = async (id: string) => {
-    try {
-      setIsSubmitting(true);
-      console.log("Deleting invitation:", id);
-      
-      const { error } = await supabaseAdmin
-        .from('user_invitations')
-        .delete()
-        .eq('id', id);
-        
-      if (error) {
-        throw error;
-      }
-      
-      await fetchInvitations();
-      
-      toast({
-        title: "Success",
-        description: "Invitation deleted successfully",
-        duration: 5000,
-      });
-    } catch (error: any) {
-      console.error("Error deleting invitation:", error);
-      toast({
-        title: "Error",
-        description: `Failed to delete invitation: ${error.message || error}`,
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (!isAdmin) {
-    return null;
-  }
-
   return (
     <Layout>
       <div className="container mx-auto py-6 max-w-5xl">
@@ -414,7 +344,7 @@ const UserManagement = () => {
                 <CardDescription>Manage doctors, nurses, and administrators</CardDescription>
               </div>
               <Button onClick={openCreateDialog} className="flex items-center">
-                <UserPlus className="mr-2 h-4 w-4" /> Invite User
+                <UserPlus className="mr-2 h-4 w-4" /> Create User
               </Button>
             </div>
           </CardHeader>
@@ -476,6 +406,7 @@ const UserManagement = () => {
                                     variant="ghost" 
                                     size="icon" 
                                     onClick={() => openDeleteDialog(user)}
+                                    disabled={user.id === authUser?.id}
                                   >
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
@@ -494,100 +425,7 @@ const UserManagement = () => {
               </div>
             ) : (
               <div className="text-center py-6 text-muted-foreground">
-                No users found. Invite a new user to get started.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Pending Invitations</CardTitle>
-            <CardDescription>Track and manage sent invitations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {invitations.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Date Sent</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invitations.map((invitation) => (
-                      <TableRow key={invitation.id}>
-                        <TableCell>{invitation.email}</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            invitation.role === 'admin' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : invitation.role === 'doctor' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-green-100 text-green-800'
-                          }`}>
-                            {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
-                          </span>
-                        </TableCell>
-                        <TableCell>{new Date(invitation.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          {invitation.accepted_at 
-                            ? <span className="text-green-600">Accepted</span>
-                            : <span className="text-amber-600">Pending</span>
-                          }
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {!invitation.accepted_at && (
-                            <div className="flex justify-end gap-2">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      onClick={() => resendInvitation(invitation)}
-                                      disabled={isSubmitting}
-                                    >
-                                      <Mail className="h-4 w-4 text-blue-500" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Resend Invitation</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      onClick={() => deleteInvitation(invitation.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete Invitation</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                No pending invitations.
+                No users found. Create a new user to get started.
               </div>
             )}
           </CardContent>
@@ -597,9 +435,9 @@ const UserManagement = () => {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite New User</DialogTitle>
+            <DialogTitle>Create New User</DialogTitle>
             <DialogDescription>
-              Send an invitation email to create a new user account
+              Add a new user with the appropriate role
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -621,6 +459,17 @@ const UserManagement = () => {
                 type="email"
                 placeholder="Enter user's email"
                 value={formData.email}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter user's password"
+                value={formData.password || ""}
                 onChange={handleInputChange}
               />
             </div>
@@ -654,19 +503,7 @@ const UserManagement = () => {
               className="bg-green-500 hover:bg-green-600"
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Sending Invitation...
-                </span>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" /> Send Invitation
-                </>
-              )}
+              {isSubmitting ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -703,6 +540,17 @@ const UserManagement = () => {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="edit-password">New Password (optional)</Label>
+              <Input
+                id="edit-password"
+                name="password"
+                type="password"
+                placeholder="Enter new password or leave blank"
+                value={formData.password || ""}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="edit-role">Role</Label>
               <Select 
                 value={formData.role} 
@@ -730,19 +578,7 @@ const UserManagement = () => {
               onClick={handleUpdateUser}
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Updating...
-                </span>
-              ) : (
-                <>
-                  <Check className="mr-2 h-4 w-4" /> Update User
-                </>
-              )}
+              {isSubmitting ? "Updating..." : "Update User"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -763,19 +599,7 @@ const UserManagement = () => {
               className="bg-destructive text-destructive-foreground"
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Deleting...
-                </span>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </>
-              )}
+              {isSubmitting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
