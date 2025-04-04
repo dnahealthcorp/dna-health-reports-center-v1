@@ -22,8 +22,12 @@ const Layout = ({
   const { user, isLoading, logout } = useAuth();
 
   useEffect(() => {
-    // If no user is logged in and not on login page, redirect to login
-    if (!isLoading && !user && location.pathname !== "/login" && location.pathname !== "/set-password" && !location.pathname.startsWith("/auth/")) {
+    // If authentication check is complete and no user is logged in
+    // and not on auth pages, redirect to login
+    if (!isLoading && !user && 
+        location.pathname !== "/login" && 
+        location.pathname !== "/set-password" && 
+        !location.pathname.startsWith("/auth/")) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to continue",
@@ -57,7 +61,7 @@ const Layout = ({
     }
   };
 
-  // If loading, show minimal loading state
+  // Show loading state only while checking auth and before redirecting
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -66,7 +70,7 @@ const Layout = ({
     );
   }
   
-  // If no user, don't render layout
+  // If no user and not on auth pages, render nothing (will redirect in useEffect)
   if (!user) {
     return null;
   }

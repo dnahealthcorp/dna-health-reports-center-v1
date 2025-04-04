@@ -34,36 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-        } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-          // Fetch user data including role from our users table
-          try {
-            const { data, error } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (error) throw error;
-            
-            if (data) {
-              setUser({
-                id: data.id,
-                name: data.name,
-                email: data.email,
-                role: data.role as 'nurse' | 'doctor' | 'admin'
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching user data:", error);
-          }
-        }
-      }
-    );
+    let subscription: { unsubscribe: () => void } | null = null;
     
     // Check for existing session
     const initialSession = async () => {
@@ -79,7 +50,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .eq('id', session.user.id)
             .single();
             
-          if (error) throw error;
+          if (error) {
+            console.error("Error fetching user data:", error);
+            setIsLoading(false);
+            return;
+          }
           
           if (data) {
             setUser({
@@ -90,6 +65,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
           }
         }
+        
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching initial session:", error);
         toast({
@@ -97,15 +74,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Failed to restore your session. Please sign in again.",
           variant: "destructive",
         });
-      } finally {
         setIsLoading(false);
       }
     };
-    
+
+    // Set up auth state listener
+    const setupAuthListener = () => {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === 'SIGNED_OUT') {
+            setUser(null);
+          } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+            // Fetch user data including role from our users table
+            try {
+              const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+                
+              if (error) {
+                console.error("Error fetching user data:", error);
+                return;
+              }
+              
+              if (data) {
+                setUser({
+                  id: data.id,
+                  name: data.name,
+                  email: data.email,
+                  role: data.role as 'nurse' | 'doctor' | 'admin'
+                });
+              }
+            } catch (error) {
+              console.error("Error fetching user data:", error);
+            }
+          }
+        }
+      );
+      
+      return data.subscription;
+    };
+
+    // First setup the listener, then check initial session
+    subscription = setupAuthListener();
     initialSession();
     
+    // Cleanup
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, [toast]);
 
