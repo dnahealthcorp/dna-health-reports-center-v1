@@ -4,8 +4,7 @@ import {
   isVital, isSummaryFinding, isNutritionRecommendation, isExerciseRecommendation,
   isSleepStressRecommendation, isFollowUp, isMedicationItem, isSupplementItem,
   MedicationItem, SupplementItem, Vital, SummaryFinding, FollowUp,
-  NutritionRecommendation, ExerciseRecommendation, SleepStressRecommendation,
-  toJson, safeJsonArray, Medication
+  toJson, safeJsonArray, Medication, ensureValidRole
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';

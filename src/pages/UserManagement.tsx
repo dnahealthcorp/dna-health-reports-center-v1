@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/components/ui/use-toast";
 import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
 import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
-import { User as UserType, UserInvite } from "@/types/users";
+import { User as UserType, UserInvite, ensureValidRole } from "@/types/users";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
