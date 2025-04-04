@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { loginUser, getUsers } from "@/services/databaseService";
 import { User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,15 +18,27 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
   // Fetch demo users on mount
-  useState(() => {
+  useEffect(() => {
     const fetchUsers = async () => {
       const users = await getUsers();
       setDemoUsers(users || []);
     };
     
     fetchUsers();
-  });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

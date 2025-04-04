@@ -4,6 +4,7 @@ import Index from "@/pages/Index";
 import Patients from "@/pages/Patients";
 import PatientForm from "@/pages/PatientForm";
 import Login from "@/pages/Login";
+import SetPassword from "@/pages/SetPassword";
 import Medications from "@/pages/Medications";
 import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/UserManagement";
@@ -21,6 +22,7 @@ function App() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/set-password" element={<SetPassword />} />
       <Route path="/forms" element={<Forms />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

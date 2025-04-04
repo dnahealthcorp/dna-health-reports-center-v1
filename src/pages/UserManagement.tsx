@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -202,7 +201,8 @@ const UserManagement = () => {
           data: {
             name: formData.name,
             role: formData.role
-          }
+          },
+          redirectTo: `${window.location.origin}/set-password`
         }
       );
       

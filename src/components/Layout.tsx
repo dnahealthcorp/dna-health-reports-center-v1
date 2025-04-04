@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { getCurrentUser, logoutUser } from "@/services/databaseService";
 import { User } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ const Layout = ({
 }: LayoutProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -25,19 +27,46 @@ const Layout = ({
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        setIsLoading(true);
         const user = await getCurrentUser();
         setCurrentUser(user);
 
         // If no user is logged in, redirect to login
-        if (!user && location.pathname !== "/login") {
+        if (!user && location.pathname !== "/login" && location.pathname !== "/set-password") {
           navigate("/login");
         }
       } catch (error) {
         console.error("Error fetching user:", error);
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in again",
+          variant: "destructive"
+        });
+        navigate("/login");
+      } finally {
+        setIsLoading(false);
       }
     };
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+          navigate("/login");
+        } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+          // Refresh user data
+          fetchUser();
+        }
+      }
+    );
+    
     fetchUser();
-  }, [location.pathname, navigate]);
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [location.pathname, navigate, toast]);
 
   useEffect(() => {
     if (isMobile && isOpen) {
@@ -69,39 +98,52 @@ const Layout = ({
     }
   };
 
+  // If loading, show minimal loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
+  }
+
   const navItems = [
     {
       label: "Dashboard",
       href: "/",
-      icon: LucideHome
+      icon: LucideHome,
+      roles: ['nurse', 'doctor', 'admin'] // All roles can access
     }, 
     {
       label: "Patients",
       href: "/patients",
-      icon: Users
+      icon: Users,
+      roles: ['nurse', 'doctor', 'admin'] // All roles can access
     },
     {
       label: "Medications & Supplements",
       href: "/medications",
-      icon: Pill
-    }
-  ];
-
-  // Only show settings section for admin
-  if (currentUser?.role === 'admin') {
-    navItems.push({
+      icon: Pill,
+      roles: ['nurse', 'doctor', 'admin'] // All roles can access
+    },
+    {
       label: "Settings",
       href: "/settings",
-      icon: Settings
-    });
-    
-    // Add User Management for admins
-    navItems.push({
+      icon: Settings,
+      roles: ['admin'] // Only admin
+    },
+    {
       label: "User Management",
       href: "/user-management",
-      icon: UserCog
-    });
-  }
+      icon: UserCog,
+      roles: ['admin'] // Only admin
+    }
+  ];
+  
+  // Filter nav items based on user role
+  const allowedNavItems = navItems.filter(item => 
+    currentUser && item.roles.includes(currentUser.role)
+  );
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -131,7 +173,7 @@ const Layout = ({
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {navItems.map(item => (
+            {allowedNavItems.map(item => (
               <Link 
                 key={item.href} 
                 to={item.href} 
@@ -158,15 +200,17 @@ const Layout = ({
 
           {/* User section */}
           <div className="p-4 border-t border-border">
-            <div className="flex items-center mb-4">
-              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                {currentUser?.name?.charAt(0)}
+            {currentUser && (
+              <div className="flex items-center mb-4">
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  {currentUser.name?.charAt(0)}
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-brand-text">{currentUser.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize text-left">{currentUser.role}</p>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-brand-text">{currentUser?.name}</p>
-                <p className="text-xs text-muted-foreground capitalize text-left">{currentUser?.role}</p>
-              </div>
-            </div>
+            )}
             <button 
               className="flex items-center w-full px-4 py-2 text-sm text-left rounded-lg text-brand-text/70 hover:bg-accent hover:text-foreground transition-colors" 
               onClick={handleSignOut}
