@@ -69,7 +69,8 @@ const MFASetup = ({ userId }: MFASetupProps) => {
       setError(null);
 
       // Verify the code and complete enrollment
-      const { error } = await supabase.auth.mfa.challenge({
+      // Fixed: using challengeAndVerify instead of challenge directly
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
         factorId: 'totp',
         code: verificationCode,
       });
@@ -190,7 +191,7 @@ const MFASetup = ({ userId }: MFASetupProps) => {
                 render={({ slots }) => (
                   <InputOTPGroup>
                     {slots.map((slot, index) => (
-                      <InputOTPSlot key={index} {...slot} />
+                      <InputOTPSlot key={index} {...slot} index={index} />
                     ))}
                   </InputOTPGroup>
                 )}
