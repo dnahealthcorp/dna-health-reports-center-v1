@@ -14,6 +14,7 @@ export interface MedicationItem {
   id: string;
   medicationId: string;
   dosage: string;
+  frequency?: string; // Adding frequency as an optional property
   notes?: string;
 }
 

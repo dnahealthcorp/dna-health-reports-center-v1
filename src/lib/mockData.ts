@@ -1,8 +1,8 @@
-
 import { 
   Medication, Patient, User, SummaryFinding, 
   NutritionRecommendation, ExerciseRecommendation, 
-  SleepStressRecommendation, FollowUp, PatientFormData
+  SleepStressRecommendation, FollowUp, PatientFormData,
+  MedicationItem
 } from "@/types";
 
 export const mockMedications: Medication[] = [
@@ -248,7 +248,6 @@ export const getMockPatientFormData = async (patientId: string): Promise<Patient
         id: "pm1",
         medicationId: "med1",
         dosage: "500mg",
-        frequency: "3 times daily",
         notes: "Take with food"
       }
     ],
@@ -265,7 +264,7 @@ export const getMockPatientFormData = async (patientId: string): Promise<Patient
     doctorNotes: "",
     diagnosis: "",
     treatmentPlan: "",
-    doctorName: "", // Make sure doctorName field is included
+    doctorName: "",
     showInsulinResistance: false,
     nutritionRecommendations: emptyNutritionRecommendation,
     exerciseDetail: emptyExerciseRecommendation,
