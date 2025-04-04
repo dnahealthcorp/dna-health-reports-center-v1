@@ -7,6 +7,7 @@ interface RequestData {
   name: string;
   email: string;
   role: 'nurse' | 'doctor' | 'admin';
+  password: string;
   invitedById?: string;
 }
 
@@ -25,12 +26,12 @@ serve(async (req: Request) => {
     );
 
     // Parse request body
-    const { name, email, role, invitedById }: RequestData = await req.json();
+    const { name, email, role, password, invitedById }: RequestData = await req.json();
     
     // Validate inputs
-    if (!name || !email || !role) {
+    if (!name || !email || !role || !password) {
       return new Response(
-        JSON.stringify({ error: "Name, email, and role are required" }),
+        JSON.stringify({ error: "Name, email, role, and password are required" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -42,16 +43,17 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Creating invite for ${email} with role ${role}`);
+    console.log(`Creating user for ${email} with role ${role}`);
 
-    // 1. Invite the user through Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    // Create the user through Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      {
-        data: { name, role },
-        redirectTo: `${req.headers.get('origin')}/auth/callback`
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name
       }
-    );
+    });
 
     if (authError) {
       console.error("Auth error:", authError);
@@ -61,14 +63,39 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log("User invited successfully");
+    if (!authData.user) {
+      return new Response(
+        JSON.stringify({ error: "Failed to create user" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("User created successfully, now setting role in the users table");
+
+    // Set user role in the users table
+    const { error: dbError } = await supabaseAdmin
+      .from('users')
+      .upsert([{
+        id: authData.user.id,
+        name: name,
+        email: email,
+        role: role
+      }]);
+    
+    if (dbError) {
+      console.error("Database error:", dbError);
+      return new Response(
+        JSON.stringify({ error: dbError.message }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // Return success response
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "User invited successfully",
-        user: { email, role }
+        message: "User created successfully",
+        user: { id: authData.user.id, email, role }
       }),
       { 
         status: 200,

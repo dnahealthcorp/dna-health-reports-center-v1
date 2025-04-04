@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Edit, Trash2, UserPlus } from "lucide-react";
 import { User as UserType } from "@/types";
 import { useNavigate } from "react-router-dom";
-import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface UserFormData {
@@ -168,36 +167,22 @@ const UserManagement = () => {
         return;
       }
 
-      // 1. Create user with Supabase Auth
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        email_confirm: true,
-        user_metadata: {
-          name: formData.name
-        }
-      });
-      
-      if (authError) {
-        throw authError;
-      }
-      
-      if (!authData.user) {
-        throw new Error("Failed to create user");
-      }
-      
-      // 2. Set user role in the users table
-      const { error: dbError } = await supabaseAdmin
-        .from('users')
-        .upsert([{
-          id: authData.user.id,
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
           name: formData.name,
           email: formData.email,
-          role: formData.role
-        }]);
+          role: formData.role,
+          password: formData.password,
+          invitedById: authUser?.id
+        }
+      });
+
+      if (error) {
+        throw new Error(`Function error: ${error.message}`);
+      }
       
-      if (dbError) {
-        throw dbError;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Unknown error occurred');
       }
       
       toast({
@@ -238,8 +223,7 @@ const UserManagement = () => {
         return;
       }
 
-      // Update user in the database
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from('users')
         .update({
           name: formData.name,
@@ -252,15 +236,20 @@ const UserManagement = () => {
         throw error;
       }
       
-      // If password is provided, update it
       if (formData.password) {
-        const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
-          formData.id,
-          { password: formData.password }
-        );
+        const { data, error: pwError } = await supabase.functions.invoke('update-user-password', {
+          body: {
+            userId: formData.id,
+            password: formData.password
+          }
+        });
         
-        if (passwordError) {
-          throw passwordError;
+        if (pwError) {
+          throw new Error(`Function error: ${pwError.message}`);
+        }
+        
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to update password');
         }
       }
       
@@ -300,13 +289,16 @@ const UserManagement = () => {
         return;
       }
 
-      // Delete user from auth and the database
-      const { error } = await supabaseAdmin.auth.admin.deleteUser(
-        currentUser.id
-      );
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: currentUser.id }
+      });
 
       if (error) {
-        throw error;
+        throw new Error(`Function error: ${error.message}`);
+      }
+      
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to delete user');
       }
       
       await fetchUsers();
