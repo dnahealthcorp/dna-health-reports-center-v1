@@ -8,7 +8,11 @@ import { useNavigate } from "react-router-dom";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<User | null>;
+  login: (email: string, password: string) => Promise<{
+    session: any | null;
+    user: User | null;
+    error: any | null;
+  }>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -16,7 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
-  login: async () => null,
+  login: async () => ({ session: null, user: null, error: null }),
   loginWithGoogle: async () => {},
   logout: async () => {},
 });
@@ -105,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [toast]);
 
-  const login = async (email: string, password: string): Promise<User | null> => {
+  const login = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -113,6 +117,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (error) throw error;
+      
+      // Check if MFA is required
+      if (data && data.session === null) {
+        // MFA is required, return without error
+        return { session: null, user: null, error: null };
+      }
       
       if (data.user) {
         // Fetch user data after login
@@ -133,13 +143,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           };
           
           setUser(user);
-          return user;
+          return { session: data.session, user, error: null };
         }
       }
-      return null;
+      return { session: data.session, user: null, error: null };
     } catch (error) {
       console.error("Login error:", error);
-      throw error;
+      return { session: null, user: null, error };
     }
   };
   
