@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { User, Edit, Trash2, UserPlus, Check, Mail } from "lucide-react";
 import { getUsers, updateUser, deleteUser, getCurrentUser } from "@/services/databaseService";
 import { User as UserType, UserInvite, ensureValidRole } from "@/types/users";
@@ -163,6 +163,7 @@ const UserManagement = () => {
           description: "Name and email are required",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -189,55 +190,70 @@ const UserManagement = () => {
             description: "A user with this email has already been invited",
             variant: "destructive"
           });
+          setIsSubmitting(false);
           return;
         }
         throw inviteError;
       }
 
-      // Then, send the invitation email via Supabase Auth
-      const { data, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-        formData.email,
-        { 
+      // Send the invitation email via Service Role API
+      try {
+        const { data, error: authError } = await supabase.auth.admin.inviteUserByEmail(formData.email, {
           data: {
             name: formData.name,
             role: formData.role
           },
           redirectTo: `${window.location.origin}/set-password`
+        });
+        
+        if (authError) {
+          throw authError;
         }
-      );
-      
-      if (authError) {
+        
+        console.log("Invitation sent successfully:", data);
+        
+        toast({
+          title: "Success",
+          description: "User invitation sent successfully"
+        });
+        
+        setShowCreateDialog(false);
+        resetForm();
+
+        // Refresh the invitations list
+        await fetchInvitations();
+        
+      } catch (authError: any) {
         console.error("Error sending invitation:", authError);
+        
         // Clean up the invitation record if the auth invite fails
         await supabase
           .from('user_invitations')
           .delete()
           .eq('email', formData.email);
           
-        toast({
-          title: "Error",
-          description: `Failed to send invitation: ${authError.message}`,
-          variant: "destructive"
-        });
+        // Provide a specific error message for unauthorized errors
+        if (authError.status === 401 || authError.message?.includes("not authorized")) {
+          toast({
+            title: "Authorization Error",
+            description: "You are not authorized to send invitations. Please check your admin rights or contact support.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: `Failed to send invitation: ${authError.message || 'Unknown error'}`,
+            variant: "destructive"
+          });
+        }
+        setIsSubmitting(false);
         return;
       }
-      
-      console.log("Invitation sent successfully:", data);
-      
-      toast({
-        title: "Success",
-        description: "User invitation sent successfully"
-      });
-      
-      setShowCreateDialog(false);
-      resetForm();
-
-      // Refresh the invitations list
-      await fetchInvitations();
       
       // Refresh the users list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
+      
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
@@ -366,12 +382,20 @@ const UserManagement = () => {
   };
 
   const resendInvitation = async (invitation: UserInvite) => {
+    if (isSubmitting) return;
+    
     try {
       setIsSubmitting(true);
       
       // Send the invitation email via Supabase Auth
       const { error } = await supabase.auth.admin.inviteUserByEmail(
-        invitation.email
+        invitation.email, {
+          data: {
+            name: "", // We might not have name data in the invitation
+            role: invitation.role
+          },
+          redirectTo: `${window.location.origin}/set-password`
+        }
       );
       
       if (error) {
