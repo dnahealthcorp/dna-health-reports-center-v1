@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -15,7 +16,7 @@ function addFooter(doc: jsPDF, pageWidth: number): void {
   doc.setFontSize(8);
   doc.setTextColor("#a5a4a4");
   // Right align, 10mm from the bottom
-  doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" });
+  doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" as "right" });
 }
 
 /**
@@ -149,7 +150,7 @@ function generateIntroductionSection(
     "to be a part of your journey to wellness and longevity."
   ];
   introLines.forEach(line => {
-    doc.text(line, contentMargin, currentY, { maxWidth: contentWidth, align: "left" });
+    doc.text(line, contentMargin, currentY, { maxWidth: contentWidth, align: "left" as "left" });
     currentY += 6;
   });
   return currentY + 10;
@@ -210,7 +211,16 @@ function generateVitalsSection(
       1: { cellWidth: colWidth },
       2: { cellWidth: colWidth }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -274,7 +284,16 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -307,7 +326,7 @@ function generateInsulinCardioSection(
     currentY += 60;
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
-    doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" });
+    doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" as "center" });
     currentY += 10;
   }
 
@@ -347,6 +366,15 @@ function generateInsulinCardioSection(
       fillColor: [245,245,245]
     },
     margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    },
     didDrawCell: (data) => {
       if (data.section === "body") {
         const rowIndex = data.row.index;
@@ -418,7 +446,16 @@ function generateDoctorsRecommendationsSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -473,7 +510,16 @@ function generateExerciseSleepSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
@@ -510,7 +556,16 @@ function generateExerciseSleepSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -578,7 +633,16 @@ function generateMedicationsSupplementsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
@@ -631,7 +695,16 @@ function generateMedicationsSupplementsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -694,7 +767,16 @@ function generateFollowUpsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
@@ -794,6 +876,9 @@ export const generatePDF = async (
 
   // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // Add a final footer if needed
+  addFooter(doc, pageWidth);
 
   // Return the PDF as a Blob instead of saving it
   return doc.output('blob');

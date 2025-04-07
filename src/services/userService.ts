@@ -29,7 +29,12 @@ export const getUsers = async (): Promise<User[]> => {
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     // Get authentication state
-    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error("Error getting session:", sessionError);
+      return null;
+    }
     
     if (!sessionData.session) {
       console.log("No active session found");
