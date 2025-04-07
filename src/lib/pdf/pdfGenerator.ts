@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -302,7 +303,19 @@ function generateSummarySection(
         const lineHeight = 5;
         
         // Split text by newlines to handle paragraph breaks
-        const lines = data.cell.text.split('\n');
+        // Fix: Check if data.cell.text is a string before calling split
+        let lines: string[] = [];
+        
+        if (typeof data.cell.text === 'string') {
+          lines = data.cell.text.split('\n');
+        } else if (Array.isArray(data.cell.text)) {
+          // If it's already an array, use it directly
+          lines = data.cell.text;
+        } else {
+          // Handle any other unexpected type by converting to string
+          lines = [String(data.cell.text)];
+        }
+        
         let yOffset = textPadding;
         
         doc.setFontSize(10);
@@ -858,3 +871,4 @@ export const generatePDF = async (
   // Return the blob to be used in the calling function
   return pdfBlob;
 };
+
