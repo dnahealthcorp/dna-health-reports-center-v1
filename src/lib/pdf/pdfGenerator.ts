@@ -1,3 +1,4 @@
+
 // src/lib/pdf/pdfGenerator.ts
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -152,9 +153,11 @@ function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number,
     body,
     styles: {
       fontSize: 10,
-      cellPadding: 2,
+      cellPadding: 5, // Increased padding to give text more room
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60, 60, 60],
+      overflow: 'linebreak', // Ensure text wraps properly
+      cellWidth: 'auto'
     },
     bodyStyles: {
       fillColor: [255, 255, 255]
@@ -166,7 +169,31 @@ function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number,
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawCell: function(data) {
+      // Only process cells with text content in the body
+      if (data.section === 'body' && data.column.index === 1 && typeof data.cell.text === 'string') {
+        // Make sure we're working with a string
+        const text = data.cell.text.toString();
+        
+        // Handle the text wrapping
+        const textX = data.cell.x + 5; // Add padding
+        const textY = data.cell.y + 10; // Start a bit down from the top
+        
+        // Split by newlines
+        const lines = text.split('\n');
+        
+        // Set text styles for cell content
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        
+        // Draw each line with proper spacing
+        lines.forEach((line, i) => {
+          doc.text(line, textX, textY + (i * 5.5)); // 5.5 is the line height
+        });
+      }
+    }
   });
 
   return (doc as any).lastAutoTable.finalY + 10;

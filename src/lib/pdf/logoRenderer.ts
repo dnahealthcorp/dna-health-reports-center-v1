@@ -10,8 +10,8 @@ export const addLogoToPage = (doc: jsPDF): void => {
   try {
     const margin = 10; // Margin from the page edge
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoWidth = 20;
-    const logoHeight = 20; // Adjusted height for better aspect ratio
+    const logoWidth = 20; // Keep width fixed
+    const logoHeight = 10; // Adjusted height for correct aspect ratio (1:0.5 ratio)
     // Calculate x-coordinate so that the logo appears at the top right
     const x = pageWidth - logoWidth - margin;
     const y = margin;
@@ -19,7 +19,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
     // Use an absolute path for the logo with origin
     const logoPath = `${window.location.origin}/assets/DNA Logo - Grey.svg`;
     
-    // Add the image using addImage
+    // Add the image using addImage with proper aspect ratio
     doc.addImage(logoPath, 'SVG', x, y, logoWidth, logoHeight);
     console.log("Logo added to PDF successfully at the top right corner");
   } catch (error) {
@@ -30,7 +30,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
       const margin = 10;
       const pageWidth = doc.internal.pageSize.getWidth();
       const logoWidth = 20;
-      const logoHeight = 20;
+      const logoHeight = 10; // Maintain the same aspect ratio in fallback
       const x = pageWidth - logoWidth - margin;
       const y = margin;
       
