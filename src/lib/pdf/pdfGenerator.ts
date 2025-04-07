@@ -20,7 +20,7 @@ function addFooter(doc: jsPDF, pageWidth: number): void {
 }
 
 /**
- * Checks if there’s enough vertical space on the current page.
+ * Checks if there's enough vertical space on the current page.
  * If not, draws a footer, adds a new page (with header logo), and resets currentY to topMargin.
  */
 function ensureSpace(
@@ -246,14 +246,18 @@ function generateSummarySection(
     ],
     body: [
       ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
+      ["Proteins", formData.summaryFindings.proteins || ""],
       ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
       ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Uric Acid", formData.summaryFindings.uricAcid || ""],
-      ["Vitamins", formData.summaryFindings.vitamins || ""],
-      ["Minerals", formData.summaryFindings.minerals || ""],
+      ["Metabolic", formData.summaryFindings.metabolic || ""],
+      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
+      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
+      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
       ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Renal & Liver Function", formData.summaryFindings.renalLiverFunction || ""],
-      ["Cancer markers", formData.summaryFindings.cancerMarkers || ""]
+      ["Kidney Function & Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
+      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
+      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
+      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
     ],
     styles: {
       fontSize: 10,
@@ -393,9 +397,10 @@ function generateDoctorsRecommendationsSection(
       ]
     ],
     body: [
-      ["Style (nutritional plan)", formData.nutritionRecommendations?.nutritionalPlan || ""],
+      ["Style (nutritional plan)", formData.nutritionRecommendations?.nutritionalStyle || ""],
       ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
-      ["Omissions", formData.nutritionRecommendations?.omissions || ""],
+      ["Eating Window", formData.nutritionRecommendations?.eatingWindow || ""],
+      ["Limitations", formData.nutritionRecommendations?.limitations || ""],
       ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
     ],
     styles: {
@@ -450,7 +455,7 @@ function generateExerciseSleepSection(
     body: [
       ["Focus on", formData.exerciseDetail?.focusOn || ""],
       ["Walking", formData.exerciseDetail?.walking || ""],
-      ["Avoid", formData.exerciseDetail?.avoid || ""],
+      ["Rest/Recovery", formData.exerciseDetail?.restRecovery || ""],
       ["Tracking", formData.exerciseDetail?.tracking || ""]
     ],
     styles: {
