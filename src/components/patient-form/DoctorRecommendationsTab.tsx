@@ -1,278 +1,265 @@
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { 
-  NutritionRecommendation, 
-  ExerciseRecommendation, 
-  SleepStressRecommendation, 
-  PatientFormData 
-} from "@/types";
+import { PatientFormData, User } from "@/types";
+import { ClipboardCheck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getAllDoctors } from "@/services/databaseService";
 
 interface DoctorRecommendationsTabProps {
-  // Direct props for standalone usage
-  nutritionRecommendations?: NutritionRecommendation;
-  exerciseDetail?: ExerciseRecommendation;
-  sleepStressRecommendations?: SleepStressRecommendation;
-  doctorName?: string;
-  onNutritionRecommendationsChange?: (recommendations: NutritionRecommendation) => void;
-  onExerciseDetailChange?: (detail: ExerciseRecommendation) => void;
-  onSleepStressRecommendationsChange?: (recommendations: SleepStressRecommendation) => void;
-  onDoctorNameChange?: (name: string) => void;
-  // Form data props for integrated usage
-  formData?: PatientFormData;
-  handleInputChange?: (section: keyof PatientFormData | "", field: string, value: string | boolean) => void;
-  canEditDoctorSection?: boolean;
+  formData: PatientFormData;
+  handleInputChange: (section: keyof PatientFormData | "", field: string, value: string | boolean) => void;
+  canEditDoctorSection: boolean;
 }
 
 export const DoctorRecommendationsTab = ({
-  // Direct props
-  nutritionRecommendations: propNutritionRecommendations,
-  exerciseDetail: propExerciseDetail,
-  sleepStressRecommendations: propSleepStressRecommendations,
-  doctorName: propDoctorName,
-  onNutritionRecommendationsChange,
-  onExerciseDetailChange,
-  onSleepStressRecommendationsChange,
-  onDoctorNameChange,
-  // Form data props
   formData,
   handleInputChange,
-  canEditDoctorSection = true
+  canEditDoctorSection
 }: DoctorRecommendationsTabProps) => {
-  // Use either direct props or data from formData
-  const nutritionRecommendations = propNutritionRecommendations || (formData ? formData.nutritionRecommendations : {
-    nutritionalStyle: '',
-    proteinConsumption: '',
-    eatingWindow: '',
-    limitations: '',
-    additionalConsiderations: ''
-  });
-  
-  const exerciseDetail = propExerciseDetail || (formData ? formData.exerciseDetail : {
-    focusOn: '',
-    walking: '',
-    restRecovery: '',
-    tracking: ''
-  });
-  
-  const sleepStressRecommendations = propSleepStressRecommendations || (formData ? formData.sleepStressRecommendations : {
-    sleep: '',
-    stress: ''
-  });
-  
-  const doctorName = propDoctorName !== undefined ? propDoctorName : (formData ? formData.doctorName : '');
+  const [doctors, setDoctors] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleNutritionChange = (field: keyof NutritionRecommendation, value: string) => {
-    if (handleInputChange && formData) {
-      handleInputChange("nutritionRecommendations", field, value);
-    } else if (onNutritionRecommendationsChange) {
-      onNutritionRecommendationsChange({
-        ...nutritionRecommendations,
-        [field]: value
-      });
-    }
-  };
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setIsLoading(true);
+        const doctorsData = await getAllDoctors();
+        setDoctors(doctorsData);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleExerciseChange = (field: keyof ExerciseRecommendation, value: string) => {
-    if (handleInputChange && formData) {
-      handleInputChange("exerciseDetail", field, value);
-    } else if (onExerciseDetailChange) {
-      onExerciseDetailChange({
-        ...exerciseDetail,
-        [field]: value
-      });
-    }
-  };
+    fetchDoctors();
+  }, []);
 
-  const handleSleepStressChange = (field: keyof SleepStressRecommendation, value: string) => {
-    if (handleInputChange && formData) {
-      handleInputChange("sleepStressRecommendations", field, value);
-    } else if (onSleepStressRecommendationsChange) {
-      onSleepStressRecommendationsChange({
-        ...sleepStressRecommendations,
-        [field]: value
-      });
-    }
-  };
-
-  const handleDoctorNameChange = (value: string) => {
-    if (handleInputChange) {
-      handleInputChange("", "doctorName", value);
-    } else if (onDoctorNameChange) {
-      onDoctorNameChange(value);
-    }
+  const handleDoctorSelect = (value: string) => {
+    handleInputChange("", "doctorName", value);
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="mb-6">
-          <Label htmlFor="doctorName">Doctor's Name</Label>
-          <Input
-            id="doctorName"
-            value={doctorName}
-            onChange={(e) => handleDoctorNameChange(e.target.value)}
-            disabled={!canEditDoctorSection}
-            placeholder="Enter the doctor's name"
-            className="mt-1.5"
-          />
-        </div>
+    <div className="grid gap-6">
+      {/* Doctor Name Field */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg font-medium">
+            <ClipboardCheck className="h-5 w-5 text-primary mr-2" />
+            Doctor Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div>
+            <Label htmlFor="doctorName">Doctor Name (will appear in the signature)</Label>
+            <div className="mt-1 relative">
+              <Select
+                value={formData.doctorName || ''}
+                onValueChange={handleDoctorSelect}
+                disabled={!canEditDoctorSection || isLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a doctor" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="w-full bg-white">
+                  <SelectGroup>
+                    <SelectLabel>Doctors</SelectLabel>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.name}>
+                        {doctor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {!formData.doctorName && canEditDoctorSection && (
+                <Input
+                  id="customDoctorName"
+                  value={formData.doctorName || ''}
+                  onChange={(e) => handleInputChange("", "doctorName", e.target.value)}
+                  className="mt-2"
+                  placeholder="Or enter custom name"
+                />
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Nutrition Recommendations */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg font-medium">
+            <ClipboardCheck className="h-5 w-5 text-primary mr-2" />
+            Nutrition Recommendations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div>
+              <Label htmlFor="nutritionalStyle">Nutritional Style</Label>
+              <Textarea
+                id="nutritionalStyle"
+                value={formData.nutritionRecommendations.nutritionalStyle || ''}
+                onChange={(e) => handleInputChange("nutritionRecommendations", "nutritionalStyle", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="proteinConsumption">Protein Consumption</Label>
+              <Textarea
+                id="proteinConsumption"
+                value={formData.nutritionRecommendations.proteinConsumption || ''}
+                onChange={(e) => handleInputChange("nutritionRecommendations", "proteinConsumption", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="eatingWindow">Eating Window</Label>
+              <Textarea
+                id="eatingWindow"
+                value={formData.nutritionRecommendations.eatingWindow || ''}
+                onChange={(e) => handleInputChange("nutritionRecommendations", "eatingWindow", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="limitations">Limitations</Label>
+              <Textarea
+                id="limitations"
+                value={formData.nutritionRecommendations.limitations || ''}
+                onChange={(e) => handleInputChange("nutritionRecommendations", "limitations", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="additionalConsiderations">Additional Considerations</Label>
+              <Textarea
+                id="additionalConsiderations"
+                value={formData.nutritionRecommendations.additionalConsiderations || ''}
+                onChange={(e) => handleInputChange("nutritionRecommendations", "additionalConsiderations", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Tabs defaultValue="nutrition">
-          <TabsList className="mb-6 grid grid-cols-1 md:grid-cols-3">
-            <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
-            <TabsTrigger value="exercise">Exercise</TabsTrigger>
-            <TabsTrigger value="sleepStress">Sleep & Stress</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="nutrition">
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="nutritionalStyle">Nutritional Style</Label>
-                <Textarea 
-                  id="nutritionalStyle" 
-                  value={nutritionRecommendations.nutritionalStyle} 
-                  onChange={(e) => handleNutritionChange('nutritionalStyle', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter nutritional style recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="proteinConsumption">Protein Consumption</Label>
-                <Textarea 
-                  id="proteinConsumption" 
-                  value={nutritionRecommendations.proteinConsumption} 
-                  onChange={(e) => handleNutritionChange('proteinConsumption', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter protein consumption recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="eatingWindow">Eating Window</Label>
-                <Textarea 
-                  id="eatingWindow" 
-                  value={nutritionRecommendations.eatingWindow} 
-                  onChange={(e) => handleNutritionChange('eatingWindow', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter eating window recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="limitations">Limitations</Label>
-                <Textarea 
-                  id="limitations" 
-                  value={nutritionRecommendations.limitations} 
-                  onChange={(e) => handleNutritionChange('limitations', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter dietary limitations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="additionalConsiderations">Additional Considerations</Label>
-                <Textarea 
-                  id="additionalConsiderations" 
-                  value={nutritionRecommendations.additionalConsiderations} 
-                  onChange={(e) => handleNutritionChange('additionalConsiderations', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter additional dietary considerations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
+      {/* Exercise Recommendations */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg font-medium">
+            <ClipboardCheck className="h-5 w-5 text-primary mr-2" />
+            Exercise Recommendations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div>
+              <Label htmlFor="focusOn">Focus On</Label>
+              <Textarea
+                id="focusOn"
+                value={formData.exerciseDetail.focusOn || ''}
+                onChange={(e) => handleInputChange("exerciseDetail", "focusOn", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="exercise">
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="focusOn">Focus On</Label>
-                <Textarea 
-                  id="focusOn" 
-                  value={exerciseDetail.focusOn} 
-                  onChange={(e) => handleExerciseChange('focusOn', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter exercise focus recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="walking">Walking</Label>
-                <Textarea 
-                  id="walking" 
-                  value={exerciseDetail.walking} 
-                  onChange={(e) => handleExerciseChange('walking', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter walking recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="restRecovery">Rest/Recovery</Label>
-                <Textarea 
-                  id="restRecovery" 
-                  value={exerciseDetail.restRecovery} 
-                  onChange={(e) => handleExerciseChange('restRecovery', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter rest and recovery recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="tracking">Tracking</Label>
-                <Textarea 
-                  id="tracking" 
-                  value={exerciseDetail.tracking} 
-                  onChange={(e) => handleExerciseChange('tracking', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter exercise tracking recommendations"
-                  className="min-h-[100px] mt-1.5"
-                />
-              </div>
+            <div>
+              <Label htmlFor="walking">Walking</Label>
+              <Textarea
+                id="walking"
+                value={formData.exerciseDetail.walking || ''}
+                onChange={(e) => handleInputChange("exerciseDetail", "walking", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={2}
+              />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="sleepStress">
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="sleep">Sleep</Label>
-                <Textarea 
-                  id="sleep" 
-                  value={sleepStressRecommendations.sleep} 
-                  onChange={(e) => handleSleepStressChange('sleep', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter sleep recommendations"
-                  className="min-h-[150px] mt-1.5"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="stress">Stress</Label>
-                <Textarea 
-                  id="stress" 
-                  value={sleepStressRecommendations.stress} 
-                  onChange={(e) => handleSleepStressChange('stress', e.target.value)}
-                  disabled={!canEditDoctorSection}
-                  placeholder="Enter stress management recommendations"
-                  className="min-h-[150px] mt-1.5"
-                />
-              </div>
+            <div>
+              <Label htmlFor="restRecovery">Rest/Recovery</Label>
+              <Textarea
+                id="restRecovery"
+                value={formData.exerciseDetail.restRecovery || ''}
+                onChange={(e) => handleInputChange("exerciseDetail", "restRecovery", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={2}
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            <div>
+              <Label htmlFor="tracking">Tracking</Label>
+              <Textarea
+                id="tracking"
+                value={formData.exerciseDetail.tracking || ''}
+                onChange={(e) => handleInputChange("exerciseDetail", "tracking", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={2}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sleep and Stress Recommendations */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg font-medium">
+            <ClipboardCheck className="h-5 w-5 text-primary mr-2" />
+            Sleep and Stress Recommendations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div>
+              <Label htmlFor="sleep">Sleep</Label>
+              <Textarea
+                id="sleep"
+                value={formData.sleepStressRecommendations.sleep || ''}
+                onChange={(e) => handleInputChange("sleepStressRecommendations", "sleep", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="stress">Stress</Label>
+              <Textarea
+                id="stress"
+                value={formData.sleepStressRecommendations.stress || ''}
+                onChange={(e) => handleInputChange("sleepStressRecommendations", "stress", e.target.value)}
+                disabled={!canEditDoctorSection}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

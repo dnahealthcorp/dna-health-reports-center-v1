@@ -1,40 +1,36 @@
 
-/**
- * Calculate the age from a date of birth string
- * @param dateOfBirth Date of birth in string format
- * @returns Age in years as a number
- */
-export const calculateAge = (dateOfBirth: string): number => {
-  if (!dateOfBirth) return 0;
+export const calculateBMI = (height: string, weight: string): string => {
+  if (!height || !weight) return '-';
   
-  const dob = new Date(dateOfBirth);
-  const today = new Date();
-  
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDiff = today.getMonth() - dob.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-    age--;
+  let heightInMeters = 0;
+  if (height.includes("'")) {
+    const parts = height.replace(/"/g, '').split("'");
+    const feet = parseFloat(parts[0]);
+    const inches = parseFloat(parts[1] || '0');
+    heightInMeters = ((feet * 12) + inches) * 0.0254;
+  } else {
+    heightInMeters = parseFloat(height) / 100;
   }
   
-  return age;
+  let weightInKg = parseFloat(weight);
+  if (height.includes('lbs')) {
+    weightInKg = weightInKg * 0.45359237;
+  }
+  
+  if (isNaN(heightInMeters) || isNaN(weightInKg) || heightInMeters === 0) return '-';
+  
+  const bmi = weightInKg / (heightInMeters * heightInMeters);
+  return bmi.toFixed(1);
 };
 
-/**
- * Calculate BMI from height (cm) and weight (kg)
- * @param height Height in cm
- * @param weight Weight in kg
- * @returns BMI value as a number with 1 decimal place
- */
-export const calculateBMI = (height: string, weight: string): number => {
-  if (!height || !weight) return 0;
-  
-  const heightInM = parseFloat(height) / 100;
-  const weightInKg = parseFloat(weight);
-  
-  if (heightInM <= 0 || weightInKg <= 0) return 0;
-  
-  // BMI = weight (kg) / (height (m))^2
-  const bmi = weightInKg / (heightInM * heightInM);
-  return Math.round(bmi * 10) / 10;
+export const calculateAge = (dateOfBirth: string): string => {
+  if (!dateOfBirth) return '-';
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age.toString();
 };

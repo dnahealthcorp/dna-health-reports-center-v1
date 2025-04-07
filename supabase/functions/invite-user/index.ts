@@ -71,37 +71,6 @@ serve(async (req: Request) => {
 
     console.log(`Creating user for ${email} with role ${role}`);
 
-    // First check if the user already exists in auth
-    const { data: existingUsers, error: lookupError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (lookupError) {
-      console.error("Error checking for existing user:", lookupError);
-      return new Response(
-        JSON.stringify({ error: lookupError.message }),
-        { status: 500, headers: { ...corsHeaders } }
-      );
-    }
-
-    // If user already exists, return existing user info with a success message
-    if (existingUsers) {
-      console.log("User already exists, returning existing user data");
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "User already exists",
-          user: { id: existingUsers.id, email, role: existingUsers.role }
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders }
-        }
-      );
-    }
-
     // Create the user through Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -113,31 +82,10 @@ serve(async (req: Request) => {
     });
 
     if (authError) {
-      // Handle duplicate email error specifically
-      if (authError.message.includes("already been registered")) {
-        // Try to fetch the existing user from the database
-        const { data: existingUser } = await supabaseAdmin
-          .from('users')
-          .select('*')
-          .eq('email', email)
-          .single();
-
-        if (existingUser) {
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: "User already exists", 
-              user: { id: existingUser.id, email, role: existingUser.role } 
-            }),
-            { status: 200, headers: { ...corsHeaders } }
-          );
-        }
-      }
-
       console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ error: authError.message }),
-        { status: 400, headers: { ...corsHeaders } }
+        { status: 500, headers: { ...corsHeaders } }
       );
     }
 

@@ -1,12 +1,12 @@
 
 import { Loader2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 export const LoadingState = () => {
   return (
-    <div className="flex flex-col items-center justify-center h-[50vh]">
-      <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <h2 className="text-2xl font-semibold mt-4">Loading Patient Data</h2>
-      <p className="text-muted-foreground mt-2">Please wait while we fetch the information...</p>
-    </div>
+    <Card className="flex flex-col items-center justify-center h-96">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+      <p className="text-muted-foreground">Loading patient data...</p>
+    </Card>
   );
 };

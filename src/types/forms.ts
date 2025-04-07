@@ -16,26 +16,3 @@ export type FormField = {
   options?: string[];
   section: 'patient' | 'vitals' | 'medications' | 'nurse' | 'doctor' | 'summaryFindings';
 };
-
-export type Form = {
-  id: string;
-  patient_id: string;
-  form_type_id: string;
-  status: 'draft' | 'in-process' | 'late' | 'completed';
-  pdf_exported: boolean;
-  created_at: string;
-  updated_at: string;
-  status_updated_at?: string;
-  created_by?: string;
-  formType?: FormType;
-};
-
-export type FormType = {
-  id: string;
-  title: string;
-  description?: string;
-  slug: string;
-  created_at: string;
-  updated_at: string;
-  pdf_template_path?: string;
-};

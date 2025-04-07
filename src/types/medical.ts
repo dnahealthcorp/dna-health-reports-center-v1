@@ -1,6 +1,5 @@
 
-// Medical-related type definitions
-
+// Medical data related type definitions
 export interface Vital {
   bloodPressure: string;
   height: string;
@@ -12,7 +11,7 @@ export interface Vital {
 }
 
 export interface SummaryFinding {
-  glucoseMetabolism: string;
+  glucoseMetabolism: string; // Now supports HTML
   proteins: string;
   lipidProfile: string;
   inflammation: string;
@@ -53,51 +52,58 @@ export interface FollowUp {
   date: string;
 }
 
-// Type guards for safer type checking
-export function isVital(obj: any): obj is Vital {
-  return obj && 
-    typeof obj === 'object' && 
-    'bloodPressure' in obj && 
-    'height' in obj && 
-    'weight' in obj;
+// Type guard functions
+export function isVital(json: any): json is Vital {
+  return (
+    json &&
+    typeof json === 'object' &&
+    'bloodPressure' in json &&
+    'height' in json &&
+    'weight' in json
+  );
 }
 
-export function isSummaryFinding(obj: any): obj is SummaryFinding {
-  return obj && 
-    typeof obj === 'object' && 
-    'glucoseMetabolism' in obj && 
-    'proteins' in obj &&
-    'lipidProfile' in obj;
+export function isSummaryFinding(json: any): json is SummaryFinding {
+  return (
+    json &&
+    typeof json === 'object' &&
+    'glucoseMetabolism' in json &&
+    'lipidProfile' in json &&
+    'inflammation' in json
+  );
 }
 
-export function isNutritionRecommendation(obj: any): obj is NutritionRecommendation {
-  return obj && 
-    typeof obj === 'object' && 
-    'nutritionalStyle' in obj && 
-    'proteinConsumption' in obj &&
-    'eatingWindow' in obj;
+export function isNutritionRecommendation(json: any): json is NutritionRecommendation {
+  return (
+    json &&
+    typeof json === 'object' &&
+    'nutritionalStyle' in json
+  );
 }
 
-export function isExerciseRecommendation(obj: any): obj is ExerciseRecommendation {
-  return obj && 
-    typeof obj === 'object' && 
-    'focusOn' in obj && 
-    'walking' in obj &&
-    'restRecovery' in obj && 
-    'tracking' in obj;
+export function isExerciseRecommendation(json: any): json is ExerciseRecommendation {
+  return (
+    json &&
+    typeof json === 'object' &&
+    'focusOn' in json
+  );
 }
 
-export function isSleepStressRecommendation(obj: any): obj is SleepStressRecommendation {
-  return obj && 
-    typeof obj === 'object' && 
-    'sleep' in obj && 
-    'stress' in obj;
+export function isSleepStressRecommendation(json: any): json is SleepStressRecommendation {
+  return (
+    json &&
+    typeof json === 'object' &&
+    'sleep' in json &&
+    'stress' in json
+  );
 }
 
-export function isFollowUp(obj: any): obj is FollowUp {
-  return obj && 
-    typeof obj === 'object' && 
-    'withDoctor' in obj && 
-    'forReason' in obj &&
-    'date' in obj;
+export function isFollowUp(json: any): json is FollowUp {
+  return (
+    json &&
+    typeof json === 'object' &&
+    'withDoctor' in json &&
+    'forReason' in json &&
+    'date' in json
+  );
 }

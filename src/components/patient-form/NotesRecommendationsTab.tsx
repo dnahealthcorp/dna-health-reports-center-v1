@@ -1,102 +1,121 @@
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Save, Loader2 } from "lucide-react";
+import { PatientFormData } from "@/types";
 
 interface NotesRecommendationsTabProps {
-  nurseNotes?: string;
-  doctorNotes?: string;
-  diagnosis?: string;
-  treatmentPlan?: string;
-  onNurseNotesChange?: (notes: string) => void;
-  onDoctorNotesChange?: (notes: string) => void;
-  onDiagnosisChange?: (diagnosis: string) => void;
-  onTreatmentPlanChange?: (plan: string) => void;
-  canEditNurseSection?: boolean;
-  canEditDoctorSection?: boolean;
+  formData: PatientFormData;
+  handleInputChange: (section: keyof PatientFormData | "", field: string, value: string) => void;
+  canEditNurseSection: boolean;
+  canEditDoctorSection: boolean;
+  handleSave: () => void;
+  isSaving: boolean;
 }
 
 export const NotesRecommendationsTab = ({
-  nurseNotes = "",
-  doctorNotes = "",
-  diagnosis = "",
-  treatmentPlan = "",
-  onNurseNotesChange,
-  onDoctorNotesChange,
-  onDiagnosisChange,
-  onTreatmentPlanChange,
+  formData,
+  handleInputChange,
   canEditNurseSection,
-  canEditDoctorSection
+  canEditDoctorSection,
+  handleSave,
+  isSaving
 }: NotesRecommendationsTabProps) => {
   return (
     <Card>
-      <CardContent className="pt-6">
-        <Tabs defaultValue="nurseNotes">
-          <TabsList className="mb-6 grid grid-cols-2 md:grid-cols-4">
-            <TabsTrigger value="nurseNotes">Nurse Notes</TabsTrigger>
-            <TabsTrigger value="doctorNotes">Doctor Notes</TabsTrigger>
-            <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
-            <TabsTrigger value="treatmentPlan">Treatment Plan</TabsTrigger>
-          </TabsList>
+      <CardHeader>
+        <CardTitle>Notes & Recommendations</CardTitle>
+        <CardDescription>
+          Add notes, exercise recommendations, and treatment plans
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="exerciseRecommendations">Exercise Recommendations</Label>
+            <Textarea 
+              id="exerciseRecommendations"
+              value={formData.exerciseRecommendations}
+              onChange={(e) => handleInputChange("" as keyof PatientFormData, "exerciseRecommendations", e.target.value)}
+              disabled={!canEditNurseSection}
+              className="min-h-[100px]"
+            />
+          </div>
           
-          <TabsContent value="nurseNotes">
-            <div className="space-y-4">
-              <Label htmlFor="nurseNotes">Nurse Notes</Label>
-              <Textarea 
-                id="nurseNotes" 
-                value={nurseNotes} 
-                onChange={(e) => onNurseNotesChange && onNurseNotesChange(e.target.value)}
-                disabled={!canEditNurseSection}
-                placeholder="Enter nurse notes here"
-                className="min-h-[300px]"
-              />
-            </div>
-          </TabsContent>
+          <div className="space-y-2">
+            <Label htmlFor="nurseNotes">
+              Nurse Notes
+              {!canEditNurseSection && <span className="text-muted-foreground ml-2 text-sm">(Read only)</span>}
+            </Label>
+            <Textarea 
+              id="nurseNotes"
+              value={formData.nurseNotes}
+              onChange={(e) => handleInputChange("" as keyof PatientFormData, "nurseNotes", e.target.value)}
+              disabled={!canEditNurseSection}
+              className="min-h-[100px]"
+            />
+          </div>
           
-          <TabsContent value="doctorNotes">
-            <div className="space-y-4">
-              <Label htmlFor="doctorNotes">Doctor Notes</Label>
-              <Textarea 
-                id="doctorNotes" 
-                value={doctorNotes} 
-                onChange={(e) => onDoctorNotesChange && onDoctorNotesChange(e.target.value)}
-                disabled={!canEditDoctorSection}
-                placeholder="Enter doctor notes here"
-                className="min-h-[300px]"
-              />
-            </div>
-          </TabsContent>
+          <div className="space-y-2">
+            <Label htmlFor="doctorNotes">
+              Doctor Notes
+              {!canEditDoctorSection && <span className="text-muted-foreground ml-2 text-sm">(Read only)</span>}
+            </Label>
+            <Textarea 
+              id="doctorNotes"
+              value={formData.doctorNotes}
+              onChange={(e) => handleInputChange("" as keyof PatientFormData, "doctorNotes", e.target.value)}
+              disabled={!canEditDoctorSection}
+              className="min-h-[100px]"
+            />
+          </div>
           
-          <TabsContent value="diagnosis">
-            <div className="space-y-4">
-              <Label htmlFor="diagnosis">Diagnosis</Label>
-              <Textarea 
-                id="diagnosis" 
-                value={diagnosis} 
-                onChange={(e) => onDiagnosisChange && onDiagnosisChange(e.target.value)}
-                disabled={!canEditDoctorSection}
-                placeholder="Enter diagnosis here"
-                className="min-h-[300px]"
-              />
-            </div>
-          </TabsContent>
+          <div className="space-y-2">
+            <Label htmlFor="diagnosis">
+              Diagnosis
+              {!canEditDoctorSection && <span className="text-muted-foreground ml-2 text-sm">(Read only)</span>}
+            </Label>
+            <Textarea 
+              id="diagnosis"
+              value={formData.diagnosis}
+              onChange={(e) => handleInputChange("" as keyof PatientFormData, "diagnosis", e.target.value)}
+              disabled={!canEditDoctorSection}
+              className="min-h-[100px]"
+            />
+          </div>
           
-          <TabsContent value="treatmentPlan">
-            <div className="space-y-4">
-              <Label htmlFor="treatmentPlan">Treatment Plan</Label>
-              <Textarea 
-                id="treatmentPlan" 
-                value={treatmentPlan} 
-                onChange={(e) => onTreatmentPlanChange && onTreatmentPlanChange(e.target.value)}
-                disabled={!canEditDoctorSection}
-                placeholder="Enter treatment plan here"
-                className="min-h-[300px]"
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+          <div className="space-y-2">
+            <Label htmlFor="treatmentPlan">
+              Treatment Plan
+              {!canEditDoctorSection && <span className="text-muted-foreground ml-2 text-sm">(Read only)</span>}
+            </Label>
+            <Textarea 
+              id="treatmentPlan"
+              value={formData.treatmentPlan}
+              onChange={(e) => handleInputChange("" as keyof PatientFormData, "treatmentPlan", e.target.value)}
+              disabled={!canEditDoctorSection}
+              className="min-h-[100px]"
+            />
+          </div>
+        </div>
       </CardContent>
+      <CardFooter className="flex justify-end">
+        <Button disabled={isSaving} onClick={handleSave}>
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Form
+            </>
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
