@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -310,7 +309,7 @@ function generateSummarySection(
           lines = data.cell.text.split('\n');
         } else if (Array.isArray(data.cell.text)) {
           // If it's already an array, use it directly
-          lines = data.cell.text;
+          lines = data.cell.text as string[];
         } else {
           // Handle any other unexpected type by converting to string
           lines = [String(data.cell.text)];
@@ -871,4 +870,3 @@ export const generatePDF = async (
   // Return the blob to be used in the calling function
   return pdfBlob;
 };
-
