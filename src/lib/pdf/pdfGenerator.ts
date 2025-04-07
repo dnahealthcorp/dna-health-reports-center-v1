@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -309,7 +310,8 @@ function generateSummarySection(
           lines = data.cell.text.split('\n');
         } else if (Array.isArray(data.cell.text)) {
           // If it's already an array, use it directly
-          lines = data.cell.text as string[];
+          // Fix: Explicitly cast to string array and filter out any non-string values
+          lines = (data.cell.text as any[]).map(item => String(item));
         } else {
           // Handle any other unexpected type by converting to string
           lines = [String(data.cell.text)];
