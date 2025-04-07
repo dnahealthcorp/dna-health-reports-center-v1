@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -261,7 +262,7 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
- * Now supporting HTML formatting
+ * Now supporting HTML formatting with improved cell handling for better wrapping
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -307,10 +308,11 @@ function generateSummarySection(
     body: body,
     styles: {
       fontSize: 10,
-      cellPadding: 2,
+      cellPadding: 4,
       font: "helvetica",
       textColor: [60,60,60],
-      lineWidth: 0.1
+      lineWidth: 0.1,
+      overflow: 'linebreak'  // Ensure text wraps properly
     },
     bodyStyles: {
       fillColor: [255,255,255]
@@ -320,15 +322,25 @@ function generateSummarySection(
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240,250,230] },
-      1: { cellWidth: contentWidth - 50 }
+      1: { cellWidth: pageWidth - contentMargin * 2 - 50 }  // Calculate width based on page width
     },
     margin: { left: contentMargin, right: contentMargin },
     didParseCell: function(data) {
       // For the content cells (not the parameter names)
       if (data.section === 'body' && data.column.index === 1) {
-        // Allow text wrapping
+        // Force text wrap for long content
         data.cell.styles.cellWidth = 'wrap';
-        data.cell.styles.cellPadding = 3;
+        data.cell.styles.cellPadding = 4;
+        data.cell.styles.overflow = 'linebreak';
+        
+        // Limit text to avoid overflows
+        if (typeof data.cell.text === 'string' && data.cell.text.length > 500) {
+          data.cell.text = data.cell.text.substring(0, 500) + "...";
+        } else if (Array.isArray(data.cell.text)) {
+          data.cell.text = data.cell.text.map((line: string) => 
+            line.length > 100 ? line.substring(0, 100) + "..." : line
+          );
+        }
       }
     }
   });
@@ -766,6 +778,8 @@ function generateFollowUpsSection(
     "Guide to Homocystein"
   ];
 
+  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth); // Ensure space for links and signature
+  
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100,100,100);
@@ -780,20 +794,22 @@ function generateFollowUpsSection(
     currentY += 6;
   });
 
-  currentY += 6; // extra spacing before signature
+  currentY += 10; // extra spacing before signature
 
   // Signature with dynamic doctor name
+  currentY = ensureSpace(doc, currentY, 30, 40, pageWidth); // Ensure space for signature
+  
   doc.setFontSize(10);
   doc.setTextColor(100,100,100);
   doc.setFont("helvetica", "normal");
   doc.text("Kind Regards,", contentMargin, currentY);
-  currentY += 6;
+  currentY += 10;
   doc.setFont("helvetica", "bold");
   
   // Use the dynamic doctor name from the form or a default if not provided
   const doctorName = formData.doctorName || "Doctor";
   doc.text(doctorName, contentMargin, currentY);
-  currentY += 10;
+  currentY += 15;
 
   return currentY;
 }
@@ -815,6 +831,9 @@ export const generatePDF = async (
   const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm for A4
   const contentMargin = 20;
   const contentWidth = pageWidth - contentMargin * 2;
+
+  // Add logo to first page immediately
+  addLogoToPage(doc);
 
   // Start at 40mm from the top for extra spacing
   let currentY = 40;
@@ -851,6 +870,9 @@ export const generatePDF = async (
 
   // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // Add final footer
+  addFooter(doc, pageWidth);
 
   // Return the PDF as a Blob instead of saving it
   return doc.output('blob');

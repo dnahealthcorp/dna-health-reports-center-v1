@@ -14,13 +14,16 @@ export const addLogoToPage = (doc: jsPDF): void => {
     const x = pageWidth - logoWidth - margin;
     const y = margin;
     
-    // Use the SVG logo directly
-    doc.addSvgAsImage('/assets/DNA Logo - Grey.svg', x, y, logoWidth, logoHeight);
+    // Use an absolute path for the logo
+    const logoPath = `${window.location.origin}/assets/DNA Logo - Grey.svg`;
+    
+    // Add the image using addImage
+    doc.addImage(logoPath, 'SVG', x, y, logoWidth, logoHeight);
     console.log("Logo added to PDF successfully at the top right corner");
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
     
-    // Fallback to using standard image if SVG fails
+    // Fallback to using standard image with absolute path if SVG fails
     try {
       const margin = 10;
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -29,8 +32,8 @@ export const addLogoToPage = (doc: jsPDF): void => {
       const x = pageWidth - logoWidth - margin;
       const y = margin;
       
-      // Use image path directly
-      doc.addImage('/assets/DNA Logo - Grey.svg', 'SVG', x, y, logoWidth, logoHeight);
+      const logoPath = `${window.location.origin}/assets/dna-logo.png`;
+      doc.addImage(logoPath, 'PNG', x, y, logoWidth, logoHeight);
       console.log("Fallback logo added successfully");
     } catch (fallbackError) {
       console.error("Failed to add fallback logo:", fallbackError);
