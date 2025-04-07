@@ -1,3 +1,4 @@
+
 import { PatientFormData, Medication } from "@/types";
 
 import { jsPDF } from "jspdf";
@@ -5,6 +6,13 @@ import autoTable from "jspdf-autotable";
 import parse from 'html-react-parser';
 import { createRoot } from 'react-dom/client';
 import { isHtml } from "@/types/medical";
+
+// Define a custom interface for jsPDF with lastAutoTable property
+interface ExtendedJsPDF extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+}
 
 // Helper function to convert HTML to plain text for contexts where HTML isn't supported
 const htmlToText = (html: string): string => {
@@ -46,18 +54,18 @@ const shouldRenderAsHtml = (field: string, content: string): boolean => {
 };
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
-  const doc = new jsPDF();
+  const doc = new jsPDF() as ExtendedJsPDF;
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Function to add a header to each page
-  const addHeader = (doc: jsPDF, text: string) => {
+  const addHeader = (doc: ExtendedJsPDF, text: string) => {
     doc.setFontSize(10);
     doc.setTextColor(40);
     doc.text(text, pageWidth / 2, 10, { align: 'center' });
   };
   
   // Function to add a footer to each page
-  const addFooter = (doc: jsPDF, pageNumber: number, totalPages: number) => {
+  const addFooter = (doc: ExtendedJsPDF, pageNumber: number, totalPages: number) => {
     doc.setFontSize(10);
     doc.setTextColor(40);
     const footerText = `Page ${pageNumber} of ${totalPages}`;
@@ -92,7 +100,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Vitals Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Vitals', 20, doc.lastAutoTable.finalY + 10);
+  doc.text('Vitals', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 80);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
   
@@ -108,7 +116,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   
   autoTable(doc, {
     body: vitalsData,
-    startY: doc.lastAutoTable.finalY + 20,
+    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 100,
     theme: 'plain',
     margin: { left: 20 },
     columnStyles: { 0: { fontStyle: 'bold' } }
@@ -117,7 +125,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Medications Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Medications', 20, doc.lastAutoTable.finalY + 10);
+  doc.text('Medications', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 150);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
   
@@ -133,7 +141,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   autoTable(doc, {
     head: [['Medication', 'Dosage', 'Frequency']],
     body: medicationsData,
-    startY: doc.lastAutoTable.finalY + 20,
+    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 170,
     theme: 'grid',
     headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
     margin: { left: 20 }
@@ -142,7 +150,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Supplements Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Supplements', 20, doc.lastAutoTable.finalY + 10);
+  doc.text('Supplements', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 220);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
   
@@ -158,7 +166,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   autoTable(doc, {
     head: [['Supplement', 'Dosage', 'Source']],
     body: supplementsData,
-    startY: doc.lastAutoTable.finalY + 20,
+    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 240,
     theme: 'grid',
     headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
     margin: { left: 20 }
@@ -167,7 +175,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Doctor Recommendations Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Doctor Recommendations', 20, doc.lastAutoTable.finalY + 10);
+  doc.text('Doctor Recommendations', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 290);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
   
@@ -179,7 +187,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   
   autoTable(doc, {
     body: doctorRecommendationsData,
-    startY: doc.lastAutoTable.finalY + 20,
+    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 310,
     theme: 'plain',
     margin: { left: 20 },
     columnStyles: { 0: { fontStyle: 'bold' } }
@@ -188,34 +196,37 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   // Nurse Notes Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Nurse Notes', 20, doc.lastAutoTable.finalY + 10);
+  doc.text('Nurse Notes', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 340);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(formData.nurseNotes, 20, doc.lastAutoTable.finalY + 20);
+  doc.text(formData.nurseNotes, 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 350);
   
   // Doctor Notes Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Doctor Notes', 20, doc.lastAutoTable.finalY + 30);
+  const doctorNotesY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 30 : 370;
+  doc.text('Doctor Notes', 20, doctorNotesY);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(formData.doctorNotes, 20, doc.lastAutoTable.finalY + 40);
+  doc.text(formData.doctorNotes, 20, doctorNotesY + 10);
   
   // Diagnosis Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Diagnosis', 20, doc.lastAutoTable.finalY + 50);
+  const diagnosisY = doctorNotesY + 30;
+  doc.text('Diagnosis', 20, diagnosisY);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(formData.diagnosis, 20, doc.lastAutoTable.finalY + 60);
+  doc.text(formData.diagnosis, 20, diagnosisY + 10);
   
   // Treatment Plan Section
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
-  doc.text('Treatment Plan', 20, doc.lastAutoTable.finalY + 70);
+  const treatmentPlanY = diagnosisY + 30;
+  doc.text('Treatment Plan', 20, treatmentPlanY);
   doc.setFont(undefined, 'normal');
   doc.setFontSize(10);
-  doc.text(formData.treatmentPlan, 20, doc.lastAutoTable.finalY + 80);
+  doc.text(formData.treatmentPlan, 20, treatmentPlanY + 10);
 
   // Custom HTML cell renderer for autoTable
   const renderHtml = (cell: any, data: any): void => {
@@ -272,9 +283,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   };
   
   // Render the summary findings section with HTML support
-  const renderSummaryFindings = (doc: jsPDF, pageWidth: number, formData: PatientFormData) => {
+  const renderSummaryFindings = (doc: ExtendedJsPDF, pageWidth: number, formData: PatientFormData) => {
     // Set appropriate spacing for the section
-    const startY = doc.lastAutoTable.finalY + 20;
+    const startY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 400;
     
     // Section title
     doc.setFontSize(14);
@@ -340,8 +351,9 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
             let isBold = false;
             let isItalic = false;
             
-            // Split the HTML by tags
-            const parts = cellValue.split(/<[^>]*>/);
+            // Split the HTML by tags - ensure it's a string first
+            const stringCellValue = String(cellValue);
+            const parts = stringCellValue.split(/<[^>]*>/);
             
             // Filter out empty parts and process each text chunk
             parts.filter(part => part.trim()).forEach(part => {
@@ -395,7 +407,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   doc.text(`Report generated on: ${currentDate}`, 20, doc.internal.pageSize.getHeight() - 20);
   
   // Add page numbers
-  const totalPages = doc.internal.getNumberOfPages();
+  const totalPages = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addFooter(doc, i, totalPages);
