@@ -5,6 +5,44 @@ import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
 
 /**
+ * Utility function to strip HTML tags but preserve paragraph breaks and lists
+ */
+function parseHtml(html: string): string {
+  if (!html) return "";
+  
+  // If no HTML tags, return as is
+  if (!/<\/?[a-z][\s\S]*>/i.test(html)) return html;
+  
+  // Otherwise, handle HTML formatting
+  let parsed = html
+    // Convert paragraph breaks
+    .replace(/<\/p>\s*<p>/g, "\n\n")
+    .replace(/<p[^>]*>/g, "")
+    .replace(/<\/p>/g, "\n")
+    
+    // Convert line breaks
+    .replace(/<br\s*\/?>/g, "\n")
+    
+    // Convert lists
+    .replace(/<\/?ul>/g, "\n")
+    .replace(/<\/?ol>/g, "\n")
+    .replace(/<li>/g, "• ")
+    .replace(/<\/li>/g, "\n")
+    
+    // Convert bold and emphasis
+    .replace(/<(strong|b)>(.*?)<\/(strong|b)>/g, "$2")
+    .replace(/<(em|i)>(.*?)<\/(em|i)>/g, "$2")
+    
+    // Remove any remaining tags
+    .replace(/<[^>]+>/g, "")
+    
+    // Normalize spacing
+    .replace(/\n{3,}/g, "\n\n");
+  
+  return parsed.trim();
+}
+
+/**
  * Draws the footer on the current page.
  * Footer text: "Executive Summary | DNA Health" in 8px helvetica regular,
  * right aligned, color #a5a4a4.
@@ -37,6 +75,38 @@ function ensureSpace(
     addLogoToPage(doc);
     return topMargin;
   }
+  return currentY;
+}
+
+/**
+ * Add multi-line text to the document with proper wrapping and paging
+ */
+function addMultiPageText(
+  doc: jsPDF, 
+  text: string, 
+  x: number, 
+  y: number, 
+  options: { maxWidth?: number, align?: string } = {}, 
+  topMargin = 40,
+  pageWidth: number
+): number {
+  if (!text) return y;
+  
+  const maxWidth = options.maxWidth || (pageWidth - (x * 2));
+  const lineHeight = 5; // mm
+  
+  const lines = doc.splitTextToSize(text, maxWidth);
+  let currentY = y;
+  
+  for (let i = 0; i < lines.length; i++) {
+    // Check if we need a new page
+    currentY = ensureSpace(doc, currentY, lineHeight, topMargin, pageWidth);
+    
+    // Add the text line
+    doc.text(lines[i], x, currentY, options);
+    currentY += lineHeight;
+  }
+  
   return currentY;
 }
 
@@ -234,6 +304,7 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
+  // Create a summary table with HTML content properly parsed
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -244,19 +315,19 @@ function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
+      ["Glucose Metabolism", parseHtml(formData.summaryFindings.glucoseMetabolism || "")],
+      ["Proteins", parseHtml(formData.summaryFindings.proteins || "")],
+      ["Lipid Profile", parseHtml(formData.summaryFindings.lipidProfile || "")],
+      ["Inflammation", parseHtml(formData.summaryFindings.inflammation || "")],
+      ["Metabolic", parseHtml(formData.summaryFindings.metabolic || "")],
+      ["Homocysteine", parseHtml(formData.summaryFindings.homocysteine || "")],
+      ["Vitamins/Minerals", parseHtml(formData.summaryFindings.vitaminsMinerals || "")],
+      ["Iron Profile", parseHtml(formData.summaryFindings.ironProfile || "")],
+      ["Sex Hormones", parseHtml(formData.summaryFindings.sexHormones || "")],
+      ["Kidney Function and Electrolytes", parseHtml(formData.summaryFindings.kidneyFunctionElectrolytes || "")],
+      ["Liver Functions", parseHtml(formData.summaryFindings.liverFunctions || "")],
+      ["Tumor Markers", parseHtml(formData.summaryFindings.tumorMarkers || "")],
+      ["Blood Counts", parseHtml(formData.summaryFindings.bloodCounts || "")]
     ],
     styles: {
       fontSize: 10,
@@ -274,7 +345,13 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -362,6 +439,12 @@ function generateInsulinCardioSection(
           );
         }
       }
+    },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
     }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
@@ -396,11 +479,11 @@ function generateDoctorsRecommendationsSection(
       ]
     ],
     body: [
-      ["Nutritional Style", formData.nutritionRecommendations?.nutritionalStyle || ""],
-      ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
-      ["Eating Window", formData.nutritionRecommendations?.eatingWindow || ""],
-      ["Limitations", formData.nutritionRecommendations?.limitations || ""],
-      ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
+      ["Nutritional Style", parseHtml(formData.nutritionRecommendations?.nutritionalStyle || "")],
+      ["Protein Consumption", parseHtml(formData.nutritionRecommendations?.proteinConsumption || "")],
+      ["Eating Window", parseHtml(formData.nutritionRecommendations?.eatingWindow || "")],
+      ["Limitations", parseHtml(formData.nutritionRecommendations?.limitations || "")],
+      ["Additional Considerations", parseHtml(formData.nutritionRecommendations?.additionalConsiderations || "")]
     ],
     styles: {
       fontSize: 10,
@@ -418,7 +501,13 @@ function generateDoctorsRecommendationsSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -435,6 +524,7 @@ function generateExerciseSleepSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
@@ -452,10 +542,10 @@ function generateExerciseSleepSection(
       ]
     ],
     body: [
-      ["Focus on", formData.exerciseDetail?.focusOn || ""],
-      ["Walking", formData.exerciseDetail?.walking || ""],
-      ["Rest/Recovery", formData.exerciseDetail?.restRecovery || ""],
-      ["Tracking", formData.exerciseDetail?.tracking || ""]
+      ["Focus on", parseHtml(formData.exerciseDetail?.focusOn || "")],
+      ["Walking", parseHtml(formData.exerciseDetail?.walking || "")],
+      ["Rest/Recovery", parseHtml(formData.exerciseDetail?.restRecovery || "")],
+      ["Tracking", parseHtml(formData.exerciseDetail?.tracking || "")]
     ],
     styles: {
       fontSize: 10,
@@ -473,11 +563,21 @@ function generateExerciseSleepSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   // Title for Sleep & Stress
+  doc.setFontSize(14);
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
   doc.text("Sleep and Stress", contentMargin, currentY);
   currentY += 8;
 
@@ -491,8 +591,8 @@ function generateExerciseSleepSection(
       ]
     ],
     body: [
-      ["Sleep", formData.sleepStressRecommendations?.sleep || ""],
-      ["Stress", formData.sleepStressRecommendations?.stress || ""]
+      ["Sleep", parseHtml(formData.sleepStressRecommendations?.sleep || "")],
+      ["Stress", parseHtml(formData.sleepStressRecommendations?.stress || "")]
     ],
     styles: {
       fontSize: 10,
@@ -510,7 +610,13 @@ function generateExerciseSleepSection(
       0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -578,7 +684,13 @@ function generateMedicationsSupplementsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
@@ -631,7 +743,13 @@ function generateMedicationsSupplementsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
@@ -694,11 +812,19 @@ function generateFollowUpsSection(
       1: { cellWidth: 90 },
       2: { cellWidth: 30 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo to each new page
+      if (data.pageCount > 1 && data.cursor.y < 40) {
+        addLogoToPage(doc);
+      }
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
   // === Add the requested links here ===
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  
   // We'll do them as small link texts. 
   const guides = [
     "Guide to Intermittent Fasting",
@@ -726,6 +852,7 @@ function generateFollowUpsSection(
   currentY += 6; // extra spacing before signature
 
   // Signature with dynamic doctor name
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(10);
   doc.setTextColor(100,100,100);
   doc.setFont("helvetica", "normal");
@@ -758,6 +885,14 @@ export const generatePDF = async (
   const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm for A4
   const contentMargin = 20;
   const contentWidth = pageWidth - contentMargin * 2;
+
+  // Setup consistent page formatting (headers/footers)
+  doc.setProperties({
+    title: `Health Screening for ${formData.patientInfo.name || "Patient"}`,
+    subject: "Health Screening Report",
+    author: "DNA Health Clinic",
+    creator: "DNA Health System"
+  });
 
   // Start at 40mm from the top for extra spacing
   let currentY = 40;
@@ -794,6 +929,9 @@ export const generatePDF = async (
 
   // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // Add footer to the final page
+  addFooter(doc, pageWidth);
 
   // Return the PDF as a Blob instead of saving it
   return doc.output('blob');
