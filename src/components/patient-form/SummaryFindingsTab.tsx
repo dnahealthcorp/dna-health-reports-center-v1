@@ -8,7 +8,7 @@ import { useState } from "react";
 
 interface SummaryFindingsTabProps {
   formData?: PatientFormData;
-  handleInputChange?: (section: keyof PatientFormData | "", field: string, value: string) => void;
+  handleInputChange?: (section: keyof PatientFormData | "", field: string, value: string | boolean) => void;
   canEditDoctorSection?: boolean;
   summaryFindings?: SummaryFinding;
   onSummaryChange?: (summaryFindings: any) => void;
@@ -46,8 +46,10 @@ export const SummaryFindingsTab = ({
   const handleToggleInsulinResistance = (checked: boolean) => {
     setLocalShowInsulinResistance(checked);
     if (handleInputChange) {
+      // Convert boolean to boolean when passing it to handleInputChange
       handleInputChange("", "showInsulinResistance", checked);
     } else if (onToggleInsulinResistance) {
+      // Pass boolean directly to onToggleInsulinResistance
       onToggleInsulinResistance(checked);
     }
   };

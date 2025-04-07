@@ -10,6 +10,7 @@ import {
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatientById } from "./patientService";
+import { v4 as uuidv4 } from 'uuid';
 
 // Function to safely convert JSON values to typed arrays with improved type safety
 export function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, typeGuard: (item: any) => boolean): T[] {
@@ -26,22 +27,25 @@ export function safeJsonArrayConversion<T>(jsonArray: Json | null | undefined, t
 
 // Helper functions to convert types for database storage
 export const jsonToVital = (json: Json | null | undefined): Vital => {
-  if (!json || typeof json !== 'object') {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
     return { bloodPressure: '', height: '', weight: '', heartRate: '', temperature: '', respiratoryRate: '', oxygenSaturation: '' };
   }
+  
+  const jsonObj = json as Record<string, any>;
+  
   return {
-    bloodPressure: String(json.bloodPressure || ''),
-    height: String(json.height || ''),
-    weight: String(json.weight || ''),
-    heartRate: String(json.heartRate || ''),
-    temperature: String(json.temperature || ''),
-    respiratoryRate: String(json.respiratoryRate || ''),
-    oxygenSaturation: String(json.oxygenSaturation || '')
+    bloodPressure: String(jsonObj.bloodPressure || ''),
+    height: String(jsonObj.height || ''),
+    weight: String(jsonObj.weight || ''),
+    heartRate: String(jsonObj.heartRate || ''),
+    temperature: String(jsonObj.temperature || ''),
+    respiratoryRate: String(jsonObj.respiratoryRate || ''),
+    oxygenSaturation: String(jsonObj.oxygenSaturation || '')
   };
 };
 
 export const jsonToSummaryFinding = (json: Json | null | undefined): SummaryFinding => {
-  if (!json || typeof json !== 'object') {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
     return {
       glucoseMetabolism: '',
       proteins: '',
@@ -58,25 +62,28 @@ export const jsonToSummaryFinding = (json: Json | null | undefined): SummaryFind
       bloodCounts: ''
     };
   }
+  
+  const jsonObj = json as Record<string, any>;
+  
   return {
-    glucoseMetabolism: String(json.glucoseMetabolism || ''),
-    proteins: String(json.proteins || ''),
-    lipidProfile: String(json.lipidProfile || ''),
-    inflammation: String(json.inflammation || ''),
-    metabolic: String(json.metabolic || ''),
-    homocysteine: String(json.homocysteine || ''),
-    vitaminsMinerals: String(json.vitaminsMinerals || ''),
-    ironProfile: String(json.ironProfile || ''),
-    sexHormones: String(json.sexHormones || ''),
-    kidneyFunctionElectrolytes: String(json.kidneyFunctionElectrolytes || ''),
-    liverFunctions: String(json.liverFunctions || ''),
-    tumorMarkers: String(json.tumorMarkers || ''),
-    bloodCounts: String(json.bloodCounts || '')
+    glucoseMetabolism: String(jsonObj.glucoseMetabolism || ''),
+    proteins: String(jsonObj.proteins || ''),
+    lipidProfile: String(jsonObj.lipidProfile || ''),
+    inflammation: String(jsonObj.inflammation || ''),
+    metabolic: String(jsonObj.metabolic || ''),
+    homocysteine: String(jsonObj.homocysteine || ''),
+    vitaminsMinerals: String(jsonObj.vitaminsMinerals || ''),
+    ironProfile: String(jsonObj.ironProfile || ''),
+    sexHormones: String(jsonObj.sexHormones || ''),
+    kidneyFunctionElectrolytes: String(jsonObj.kidneyFunctionElectrolytes || ''),
+    liverFunctions: String(jsonObj.liverFunctions || ''),
+    tumorMarkers: String(jsonObj.tumorMarkers || ''),
+    bloodCounts: String(jsonObj.bloodCounts || '')
   };
 };
 
 export const jsonToNutritionRecommendation = (json: Json | null | undefined): NutritionRecommendation => {
-  if (!json || typeof json !== 'object') {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
     return {
       nutritionalStyle: '',
       proteinConsumption: '',
@@ -85,17 +92,20 @@ export const jsonToNutritionRecommendation = (json: Json | null | undefined): Nu
       additionalConsiderations: ''
     };
   }
+  
+  const jsonObj = json as Record<string, any>;
+  
   return {
-    nutritionalStyle: String(json.nutritionalStyle || ''),
-    proteinConsumption: String(json.proteinConsumption || ''),
-    eatingWindow: String(json.eatingWindow || ''),
-    limitations: String(json.limitations || ''),
-    additionalConsiderations: String(json.additionalConsiderations || '')
+    nutritionalStyle: String(jsonObj.nutritionalStyle || ''),
+    proteinConsumption: String(jsonObj.proteinConsumption || ''),
+    eatingWindow: String(jsonObj.eatingWindow || ''),
+    limitations: String(jsonObj.limitations || ''),
+    additionalConsiderations: String(jsonObj.additionalConsiderations || '')
   };
 };
 
 export const jsonToExerciseRecommendation = (json: Json | null | undefined): ExerciseRecommendation => {
-  if (!json || typeof json !== 'object') {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
     return {
       focusOn: '',
       walking: '',
@@ -103,24 +113,30 @@ export const jsonToExerciseRecommendation = (json: Json | null | undefined): Exe
       tracking: ''
     };
   }
+  
+  const jsonObj = json as Record<string, any>;
+  
   return {
-    focusOn: String(json.focusOn || ''),
-    walking: String(json.walking || ''),
-    restRecovery: String(json.restRecovery || ''),
-    tracking: String(json.tracking || '')
+    focusOn: String(jsonObj.focusOn || ''),
+    walking: String(jsonObj.walking || ''),
+    restRecovery: String(jsonObj.restRecovery || ''),
+    tracking: String(jsonObj.tracking || '')
   };
 };
 
 export const jsonToSleepStressRecommendation = (json: Json | null | undefined): SleepStressRecommendation => {
-  if (!json || typeof json !== 'object') {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
     return {
       sleep: '',
       stress: ''
     };
   }
+  
+  const jsonObj = json as Record<string, any>;
+  
   return {
-    sleep: String(json.sleep || ''),
-    stress: String(json.stress || '')
+    sleep: String(jsonObj.sleep || ''),
+    stress: String(jsonObj.stress || '')
   };
 };
 
@@ -334,7 +350,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       throw checkError;
     }
     
-    // Convert form data to database format - using toJson to ensure proper JSON conversion
+    // Convert all complex objects to JSON before saving
     const dbFormData = {
       patient_id: patientId,
       vitals: toJson(formData.vitals),
@@ -369,7 +385,7 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
       // Insert
       const { error: insertError } = await supabase
         .from('patient_form_data')
-        .insert(dbFormData);
+        .insert([dbFormData]);
         
       error = insertError;
     }

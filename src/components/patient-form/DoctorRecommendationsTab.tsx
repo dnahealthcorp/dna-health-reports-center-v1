@@ -4,9 +4,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { NutritionRecommendation, ExerciseRecommendation, SleepStressRecommendation } from "@/types";
+import { 
+  NutritionRecommendation, 
+  ExerciseRecommendation, 
+  SleepStressRecommendation, 
+  PatientFormData 
+} from "@/types";
 
 interface DoctorRecommendationsTabProps {
+  // Direct props for standalone usage
   nutritionRecommendations?: NutritionRecommendation;
   exerciseDetail?: ExerciseRecommendation;
   sleepStressRecommendations?: SleepStressRecommendation;
@@ -15,36 +21,54 @@ interface DoctorRecommendationsTabProps {
   onExerciseDetailChange?: (detail: ExerciseRecommendation) => void;
   onSleepStressRecommendationsChange?: (recommendations: SleepStressRecommendation) => void;
   onDoctorNameChange?: (name: string) => void;
+  // Form data props for integrated usage
+  formData?: PatientFormData;
+  handleInputChange?: (section: keyof PatientFormData | "", field: string, value: string | boolean) => void;
   canEditDoctorSection?: boolean;
 }
 
 export const DoctorRecommendationsTab = ({
-  nutritionRecommendations = {
+  // Direct props
+  nutritionRecommendations: propNutritionRecommendations,
+  exerciseDetail: propExerciseDetail,
+  sleepStressRecommendations: propSleepStressRecommendations,
+  doctorName: propDoctorName,
+  onNutritionRecommendationsChange,
+  onExerciseDetailChange,
+  onSleepStressRecommendationsChange,
+  onDoctorNameChange,
+  // Form data props
+  formData,
+  handleInputChange,
+  canEditDoctorSection = true
+}: DoctorRecommendationsTabProps) => {
+  // Use either direct props or data from formData
+  const nutritionRecommendations = propNutritionRecommendations || (formData ? formData.nutritionRecommendations : {
     nutritionalStyle: '',
     proteinConsumption: '',
     eatingWindow: '',
     limitations: '',
     additionalConsiderations: ''
-  },
-  exerciseDetail = {
+  });
+  
+  const exerciseDetail = propExerciseDetail || (formData ? formData.exerciseDetail : {
     focusOn: '',
     walking: '',
     restRecovery: '',
     tracking: ''
-  },
-  sleepStressRecommendations = {
+  });
+  
+  const sleepStressRecommendations = propSleepStressRecommendations || (formData ? formData.sleepStressRecommendations : {
     sleep: '',
     stress: ''
-  },
-  doctorName = '',
-  onNutritionRecommendationsChange,
-  onExerciseDetailChange,
-  onSleepStressRecommendationsChange,
-  onDoctorNameChange,
-  canEditDoctorSection
-}: DoctorRecommendationsTabProps) => {
+  });
+  
+  const doctorName = propDoctorName !== undefined ? propDoctorName : (formData ? formData.doctorName : '');
+
   const handleNutritionChange = (field: keyof NutritionRecommendation, value: string) => {
-    if (onNutritionRecommendationsChange) {
+    if (handleInputChange && formData) {
+      handleInputChange("nutritionRecommendations", field, value);
+    } else if (onNutritionRecommendationsChange) {
       onNutritionRecommendationsChange({
         ...nutritionRecommendations,
         [field]: value
@@ -53,7 +77,9 @@ export const DoctorRecommendationsTab = ({
   };
 
   const handleExerciseChange = (field: keyof ExerciseRecommendation, value: string) => {
-    if (onExerciseDetailChange) {
+    if (handleInputChange && formData) {
+      handleInputChange("exerciseDetail", field, value);
+    } else if (onExerciseDetailChange) {
       onExerciseDetailChange({
         ...exerciseDetail,
         [field]: value
@@ -62,11 +88,21 @@ export const DoctorRecommendationsTab = ({
   };
 
   const handleSleepStressChange = (field: keyof SleepStressRecommendation, value: string) => {
-    if (onSleepStressRecommendationsChange) {
+    if (handleInputChange && formData) {
+      handleInputChange("sleepStressRecommendations", field, value);
+    } else if (onSleepStressRecommendationsChange) {
       onSleepStressRecommendationsChange({
         ...sleepStressRecommendations,
         [field]: value
       });
+    }
+  };
+
+  const handleDoctorNameChange = (value: string) => {
+    if (handleInputChange) {
+      handleInputChange("", "doctorName", value);
+    } else if (onDoctorNameChange) {
+      onDoctorNameChange(value);
     }
   };
 
@@ -78,7 +114,7 @@ export const DoctorRecommendationsTab = ({
           <Input
             id="doctorName"
             value={doctorName}
-            onChange={(e) => onDoctorNameChange && onDoctorNameChange(e.target.value)}
+            onChange={(e) => handleDoctorNameChange(e.target.value)}
             disabled={!canEditDoctorSection}
             placeholder="Enter the doctor's name"
             className="mt-1.5"
