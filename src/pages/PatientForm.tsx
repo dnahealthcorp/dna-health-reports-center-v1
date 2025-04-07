@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -38,8 +39,6 @@ import { CardiovascularRiskTab } from "@/components/patient-form/CardiovascularR
 import { DoctorRecommendationsTab } from "@/components/patient-form/DoctorRecommendationsTab";
 import { FollowUpTab } from "@/components/patient-form/FollowUpTab";
 import { supabase } from "@/integrations/supabase/client";
-
-import "@/components/patient-form/markdown-styles.css";
 
 const PatientForm = () => {
   const { id } = useParams<{ id: string }>();

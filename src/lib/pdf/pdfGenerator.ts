@@ -1,125 +1,232 @@
-
-// src/lib/pdf/pdfGenerator.ts
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
-import { addLogoToPage, convertHtmlToFormattedText } from "./logoRenderer";
+import { addLogoToPage } from "./logoRenderer";
 
+/**
+ * Draws the footer on the current page.
+ * Footer text: "Executive Summary | DNA Health" in 8px helvetica regular,
+ * right aligned, color #a5a4a4.
+ */
 function addFooter(doc: jsPDF, pageWidth: number): void {
   const pageHeight = doc.internal.pageSize.getHeight();
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor("#a5a4a4");
+  // Right align, 10mm from the bottom
   doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" });
 }
 
-function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMargin = 40, pageWidth: number): number {
+/**
+ * Checks if there's enough vertical space on the current page.
+ * If not, draws a footer, adds a new page (with header logo), and resets currentY to topMargin.
+ */
+function ensureSpace(
+  doc: jsPDF,
+  currentY: number,
+  neededHeight: number,
+  topMargin = 40,
+  pageWidth: number
+): number {
   const pageHeight = doc.internal.pageSize.getHeight();
   const bottomMargin = 15;
   if (currentY + neededHeight > pageHeight - bottomMargin) {
     addFooter(doc, pageWidth);
     doc.addPage();
-    addLogoToPage(doc); // make sure this adds a well-sized logo
+    addLogoToPage(doc);
     return topMargin;
   }
   return currentY;
 }
 
-function generateImagesSection(doc: jsPDF, currentY: number, pageWidth: number): number {
-  addLogoToPage(doc); // first page only
+/**
+ * Section 1: Images on the first page (cover).
+ * Includes logo on the first page, no page number shown.
+ */
+function generateImagesSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number
+): number {
+  // Add logo on the very first page
+  addLogoToPage(doc);
+
+  const blockHeight = 150;
+  currentY = ensureSpace(doc, currentY, blockHeight, 40, pageWidth);
 
   const imageWidth = 100;
   const imageHeight = 66;
   const imageStartX = (pageWidth - imageWidth) / 2;
-  const gap = 10;
 
-  ["/assets/picture1.png", "/assets/picture2.png", "/assets/picture3.png"].forEach((src) => {
-    try {
-      doc.addImage(src, "PNG", imageStartX, currentY, imageWidth, imageHeight);
-      currentY += imageHeight + gap;
-    } catch (err) {
-      console.error("Error loading image:", src);
-    }
-  });
-
+  try {
+    doc.addImage("/assets/picture1.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
+    currentY += imageHeight + 10;
+    doc.addImage("/assets/picture2.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
+    currentY += imageHeight + 10;
+    doc.addImage("/assets/picture3.png", "PNG", imageStartX, currentY, imageWidth, imageHeight);
+    currentY += imageHeight + 10;
+  } catch (error) {
+    console.error("Error adding images to PDF:", error);
+  }
   return currentY;
 }
 
-function generateIntroductionSection(doc: jsPDF, currentY: number, pageWidth: number, contentMargin: number, contentWidth: number, formData: PatientFormData): number {
-  doc.setFont("helvetica", "bold");
+/**
+ * Section 2: Introduction & Greeting.
+ * Reduced top spacing for "Your step towards optimal health."
+ */
+function generateIntroductionSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  // Title line: "Your step towards optimal health."
+  doc.setFont("Helvetica", "bold");
   doc.setFontSize(18);
-
   const title = "Your step towards optimal health.";
-  const centerX = pageWidth / 2;
-  const titleY = currentY + 5;
   const titleWidth = doc.getTextWidth(title);
+  const centerX = pageWidth / 2;
+  const titleY = currentY + 5; // reduced top spacing
+  const titleX = centerX - (titleWidth / 2);
   doc.setTextColor(100, 100, 100);
-  doc.text(title, centerX - titleWidth / 2, titleY);
+  doc.text(title, titleX, titleY);
   currentY = titleY + 10;
 
-  const lines = [
-    "Our approach is proactive, rather than reactive,",
-    "giving you ",
-    "control of your health",
-    " throughout",
-    "your life."
-  ];
-
+  // Multi-line approach text
   doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("Helvetica", "bold");
 
-  const line1 = lines[0];
+  const line1 = "Our approach is proactive, rather than reactive,";
+  const line2Part1 = "giving you ";
+  const line2Part2 = "control of your health";
+  const line2Part3 = " throughout";
+  const line3 = "your life.";
+
+  const line1Width = doc.getTextWidth(line1);
+  const line1X = centerX - line1Width / 2;
   doc.setTextColor(100, 100, 100);
-  doc.text(line1, centerX - doc.getTextWidth(line1) / 2, currentY);
+  doc.text(line1, line1X, currentY);
   currentY += 10;
 
-  const part1 = lines[1];
-  const part2 = lines[2];
-  const part3 = lines[3];
-  let segX = centerX - (doc.getTextWidth(part1 + part2 + part3) / 2);
+  // line2
+  const line2Full = line2Part1 + line2Part2 + line2Part3;
+  const line2Width = doc.getTextWidth(line2Full);
+  const line2X = centerX - line2Width / 2;
+  let segX = line2X;
 
   doc.setTextColor(100, 100, 100);
-  doc.text(part1, segX, currentY);
-  segX += doc.getTextWidth(part1);
+  doc.text(line2Part1, segX, currentY);
+  segX += doc.getTextWidth(line2Part1);
 
   doc.setTextColor(153, 188, 68);
-  doc.text(part2, segX, currentY);
-  segX += doc.getTextWidth(part2);
+  doc.text(line2Part2, segX, currentY);
+  segX += doc.getTextWidth(line2Part2);
 
   doc.setTextColor(100, 100, 100);
-  doc.text(part3, segX, currentY);
+  doc.text(line2Part3, segX, currentY);
   currentY += 10;
 
-  const line3 = lines[4];
-  doc.text(line3, centerX - doc.getTextWidth(line3) / 2, currentY);
+  // line3
+  const line3Width = doc.getTextWidth(line3);
+  const line3X = centerX - line3Width / 2;
+  doc.text(line3, line3X, currentY);
   currentY += 10;
 
+  // Greeting & intro text
   doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Dear ${formData.patientInfo.name || "Patient"},`, contentMargin, currentY);
+  doc.setFont("Helvetica", "bold");
+  const greeting = `Dear ${formData.patientInfo.name || "Patient"},`;
+  doc.text(greeting, contentMargin, currentY);
   currentY += 6;
-
-  const intro = [
+  const introLines = [
     "It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged",
     "to be a part of your journey to wellness and longevity."
   ];
-
-  doc.setFont("helvetica", "normal");
-  intro.forEach(line => {
-    doc.text(line, contentMargin, currentY, { maxWidth: contentWidth });
+  introLines.forEach(line => {
+    doc.text(line, contentMargin, currentY, { maxWidth: contentWidth, align: "left" });
     currentY += 6;
   });
-
   return currentY + 10;
 }
 
-function formatSummaryText(text?: string): string {
-  return convertHtmlToFormattedText(text || "");
+/**
+ * Section 3: Vital Signs Table (striped).
+ * Headings 14px
+ */
+function generateVitalsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
+  doc.setFontSize(14);
+  doc.setTextColor(153, 188, 68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Key vital signs", contentMargin, currentY);
+  currentY += 8;
+
+  const colWidth = contentWidth / 3;
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "Vitals", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
+        { content: "Value", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
+        { content: "Target Range", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+      ]
+    ],
+    body: [
+      ["Date of Birth", formData.patientInfo.dateOfBirth ? new Date(formData.patientInfo.dateOfBirth).toLocaleDateString() : "-", "-"],
+      ["Age (years)", calculateAge(formData.patientInfo.dateOfBirth), "-"],
+      ["Blood Pressure", formData.vitals.bloodPressure || "-", "120/60-140/85"],
+      ["Height (cm)", formData.vitals.height || "-", "-"],
+      ["Weight (Kg)", convertToKg(formData.vitals.weight) || "-", "-"],
+      ["Body Mass Index", calculateBMI(formData.vitals.height, formData.vitals.weight), "18.5 – 25.9"]
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60, 60, 60]
+    },
+    bodyStyles: {
+      fillColor: [255, 255, 255]
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    columnStyles: {
+      0: { cellWidth: colWidth, fillColor: [240, 250, 230] },
+      1: { cellWidth: colWidth },
+      2: { cellWidth: colWidth }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
 }
 
-function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number, contentMargin: number, contentWidth: number, formData: PatientFormData): number {
+/**
+ * Section 4: Summary of Findings (striped).
+ */
+function generateSummarySection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
   currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
@@ -127,37 +234,35 @@ function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number,
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  const body = [
-    ["Glucose Metabolism", formatSummaryText(formData.summaryFindings.glucoseMetabolism)],
-    ["Proteins", formatSummaryText(formData.summaryFindings.proteins)],
-    ["Lipid Profile", formatSummaryText(formData.summaryFindings.lipidProfile)],
-    ["Inflammation", formatSummaryText(formData.summaryFindings.inflammation)],
-    ["Metabolic", formatSummaryText(formData.summaryFindings.metabolic)],
-    ["Homocysteine", formatSummaryText(formData.summaryFindings.homocysteine)],
-    ["Vitamins/Minerals", formatSummaryText(formData.summaryFindings.vitaminsMinerals)],
-    ["Iron Profile", formatSummaryText(formData.summaryFindings.ironProfile)],
-    ["Sex Hormones", formatSummaryText(formData.summaryFindings.sexHormones)],
-    ["Kidney Function & Electrolytes", formatSummaryText(formData.summaryFindings.kidneyFunctionElectrolytes)],
-    ["Liver Functions", formatSummaryText(formData.summaryFindings.liverFunctions)],
-    ["Tumor Markers", formatSummaryText(formData.summaryFindings.tumorMarkers)],
-    ["Blood Counts", formatSummaryText(formData.summaryFindings.bloodCounts)]
-  ];
-
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
-    head: [[
-      { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-      { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
-    ]],
-    body,
+    head: [
+      [
+        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: [
+      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
+      ["Proteins", formData.summaryFindings.proteins || ""],
+      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
+      ["Inflammation", formData.summaryFindings.inflammation || ""],
+      ["Metabolic", formData.summaryFindings.metabolic || ""],
+      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
+      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
+      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
+      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
+      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
+      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
+      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
+      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
+    ],
     styles: {
       fontSize: 10,
-      cellPadding: 5, // Increased padding to give text more room
+      cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60],
-      overflow: 'linebreak', // Ensure text wraps properly
-      cellWidth: 'auto'
+      textColor: [60, 60, 60]
     },
     bodyStyles: {
       fillColor: [255, 255, 255]
@@ -169,66 +274,527 @@ function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number,
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
+
+/**
+ * Section 5: Insulin Resistance & Cardiovascular Risk (striped).
+ * Reapply heading style after ensureSpace
+ */
+function generateInsulinCardioSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  if (formData.showInsulinResistance === true) {
+    currentY = ensureSpace(doc, currentY, 80, 40, pageWidth);
+    doc.setFontSize(14);
+    doc.setTextColor(153, 188, 68);
+    doc.setFont("helvetica", "bold");
+    doc.text("Insulin Resistance (Metabolic Syndrome)", contentMargin, currentY);
+    currentY += 10;
+    try {
+      doc.addImage("/assets/insulin resistance.jpg", "JPEG", contentMargin, currentY, contentWidth, 60);
+    } catch (error) {
+      console.error("Error adding insulin resistance image:", error);
+    }
+    currentY += 60;
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Figure 1: Insulin resistance and resulting metabolic disturbance", pageWidth / 2, currentY, { align: "center" });
+    currentY += 10;
+  }
+
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14);
+  doc.setTextColor(153, 188, 68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, currentY);
+  currentY += 5;
+
+  doc.setFontSize(10);
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Low risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Moderate risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "High risk", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: [
+      ["Men", "0.30-to-0.69", "0.70-to-0.89", "0.90-to-1.2"],
+      ["Women", "0.30-to-0.59", "0.60-to-0.79", "0.80-to-1.00"]
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
     margin: { left: contentMargin, right: contentMargin },
-    didDrawCell: function(data) {
-      // Only process cells with text content in the body
-      if (data.section === 'body' && data.column.index === 1 && typeof data.cell.text === 'string') {
-        // Make sure we're working with a string
-        const text = data.cell.text.toString();
-        
-        // Handle the text wrapping
-        const textX = data.cell.x + 5; // Add padding
-        const textY = data.cell.y + 10; // Start a bit down from the top
-        
-        // Split by newlines
-        const lines = text.split('\n');
-        
-        // Set text styles for cell content
-        doc.setTextColor(60, 60, 60);
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        
-        // Draw each line with proper spacing
-        lines.forEach((line, i) => {
-          doc.text(line, textX, textY + (i * 5.5)); // 5.5 is the line height
-        });
+    didDrawCell: (data) => {
+      if (data.section === "body") {
+        const rowIndex = data.row.index;
+        if ((formData.patientInfo.gender === "Male" && rowIndex === 0) ||
+            (formData.patientInfo.gender === "Female" && rowIndex === 1)) {
+          doc.setFillColor(255, 255, 200);
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, "F");
+          doc.setTextColor(60, 60, 60);
+          doc.text(
+            data.cell.text,
+            data.cell.x + data.cell.padding("left"),
+            data.cell.y + data.cell.padding("top") + data.cell.contentHeight / 2 + 1
+          );
+        }
       }
     }
   });
-
-  return (doc as any).lastAutoTable.finalY + 10;
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
 }
 
-// You should continue defining other sections similar to above like:
-// - generateVitalsSection
-// - generateInsulinCardioSection
-// - generateDoctorsRecommendationsSection
-// - generateExerciseSleepSection
-// - generateMedicationsSupplementsSection
-// - generateFollowUpsSection
+/**
+ * Section 6: Doctor's Recommendations (Nutrition), striped.
+ */
+function generateDoctorsRecommendationsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14);
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Doctors Recommendations", contentMargin, currentY);
+  currentY += 8;
 
-export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "Nutrition", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Recommendations", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: [
+      ["Nutritional Style", formData.nutritionRecommendations?.nutritionalStyle || ""],
+      ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
+      ["Eating Window", formData.nutritionRecommendations?.eatingWindow || ""],
+      ["Limitations", formData.nutritionRecommendations?.limitations || ""],
+      ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: contentWidth - 50 }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
+
+/**
+ * Section 7: Exercise and Sleep/Stress Recommendations, striped.
+ */
+function generateExerciseSleepSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  doc.setFontSize(14);
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
+  // Title for Exercise
+  doc.text("Exercise", contentMargin, currentY);
+  currentY += 8;
+
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "Exercise", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Recommendations", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: [
+      ["Focus on", formData.exerciseDetail?.focusOn || ""],
+      ["Walking", formData.exerciseDetail?.walking || ""],
+      ["Rest/Recovery", formData.exerciseDetail?.restRecovery || ""],
+      ["Tracking", formData.exerciseDetail?.tracking || ""]
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: contentWidth - 50 }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+
+  // Title for Sleep & Stress
+  doc.text("Sleep and Stress", contentMargin, currentY);
+  currentY += 8;
+
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "Sleep and Stress", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Recommendations", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: [
+      ["Sleep", formData.sleepStressRecommendations?.sleep || ""],
+      ["Stress", formData.sleepStressRecommendations?.stress || ""]
+    ],
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: contentWidth - 50 }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
+
+/**
+ * Section 8: Medications and Supplements, striped.
+ * Re-apply heading style after ensureSpace for "Supplements"
+ */
+function generateMedicationsSupplementsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData,
+  medications: Medication[]
+): number {
+  // Medications
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14);
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Medications", contentMargin, currentY);
+  currentY += 8;
+
+  const medicationRows = formData.medications.map(med => {
+    const medication = medications.find(m => m.id === med.medicationId);
+    return [
+      medication?.name || "",
+      med.dosage || "",
+      "Prescription"
+    ];
+  }).filter(row => row[0] || row[1]);
+
+  if (medicationRows.length === 0) {
+    medicationRows.push(["No medications prescribed", "", ""]);
+  }
+
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "Medications", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Dosage", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Type", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: medicationRows,
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 30 }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+
+  // Supplements
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14); // reapply heading style
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Supplements", contentMargin, currentY);
+  currentY += 8;
+
+  const supplementRows = (formData.supplements || []).map(sup => {
+    const supplement = medications.find(m => m.id === sup.supplementId);
+    return [
+      supplement?.name || "",
+      sup.dosage || "",
+      sup.source || ""
+    ];
+  }).filter(row => row[0] || row[1] || row[2]);
+
+  if (supplementRows.length === 0) {
+    supplementRows.push(["No supplements recommended", "", ""]);
+  }
+
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "Supplements", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Dosage", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Source", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: supplementRows,
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 30 }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  return currentY;
+}
+
+/**
+ * Section 9: Follow-ups and Referrals plus Signature, striped.
+ * After the table, we add the requested links, then the signature.
+ */
+function generateFollowUpsSection(
+  doc: jsPDF,
+  currentY: number,
+  pageWidth: number,
+  contentMargin: number,
+  contentWidth: number,
+  formData: PatientFormData
+): number {
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
+  doc.setFontSize(14);
+  doc.setTextColor(153,188,68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Follow-ups and referrals", contentMargin, currentY);
+  currentY += 8;
+
+  const followUpRows = (formData.followUps || []).map(followUp => [
+    followUp.withDoctor || "",
+    followUp.forReason || "",
+    followUp.date || ""
+  ]).filter(row => row[0] || row[1] || row[2]);
+
+  if (followUpRows.length === 0) {
+    followUpRows.push(["No follow-ups scheduled", "", ""]);
+  }
+
+  autoTable(doc, {
+    startY: currentY,
+    theme: "grid",
+    head: [
+      [
+        { content: "With", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "For", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Date", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: followUpRows,
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 30 }
+    },
+    margin: { left: contentMargin, right: contentMargin }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+
+  // === Add the requested links here ===
+  // We'll do them as small link texts. 
+  const guides = [
+    "Guide to Intermittent Fasting",
+    "Guide to Carbohydrates and Protein",
+    "Guide to Meditation",
+    "Guide to Sleep",
+    "Guide to Anti-inflammatory Foods",
+    "Guide to Homocystein"
+  ];
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100,100,100);
+  doc.text("Additional Guides:", contentMargin, currentY);
+  currentY += 6;
+
+  // We'll render each as a link to "#"
+  guides.forEach((guide) => {
+    // Use doc.textWithLink for clickable link (all pointing to "#")
+    doc.setTextColor(0, 0, 255); // typical link color
+    doc.textWithLink(guide, contentMargin, currentY, { url: "#" });
+    currentY += 6;
+  });
+
+  currentY += 6; // extra spacing before signature
+
+  // Signature with dynamic doctor name
+  doc.setFontSize(10);
+  doc.setTextColor(100,100,100);
+  doc.setFont("helvetica", "normal");
+  doc.text("Kind Regards,", contentMargin, currentY);
+  currentY += 6;
+  doc.setFont("helvetica", "bold");
+  
+  // Use the dynamic doctor name from the form or a default if not provided
+  const doctorName = formData.doctorName || "Doctor";
+  doc.text(doctorName, contentMargin, currentY);
+  currentY += 10;
+
+  return currentY;
+}
+
+/**
+ * Main PDF Generator.
+ */
+export const generatePDF = async (
+  formData: PatientFormData,
+  medications: Medication[]
+): Promise<Blob> => {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
   doc.setFont("helvetica");
 
-  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm for A4
   const contentMargin = 20;
   const contentWidth = pageWidth - contentMargin * 2;
+
+  // Start at 40mm from the top for extra spacing
   let currentY = 40;
 
-  currentY = generateImagesSection(doc, currentY, pageWidth);
+  // 1) First page (cover) with images (and logo), no page number
+  currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
 
-  addFooter(doc, pageWidth);
+  // Force new page after cover
+  addFooter(doc, pageWidth); // Footer on cover
   doc.addPage();
   addLogoToPage(doc);
-  currentY = 40;
+  currentY = 40; // reset Y
 
+  // 2) Introduction & Greeting
   currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  // Add the rest of the sections like vital signs, summary, insulin, etc...
+
+  // 3) Vital Signs
+  currentY = generateVitalsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // 4) Summary Findings
   currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
-  const blob = doc.output("blob");
-  const fileName = `${formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient"}_Medical_Report.pdf`;
-  doc.save(fileName);
-  return blob;
+  // 5) Insulin Resistance & Cardiovascular Risk
+  currentY = generateInsulinCardioSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // 6) Doctor's Recommendations
+  currentY = generateDoctorsRecommendationsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // 7) Exercise & Sleep/Stress
+  currentY = generateExerciseSleepSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // 8) Medications & Supplements
+  currentY = generateMedicationsSupplementsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications);
+
+  // 9) Follow-ups (plus new links, then signature)
+  currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  // Return the PDF as a Blob instead of saving it
+  return doc.output('blob');
 };
