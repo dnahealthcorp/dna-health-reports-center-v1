@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Edit, Eye, EyeOff, ListRestart } from "lucide-react";
 import RichTextEditor, { sanitizeContent } from "@/components/rich-text/RichTextEditor";
 import RichTextDisplay from "@/components/rich-text/RichTextDisplay";
-import { SummaryFindingField, getFormattedFieldName, predefinedOptions } from "./PredefinedOptions";
+import { getFormattedFieldName, predefinedOptions, SummaryFindingFieldType } from "./PredefinedOptions";
 
 interface SummaryFindingFieldProps {
-  field: SummaryFindingField;
+  field: SummaryFindingFieldType;
   value: string;
   onChange: (field: string, value: string) => void;
   canEdit: boolean;

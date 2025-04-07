@@ -67,4 +67,5 @@ export const getFormattedFieldName = (field: string) => {
          field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 };
 
-export type SummaryFindingField = keyof typeof predefinedOptions;
+export type SummaryFindingFieldType = keyof typeof predefinedOptions;
+

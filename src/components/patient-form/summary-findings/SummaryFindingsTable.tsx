@@ -2,7 +2,7 @@
 import React from "react";
 import { PatientFormData } from "@/types";
 import { SummaryFindingField } from "./SummaryFindingField";
-import { predefinedOptions } from "./PredefinedOptions";
+import { predefinedOptions, SummaryFindingFieldType } from "./PredefinedOptions";
 
 interface SummaryFindingsTableProps {
   formData: PatientFormData;
@@ -32,7 +32,7 @@ export const SummaryFindingsTable = ({
           {Object.keys(predefinedOptions).map((field) => (
             <SummaryFindingField
               key={field}
-              field={field as SummaryFindingField}
+              field={field as SummaryFindingFieldType}
               value={formData.summaryFindings?.[field as keyof typeof predefinedOptions] || ''}
               onChange={handleFieldChange}
               canEdit={canEditDoctorSection}
@@ -43,3 +43,4 @@ export const SummaryFindingsTable = ({
     </div>
   );
 };
+
