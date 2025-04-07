@@ -1,8 +1,9 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Eye, EyeOff } from "lucide-react";
+import { ArrowLeftCircle, Edit, Eye, EyeOff, ListRestart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import RichTextEditor, { sanitizeContent } from "../rich-text/RichTextEditor";
@@ -81,6 +82,8 @@ export const SummaryFindingsTab = ({
   // State to track which fields are in editing mode
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
   const [previewMode, setPreviewMode] = useState<Record<string, boolean>>({});
+  // Track the last selected option for each field to enable "revert to options" feature
+  const [lastSelectedOption, setLastSelectedOption] = useState<Record<string, string>>({});
 
   // Handle select change with special handling for rich text editor option
   const handleSelectChange = (field: string, value: string) => {
@@ -94,6 +97,9 @@ export const SummaryFindingsTab = ({
     // For predefined options, update the form data and exit editing mode
     handleInputChange("summaryFindings", field, sanitizeContent(value));
     setEditingFields(prev => ({ ...prev, [field]: false }));
+    
+    // Store the last selected option
+    setLastSelectedOption(prev => ({ ...prev, [field]: value }));
   };
 
   // Check if a value matches any predefined option
@@ -107,6 +113,16 @@ export const SummaryFindingsTab = ({
       ...prev,
       [field]: !prev[field]
     }));
+  };
+
+  // Switch back from rich text editor to predefined options
+  const switchToOptions = (field: string) => {
+    setEditingFields(prev => ({ ...prev, [field]: false }));
+    
+    // If there was a previously selected option, restore it
+    if (lastSelectedOption[field]) {
+      handleInputChange("summaryFindings", field, lastSelectedOption[field]);
+    }
   };
 
   const getFormattedFieldName = (field: string) => {
@@ -167,18 +183,30 @@ export const SummaryFindingsTab = ({
                         {canEditDoctorSection && (
                           <div className="absolute right-2 top-2 flex space-x-1 z-10">
                             {isEditing && (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => togglePreview(field)}
-                              >
-                                {isPreviewActive ? (
-                                  <Edit className="h-3 w-3" />
-                                ) : (
-                                  <Eye className="h-3 w-3" />
-                                )}
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => togglePreview(field)}
+                                  title={isPreviewActive ? "Edit" : "Preview"}
+                                >
+                                  {isPreviewActive ? (
+                                    <Edit className="h-3 w-3" />
+                                  ) : (
+                                    <Eye className="h-3 w-3" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => switchToOptions(field)}
+                                  title="Revert to Options"
+                                >
+                                  <ListRestart className="h-3 w-3" />
+                                </Button>
+                              </>
                             )}
                           </div>
                         )}

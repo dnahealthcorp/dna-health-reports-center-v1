@@ -57,9 +57,29 @@ const RichTextEditor = ({
   });
 
   // Update editor content when content prop changes
+  // Only update if the editor exists AND the content is different
+  // This preserves cursor position during editing
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
+      // Store current selection
+      const { from, to } = editor.state.selection;
+      
+      // Only update content if it differs from current editor content
+      // This is crucial to prevent cursor jumping
       editor.commands.setContent(content || '');
+      
+      // Try to restore selection if possible
+      if (from !== undefined && to !== undefined) {
+        try {
+          // Restore selection only if the position is still valid
+          const docSize = editor.state.doc.content.size;
+          const validFrom = Math.min(from, docSize);
+          const validTo = Math.min(to, docSize);
+          editor.commands.setTextSelection({ from: validFrom, to: validTo });
+        } catch (e) {
+          console.log("Couldn't restore selection:", e);
+        }
+      }
     }
   }, [content, editor]);
 
