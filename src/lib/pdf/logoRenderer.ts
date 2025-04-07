@@ -14,7 +14,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
     const x = pageWidth - logoWidth - margin;
     const y = margin;
     
-    // Use an absolute path for the logo
+    // Use an absolute path for the logo with origin
     const logoPath = `${window.location.origin}/assets/DNA Logo - Grey.svg`;
     
     // Add the image using addImage
@@ -32,6 +32,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
       const x = pageWidth - logoWidth - margin;
       const y = margin;
       
+      // Try using the PNG version with full path
       const logoPath = `${window.location.origin}/assets/dna-logo.png`;
       doc.addImage(logoPath, 'PNG', x, y, logoWidth, logoHeight);
       console.log("Fallback logo added successfully");

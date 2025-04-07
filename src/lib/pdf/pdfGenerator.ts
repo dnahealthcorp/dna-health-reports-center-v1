@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -332,28 +333,28 @@ function generateSummarySection(
         data.cell.styles.cellPadding = 4;
         data.cell.styles.overflow = 'linebreak';
         
-        // Correct approach to handle both string and string array types
-        if (typeof data.cell.text === 'string') {
-          // Handle case where text is a string
-          if (data.cell.text.length > 500) {
-            data.cell.text = data.cell.text.substring(0, 500) + "...";
-          }
-        } else if (Array.isArray(data.cell.text)) {
-          // Handle case where text is an array
-          const processedLines: string[] = [];
-          
-          for (let i = 0; i < data.cell.text.length; i++) {
-            const line = data.cell.text[i];
-            if (typeof line === 'string') {
-              processedLines.push(line.length > 100 ? line.substring(0, 100) + "..." : line);
-            } else {
-              // If it's not a string, keep it as is
-              processedLines.push(String(line || ''));
+        // Handle text content with proper type checking
+        if (data.cell.text !== undefined && data.cell.text !== null) {
+          if (typeof data.cell.text === 'string') {
+            // Safe to use string methods since we've confirmed it's a string
+            const textContent = data.cell.text;
+            if (textContent.length > 500) {
+              data.cell.text = textContent.substring(0, 500) + "...";
             }
+          } else if (Array.isArray(data.cell.text)) {
+            // Handle array of strings case
+            const processedLines: string[] = [];
+            
+            for (let i = 0; i < data.cell.text.length; i++) {
+              const line = data.cell.text[i];
+              // Make sure each line is treated as a string
+              const lineStr = String(line || '');
+              processedLines.push(lineStr.length > 100 ? lineStr.substring(0, 100) + "..." : lineStr);
+            }
+            
+            // Replace the array with processed lines
+            data.cell.text = processedLines;
           }
-          
-          // Replace the entire array with our processed version
-          data.cell.text = processedLines;
         }
       }
     }
