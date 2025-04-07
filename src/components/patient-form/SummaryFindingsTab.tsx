@@ -6,8 +6,6 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Edit, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { RichTextDisplay } from "@/components/ui/rich-text-display";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -138,11 +136,11 @@ export const SummaryFindingsTab = ({
                     </td>
                     <td className="px-4 py-2 border">
                       {isEditing ? (
-                        <RichTextEditor 
+                        <Textarea 
                           value={value} 
-                          onChange={(newValue) => handleInputChange("summaryFindings", field, newValue)}
+                          onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
                           disabled={!canEditDoctorSection}
-                          minHeight="120px"
+                          className="border-0 p-0 min-h-[60px]" 
                           placeholder="Enter custom text"
                         />
                       ) : (
@@ -173,11 +171,6 @@ export const SummaryFindingsTab = ({
                               </SelectItem>
                             </SelectContent>
                           </Select>
-                          {value && !isEditing && (
-                            <div className="mt-2">
-                              <RichTextDisplay content={value} />
-                            </div>
-                          )}
                           {canEditDoctorSection && value && !isEditing && (
                             <button 
                               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100"
