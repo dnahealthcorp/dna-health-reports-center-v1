@@ -4,12 +4,16 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
+import BulletList from '@tiptap/extension-bullet-list';
+import OrderedList from '@tiptap/extension-ordered-list';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
 import { Button } from './button';
 import { Toggle } from './toggle';
 import { cn } from '@/lib/utils';
 import { 
-  Bold, 
-  Italic, 
+  Bold as BoldIcon, 
+  Italic as ItalicIcon, 
   Underline as UnderlineIcon, 
   List, 
   ListOrdered
@@ -32,9 +36,18 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bulletList: false,
+        orderedList: false,
+        bold: false,
+        italic: false,
+      }),
       Underline,
       TextStyle,
+      BulletList,
+      OrderedList,
+      Bold,
+      Italic,
     ],
     content,
     editable,
@@ -88,7 +101,7 @@ export function RichTextEditor({
             onClick={toggleBold}
             aria-label="Bold"
           >
-            <Bold className="h-4 w-4" />
+            <BoldIcon className="h-4 w-4" />
           </Toggle>
           <Toggle
             size="sm"
@@ -96,7 +109,7 @@ export function RichTextEditor({
             onClick={toggleItalic}
             aria-label="Italic"
           >
-            <Italic className="h-4 w-4" />
+            <ItalicIcon className="h-4 w-4" />
           </Toggle>
           <Toggle
             size="sm"
