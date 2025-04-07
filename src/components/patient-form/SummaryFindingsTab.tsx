@@ -1,15 +1,12 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { Edit, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import RichTextEditor, { sanitizeContent } from "../rich-text/RichTextEditor";
+import RichTextDisplay from "../rich-text/RichTextDisplay";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -17,60 +14,60 @@ interface SummaryFindingsTabProps {
   canEditDoctorSection: boolean;
 }
 
-// Predefined options for each summary finding field
+// Predefined options for each summary finding field with HTML content
 const predefinedOptions = {
   glucoseMetabolism: [
-    "Optimal glucose metabolism.",
-    "Elevated HbA1c of [xxx]%, with high fasting glucose, indicates a prediabetic state, accompanied by low QUICKI and dHOMA2-S scores, suggestive of insulin resistance. Contributing Factors: - High intake of refined carbohydrates - Irregular and late meal timing - Elevated cortisol levels",
+    "<p>Optimal glucose metabolism.</p>",
+    "<p>Elevated HbA1c of [xxx]%, with high fasting glucose, indicates a prediabetic state, accompanied by low QUICKI and dHOMA2-S scores, suggestive of insulin resistance.</p><p><strong>Contributing Factors:</strong></p><ul><li>High intake of refined carbohydrates</li><li>Irregular and late meal timing</li><li>Elevated cortisol levels</li></ul>"
   ],
   proteins: [
-    "All protein markers within optimal range.",
-    "Albumin slightly below optimal, indicating potential nutritional deficiency."
+    "<p>All protein markers within optimal range.</p>",
+    "<p>Albumin slightly below optimal, indicating potential nutritional deficiency.</p>"
   ],
   lipidProfile: [
-    "Optimal lipid profile.",
-    "Elevated total cholesterol (TC) and LDL, with normal HDL and triglycerides.",
-    "Low HDL with elevated triglycerides, suggesting metabolic syndrome pattern."
+    "<p>Optimal lipid profile.</p>",
+    "<p>Elevated total cholesterol (TC) and LDL, with normal HDL and triglycerides.</p>",
+    "<p>Low HDL with elevated triglycerides, suggesting metabolic syndrome pattern.</p>"
   ],
   inflammation: [
-    "No signs of systemic inflammation.",
-    "Elevated high-sensitivity CRP indicating low-grade inflammation."
+    "<p>No signs of systemic inflammation.</p>",
+    "<p>Elevated high-sensitivity CRP indicating low-grade inflammation.</p>"
   ],
   metabolic: [
-    "Metabolic markers within normal ranges.",
-    "Multiple metabolic markers outside optimal ranges, suggesting metabolic stress."
+    "<p>Metabolic markers within normal ranges.</p>",
+    "<p>Multiple metabolic markers outside optimal ranges, suggesting metabolic stress.</p>"
   ],
   homocysteine: [
-    "Homocysteine within optimal range.",
-    "Elevated homocysteine levels indicating potential methylation issues."
+    "<p>Homocysteine within optimal range.</p>",
+    "<p>Elevated homocysteine levels indicating potential methylation issues.</p>"
   ],
   vitaminsMinerals: [
-    "Optimal vitamin and mineral status.",
-    "Vitamin D deficiency with suboptimal magnesium levels."
+    "<p>Optimal vitamin and mineral status.</p>",
+    "<p>Vitamin D deficiency with suboptimal magnesium levels.</p>"
   ],
   ironProfile: [
-    "Iron markers within optimal ranges.",
-    "Elevated ferritin with normal iron suggests inflammatory process."
+    "<p>Iron markers within optimal ranges.</p>",
+    "<p>Elevated ferritin with normal iron suggests inflammatory process.</p>"
   ],
   sexHormones: [
-    "Sex hormones within age-appropriate ranges.",
-    "Low testosterone with elevated estradiol, suggesting aromatase activity."
+    "<p>Sex hormones within age-appropriate ranges.</p>",
+    "<p>Low testosterone with elevated estradiol, suggesting aromatase activity.</p>"
   ],
   kidneyFunctionElectrolytes: [
-    "Kidney function and electrolytes within normal limits.",
-    "Elevated BUN and creatinine suggesting reduced kidney function."
+    "<p>Kidney function and electrolytes within normal limits.</p>",
+    "<p>Elevated BUN and creatinine suggesting reduced kidney function.</p>"
   ],
   liverFunctions: [
-    "Liver enzymes within optimal ranges.",
-    "Mildly elevated AST and ALT suggesting hepatic stress."
+    "<p>Liver enzymes within optimal ranges.</p>",
+    "<p>Mildly elevated AST and ALT suggesting hepatic stress.</p>"
   ],
   tumorMarkers: [
-    "All tumor markers within normal range.",
-    "Slightly elevated PSA requiring follow-up."
+    "<p>All tumor markers within normal range.</p>",
+    "<p>Slightly elevated PSA requiring follow-up.</p>"
   ],
   bloodCounts: [
-    "Complete blood count within normal parameters.",
-    "Mild anemia with reduced hemoglobin and hematocrit."
+    "<p>Complete blood count within normal parameters.</p>",
+    "<p>Mild anemia with reduced hemoglobin and hematocrit.</p>"
   ]
 };
 
@@ -81,21 +78,21 @@ export const SummaryFindingsTab = ({
   handleInputChange,
   canEditDoctorSection
 }: SummaryFindingsTabProps) => {
-  // State to track which fields are in editing mode after selecting [Free Text Option]
+  // State to track which fields are in editing mode
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
   const [previewMode, setPreviewMode] = useState<Record<string, boolean>>({});
 
-  // Handle select change with special handling for free text option
+  // Handle select change with special handling for rich text editor option
   const handleSelectChange = (field: string, value: string) => {
-    if (value === "free-text") {
+    if (value === "rich-text-editor") {
       // Enable editing mode for this field
       setEditingFields(prev => ({ ...prev, [field]: true }));
-      // Default to current value or empty string when selecting free text option
+      // Keep the current value when switching to rich text editor
       return;
     }
     
     // For predefined options, update the form data and exit editing mode
-    handleInputChange("summaryFindings", field, value);
+    handleInputChange("summaryFindings", field, sanitizeContent(value));
     setEditingFields(prev => ({ ...prev, [field]: false }));
   };
 
@@ -124,17 +121,6 @@ export const SummaryFindingsTab = ({
            field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
   };
 
-  // Add a helper message for Markdown
-  const markdownHelperText = `
-  **Formatting Guide:**
-  - **Bold**: \`**text**\`
-  - *Italic*: \`*text*\`
-  - Bullet List: \`- item\`
-  - Numbered List: \`1. item\`
-  - Headers: \`# Heading\` or \`## Subheading\`
-  - Line Break: Add two spaces at the end of a line
-  `;
-
   return <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
@@ -151,7 +137,7 @@ export const SummaryFindingsTab = ({
           )}
         </CardTitle>
         <CardDescription>
-          Record patient's health parameters and findings with Markdown formatting
+          Record patient's health parameters and findings with rich text formatting
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -201,31 +187,15 @@ export const SummaryFindingsTab = ({
                           <div>
                             {isPreviewActive ? (
                               <div className="border rounded-md p-3 min-h-[100px] bg-gray-50">
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]} 
-                                  className="prose prose-sm max-w-none"
-                                >
-                                  {value}
-                                </ReactMarkdown>
+                                <RichTextDisplay content={value} />
                               </div>
                             ) : (
-                              <>
-                                <Textarea 
-                                  value={value} 
-                                  onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
-                                  disabled={!canEditDoctorSection}
-                                  className="min-h-[100px] font-mono text-sm" 
-                                  placeholder="Enter Markdown text here..."
-                                />
-                                <div className="mt-1 text-xs text-gray-500">
-                                  <details>
-                                    <summary className="cursor-pointer font-medium text-primary">Markdown Tips</summary>
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm max-w-none mt-2">
-                                      {markdownHelperText}
-                                    </ReactMarkdown>
-                                  </details>
-                                </div>
-                              </>
+                              <RichTextEditor
+                                content={value}
+                                onChange={(html) => handleInputChange("summaryFindings", field, html)}
+                                disabled={!canEditDoctorSection}
+                                placeholder="Enter rich text content here..."
+                              />
                             )}
                           </div>
                         ) : (
@@ -241,28 +211,28 @@ export const SummaryFindingsTab = ({
                                 value ? "text-foreground" : "text-muted-foreground"
                               )}>
                                 {value ? (
-                                  <div className="py-1">
-                                    <ReactMarkdown 
-                                      remarkPlugins={[remarkGfm]}
-                                      className="prose prose-sm max-w-none"
-                                    >
-                                      {value.length > 80 ? `${value.substring(0, 80)}...` : value}
-                                    </ReactMarkdown>
+                                  <div className="py-1 pr-8">
+                                    <RichTextDisplay
+                                      content={value.length > 150 ? `${value.substring(0, 150)}...` : value}
+                                    />
                                   </div>
                                 ) : (
-                                  <SelectValue placeholder="Select an option or enter custom text" />
+                                  <SelectValue placeholder="Select an option or use the rich text editor" />
                                 )}
                               </SelectTrigger>
                               <SelectContent>
                                 {options.map((option, index) => (
-                                  <SelectItem key={index} value={option}>
-                                    {option.length > 60 ? `${option.substring(0, 60)}...` : option}
+                                  <SelectItem key={index} value={option} className="py-2 min-h-[40px]">
+                                    <RichTextDisplay 
+                                      content={option.length > 100 ? `${option.substring(0, 100)}...` : option}
+                                      className="text-sm"
+                                    />
                                   </SelectItem>
                                 ))}
-                                <SelectItem value="free-text" className="font-medium text-primary">
+                                <SelectItem value="rich-text-editor" className="font-medium text-primary">
                                   <div className="flex items-center">
                                     <Edit className="mr-2 h-4 w-4" />
-                                    [Markdown Editor]
+                                    [Rich Text Editor]
                                   </div>
                                 </SelectItem>
                               </SelectContent>

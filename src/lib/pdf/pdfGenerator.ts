@@ -3,13 +3,32 @@ import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
-import MarkdownIt from "markdown-it";
+import sanitizeHtml from "sanitize-html";
 
-// Initialize markdown parser
-const md = new MarkdownIt({
-  breaks: true,
-  html: false
-});
+/**
+ * Helper function to convert HTML to plain text with basic formatting preserved
+ */
+function htmlToFormattedText(html: string): string {
+  if (!html) return "";
+  
+  // Sanitize the HTML first for security
+  const sanitized = sanitizeHtml(html, {
+    allowedTags: ['p', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li', 'br'],
+    allowedAttributes: {}
+  });
+  
+  // Simple HTML to text conversion preserving line breaks
+  return sanitized
+    .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
+    .replace(/<br\s*\/?>/g, '\n')
+    .replace(/<li>(.*?)<\/li>/g, '• $1\n')
+    .replace(/<strong>(.*?)<\/strong>/g, '$1')
+    .replace(/<b>(.*?)<\/b>/g, '$1')
+    .replace(/<em>(.*?)<\/em>/g, '$1')
+    .replace(/<i>(.*?)<\/i>/g, '$1')
+    .replace(/<\/?[^>]+(>|$)/g, '')
+    .trim();
+}
 
 /**
  * Helper function to convert markdown to plain text with basic formatting preserved
@@ -244,7 +263,7 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
- * Now supporting Markdown formatting
+ * Now supporting HTML formatting
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -261,21 +280,21 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Process markdown content
+  // Process HTML content
   const body = [
-    ["Glucose Metabolism", markdownToFormattedText(formData.summaryFindings.glucoseMetabolism || "")],
-    ["Proteins", markdownToFormattedText(formData.summaryFindings.proteins || "")],
-    ["Lipid Profile", markdownToFormattedText(formData.summaryFindings.lipidProfile || "")],
-    ["Inflammation", markdownToFormattedText(formData.summaryFindings.inflammation || "")],
-    ["Metabolic", markdownToFormattedText(formData.summaryFindings.metabolic || "")],
-    ["Homocysteine", markdownToFormattedText(formData.summaryFindings.homocysteine || "")],
-    ["Vitamins/Minerals", markdownToFormattedText(formData.summaryFindings.vitaminsMinerals || "")],
-    ["Iron Profile", markdownToFormattedText(formData.summaryFindings.ironProfile || "")],
-    ["Sex Hormones", markdownToFormattedText(formData.summaryFindings.sexHormones || "")],
-    ["Kidney Function and Electrolytes", markdownToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes || "")],
-    ["Liver Functions", markdownToFormattedText(formData.summaryFindings.liverFunctions || "")],
-    ["Tumor Markers", markdownToFormattedText(formData.summaryFindings.tumorMarkers || "")],
-    ["Blood Counts", markdownToFormattedText(formData.summaryFindings.bloodCounts || "")]
+    ["Glucose Metabolism", htmlToFormattedText(formData.summaryFindings.glucoseMetabolism || "")],
+    ["Proteins", htmlToFormattedText(formData.summaryFindings.proteins || "")],
+    ["Lipid Profile", htmlToFormattedText(formData.summaryFindings.lipidProfile || "")],
+    ["Inflammation", htmlToFormattedText(formData.summaryFindings.inflammation || "")],
+    ["Metabolic", htmlToFormattedText(formData.summaryFindings.metabolic || "")],
+    ["Homocysteine", htmlToFormattedText(formData.summaryFindings.homocysteine || "")],
+    ["Vitamins/Minerals", htmlToFormattedText(formData.summaryFindings.vitaminsMinerals || "")],
+    ["Iron Profile", htmlToFormattedText(formData.summaryFindings.ironProfile || "")],
+    ["Sex Hormones", htmlToFormattedText(formData.summaryFindings.sexHormones || "")],
+    ["Kidney Function and Electrolytes", htmlToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes || "")],
+    ["Liver Functions", htmlToFormattedText(formData.summaryFindings.liverFunctions || "")],
+    ["Tumor Markers", htmlToFormattedText(formData.summaryFindings.tumorMarkers || "")],
+    ["Blood Counts", htmlToFormattedText(formData.summaryFindings.bloodCounts || "")]
   ];
 
   autoTable(doc, {
@@ -283,8 +302,8 @@ function generateSummarySection(
     theme: "grid",
     head: [
       [
-        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
-        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
+        { content: "Parameter", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
     body: body,
@@ -292,17 +311,17 @@ function generateSummarySection(
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60],
+      textColor: [60,60,60],
       lineWidth: 0.1
     },
     bodyStyles: {
-      fillColor: [255, 255, 255]
+      fillColor: [255,255,255]
     },
     alternateRowStyles: {
-      fillColor: [245, 245, 245]
+      fillColor: [245,245,245]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240,250,230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },

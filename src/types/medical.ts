@@ -11,7 +11,7 @@ export interface Vital {
 }
 
 export interface SummaryFinding {
-  glucoseMetabolism: string; // Now supports Markdown
+  glucoseMetabolism: string; // Now supports HTML
   proteins: string;
   lipidProfile: string;
   inflammation: string;
