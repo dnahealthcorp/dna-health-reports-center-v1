@@ -333,12 +333,16 @@ function generateSummarySection(
         data.cell.styles.cellPadding = 4;
         data.cell.styles.overflow = 'linebreak';
         
-        // Limit text to avoid overflows
-        if (typeof data.cell.text === 'string' && data.cell.text.length > 500) {
-          data.cell.text = data.cell.text.substring(0, 500) + "...";
+        // Fix for TypeScript errors - properly type checking and handling
+        if (typeof data.cell.text === 'string') {
+          // Handle case where text is a string
+          if (data.cell.text.length > 500) {
+            data.cell.text = data.cell.text.substring(0, 500) + "...";
+          }
         } else if (Array.isArray(data.cell.text)) {
+          // Handle case where text is an array of strings
           data.cell.text = data.cell.text.map((line: string) => 
-            line.length > 100 ? line.substring(0, 100) + "..." : line
+            typeof line === 'string' && line.length > 100 ? line.substring(0, 100) + "..." : line
           );
         }
       }
