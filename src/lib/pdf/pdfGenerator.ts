@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
-import { addLogoToPage } from "./logoRenderer";
+import { addLogoToPage, convertHtmlToFormattedText } from "./logoRenderer";
 import * as databaseService from "@/services/databaseService";
 
 /**
@@ -219,6 +219,7 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
+ * Updated to handle HTML content in summary findings
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -235,6 +236,23 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
+  // Process HTML content in summary findings
+  const processedSummaryFindings = {
+    glucoseMetabolism: convertHtmlToFormattedText(formData.summaryFindings.glucoseMetabolism),
+    proteins: convertHtmlToFormattedText(formData.summaryFindings.proteins),
+    lipidProfile: convertHtmlToFormattedText(formData.summaryFindings.lipidProfile),
+    inflammation: convertHtmlToFormattedText(formData.summaryFindings.inflammation),
+    metabolic: convertHtmlToFormattedText(formData.summaryFindings.metabolic),
+    homocysteine: convertHtmlToFormattedText(formData.summaryFindings.homocysteine),
+    vitaminsMinerals: convertHtmlToFormattedText(formData.summaryFindings.vitaminsMinerals),
+    ironProfile: convertHtmlToFormattedText(formData.summaryFindings.ironProfile),
+    sexHormones: convertHtmlToFormattedText(formData.summaryFindings.sexHormones),
+    kidneyFunctionElectrolytes: convertHtmlToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes),
+    liverFunctions: convertHtmlToFormattedText(formData.summaryFindings.liverFunctions),
+    tumorMarkers: convertHtmlToFormattedText(formData.summaryFindings.tumorMarkers),
+    bloodCounts: convertHtmlToFormattedText(formData.summaryFindings.bloodCounts)
+  };
+
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -245,19 +263,19 @@ function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function & Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
+      ["Glucose Metabolism", processedSummaryFindings.glucoseMetabolism || ""],
+      ["Proteins", processedSummaryFindings.proteins || ""],
+      ["Lipid Profile", processedSummaryFindings.lipidProfile || ""],
+      ["Inflammation", processedSummaryFindings.inflammation || ""],
+      ["Metabolic", processedSummaryFindings.metabolic || ""],
+      ["Homocysteine", processedSummaryFindings.homocysteine || ""],
+      ["Vitamins/Minerals", processedSummaryFindings.vitaminsMinerals || ""],
+      ["Iron Profile", processedSummaryFindings.ironProfile || ""],
+      ["Sex Hormones", processedSummaryFindings.sexHormones || ""],
+      ["Kidney Function & Electrolytes", processedSummaryFindings.kidneyFunctionElectrolytes || ""],
+      ["Liver Functions", processedSummaryFindings.liverFunctions || ""],
+      ["Tumor Markers", processedSummaryFindings.tumorMarkers || ""],
+      ["Blood Counts", processedSummaryFindings.bloodCounts || ""]
     ],
     styles: {
       fontSize: 10,
@@ -275,7 +293,39 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawCell: (data) => {
+      // Enhanced cell rendering for multiline text in HTML content
+      if (data.section === 'body' && data.column.index === 1) {
+        // Set appropriate line height for multiline content
+        const textPadding = 2;
+        const lineHeight = 5;
+        
+        // Split text by newlines to handle paragraph breaks
+        const lines = data.cell.text.split('\n');
+        let yOffset = textPadding;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        
+        // Draw each line with proper spacing
+        for (const line of lines) {
+          if (line.trim()) {
+            doc.text(line.trim(), 
+              data.cell.x + data.cell.padding('left'), 
+              data.cell.y + yOffset + data.cell.padding('top'));
+            yOffset += lineHeight;
+          } else {
+            // Add spacing for empty lines (paragraphs)
+            yOffset += lineHeight / 2;
+          }
+        }
+        
+        // Return true to prevent default cell text rendering
+        return true;
+      }
+      return false;
+    }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;

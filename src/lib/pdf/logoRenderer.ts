@@ -1,5 +1,7 @@
 
 import { jsPDF } from "jspdf";
+import sanitizeHtml from "sanitize-html";
+import parse from "html-react-parser";
 
 /**
  * Adds the DNA Health logo to the top right corner of the PDF page
@@ -54,5 +56,57 @@ export const loadMontserratFonts = async (doc: jsPDF): Promise<void> => {
   } catch (error) {
     console.error("Error loading Montserrat fonts:", error);
     // Fall back to default font if there's an error.
+  }
+};
+
+/**
+ * Converts HTML to plain text with simple formatting preservation for PDF
+ * This handles basic formatting like paragraphs, lists, bold/italic text
+ */
+export const convertHtmlToFormattedText = (html: string): string => {
+  if (!html) return '';
+  
+  try {
+    // Sanitize HTML first for safety
+    const sanitizedHtml = sanitizeHtml(html, {
+      allowedTags: ['p', 'br', 'b', 'strong', 'i', 'em', 'ul', 'ol', 'li', 'span'],
+      allowedAttributes: {
+        'span': ['style'],
+        'p': ['style']
+      }
+    });
+    
+    // Replace common HTML elements with text formatting that jsPDF can handle
+    let formattedText = sanitizedHtml
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>\s*<p>/gi, '\n\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<li>/gi, '• ')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<\/?ul>/gi, '')
+      .replace(/<\/?ol>/gi, '')
+      .replace(/<strong>|<b>/gi, '')
+      .replace(/<\/strong>|<\/b>/gi, '')
+      .replace(/<em>|<i>/gi, '')
+      .replace(/<\/em>|<\/i>/gi, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>');
+      
+    // Remove any other HTML tags
+    formattedText = formattedText.replace(/<[^>]*>/g, '');
+    
+    // Trim extra whitespace and normalize line breaks
+    formattedText = formattedText
+      .replace(/\n{3,}/g, '\n\n')  // Limit consecutive line breaks
+      .trim();
+      
+    return formattedText;
+  } catch (error) {
+    console.error('Error converting HTML to text:', error);
+    // Return plain text as fallback
+    return html.replace(/<[^>]*>/g, '');
   }
 };
