@@ -20,12 +20,26 @@ export const PatientInfoCard = ({
   };
 
   // Create a patientInfo object that works with either data source
-  const patientInfo = formData?.patientInfo || {
-    name: patient?.name || "",
-    dateOfBirth: patient?.dateOfBirth || "",
-    gender: patient?.gender || "",
-    medicalRecordNumber: patient?.medicalRecordNumber || ""
-  };
+  let patientInfo;
+  
+  if (formData && formData.patientInfo) {
+    patientInfo = formData.patientInfo;
+  } else if (patient) {
+    patientInfo = {
+      name: patient.name || "",
+      dateOfBirth: patient.dateOfBirth || "",
+      gender: patient.gender || "",
+      medicalRecordNumber: patient.medicalRecordNumber || ""
+    };
+  } else {
+    // Fallback if neither is provided
+    patientInfo = {
+      name: "Not specified",
+      dateOfBirth: "",
+      gender: "",
+      medicalRecordNumber: ""
+    };
+  }
 
   return (
     <Card className="animate-fade-in-up mb-6">

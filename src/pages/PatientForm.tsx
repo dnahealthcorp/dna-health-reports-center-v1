@@ -92,36 +92,57 @@ const PatientForm = () => {
     
     setIsGeneratingPDF(true);
     try {
-      const pdfData = await generatePDF(formData);
-      const fileName = `${patient.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      // Generate PDF and get blob
+      const pdfBlob = await generatePDF(formData);
       
-      const pdfInfo: PDFData = {
-        patientId: patient.id,
-        fileName,
-        pdfData,
+      // Convert blob to base64 string for storage
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      
+      reader.onloadend = async () => {
+        try {
+          const base64data = reader.result?.toString().split(',')[1] || '';
+          const fileName = `${patient.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+          
+          const pdfInfo: PDFData = {
+            patientId: patient.id,
+            fileName,
+            pdfData: base64data,
+          };
+          
+          const savedFile = await savePDFFile(pdfInfo);
+          
+          if (!savedFile) {
+            throw new Error("Failed to save PDF file");
+          }
+          
+          if (!patient.pdf_exported) {
+            patient.pdf_exported = true;
+            const { updatePatient } = await import('@/services/patientService');
+            await updatePatient(patient);
+          }
+          
+          toast({
+            title: "PDF Generated",
+            description: "PDF has been generated and saved successfully."
+          });
+          
+          const pdfUrl = savedFile.url;
+          if (pdfUrl) {
+            window.open(pdfUrl, '_blank');
+          }
+        } catch (error) {
+          console.error("Error processing PDF:", error);
+          throw error;
+        } finally {
+          setIsGeneratingPDF(false);
+        }
       };
       
-      const savedFile = await savePDFFile(pdfInfo);
-      
-      if (!savedFile) {
-        throw new Error("Failed to save PDF file");
-      }
-      
-      if (!patient.pdf_exported) {
-        patient.pdf_exported = true;
-        const { updatePatient } = await import('@/services/patientService');
-        await updatePatient(patient);
-      }
-      
-      toast({
-        title: "PDF Generated",
-        description: "PDF has been generated and saved successfully."
-      });
-      
-      const pdfUrl = savedFile.url;
-      if (pdfUrl) {
-        window.open(pdfUrl, '_blank');
-      }
+      reader.onerror = () => {
+        setIsGeneratingPDF(false);
+        throw new Error("Error reading PDF data");
+      };
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
@@ -129,7 +150,6 @@ const PatientForm = () => {
         description: "Could not generate PDF file. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsGeneratingPDF(false);
     }
   };
@@ -195,7 +215,7 @@ const PatientForm = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="md:col-span-3">
-          <PatientInfoCard formData={formData} />
+          <PatientInfoCard formData={formData} patient={patient} />
         </div>
         
         <div className="md:col-span-9">

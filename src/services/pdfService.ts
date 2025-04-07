@@ -1,90 +1,74 @@
-// PDF-related database operations
-import { PDFFile, PDFData } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from 'uuid';
-import { getCurrentUser } from "./userService";
 
-export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
+import { supabase } from "@/integrations/supabase/client";
+import { PDFData, PDFFile } from "@/types";
+
+export const savePDFFile = async (pdfData: PDFData): Promise<PDFFile | null> => {
   try {
-    // Generate a proper UUID using uuidv4 instead of a timestamp string
-    const id = uuidv4();
-    const currentUser = await getCurrentUser();
+    // Convert base64 string to blob
+    const base64Response = await fetch(`data:application/pdf;base64,${pdfData.pdfData}`);
+    const blob = await base64Response.blob();
     
-    const newPDFFile: PDFFile = {
-      id,
-      patient_id: patientId,
-      file_name: fileName,
-      created_at: new Date().toISOString(),
-      created_by: currentUser?.id || "Unknown",
-      url: fileUrl || fileName
+    // Generate a storage path for the PDF
+    const timestamp = Date.now();
+    const storagePath = `${pdfData.patientId}/${timestamp}_${pdfData.fileName}`;
+    
+    // Upload the blob to storage
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from('pdfs')
+      .upload(storagePath, blob, {
+        contentType: 'application/pdf',
+        upsert: true
+      });
+    
+    if (storageError) {
+      throw storageError;
+    }
+    
+    // Get public URL
+    const { data: publicUrlData } = await supabase.storage
+      .from('pdfs')
+      .getPublicUrl(storagePath);
+    
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      throw new Error("Could not generate public URL");
+    }
+    
+    // Save PDF reference to database
+    const pdfEntry = {
+      file_name: pdfData.fileName,
+      patient_id: pdfData.patientId,
+      form_id: pdfData.formId || null,
+      url: publicUrlData.publicUrl,
+      created_at: new Date().toISOString()
     };
     
-    // Make sure we're using a valid UUID for patientId, not a medical record number
-    const { getPatientById } = await import('./patientService');
-    const patient = await getPatientById(patientId);
-    
-    if (!patient) {
-      throw new Error(`Patient with ID ${patientId} not found`);
-    }
-    
-    // IMPORTANT: Always create a new entry for each PDF generation
-    // This ensures we keep a history of all generated PDFs
-    const { error } = await supabase
-      .from('pdf_files')
-      .insert([{
-        id: newPDFFile.id,
-        patient_id: patient.id, // Use the actual patient UUID, not the MRN
-        file_name: newPDFFile.file_name,
-        created_at: newPDFFile.created_at,
-        created_by: currentUser?.id || null,
-        url: newPDFFile.url
-      }]);
-    
-    if (error) {
-      console.error("Error creating new PDF reference:", error);
-      throw error;
-    }
-    
-    console.log(`New PDF reference created for patient ${patientId} with filename ${fileName}`);
-    
-    return newPDFFile;
-  } catch (error) {
-    console.error(`Error saving PDF reference for patient ${patientId} to Supabase:`, error);
-    throw error;
-  }
-};
-
-export const getPDFFiles = async (): Promise<PDFFile[]> => {
-  try {
     const { data, error } = await supabase
       .from('pdf_files')
-      .select(`
-        id,
-        patient_id,
-        file_name,
-        created_at,
-        url,
-        users (name)
-      `);
+      .insert([pdfEntry])
+      .select()
+      .single();
     
     if (error) {
       throw error;
     }
     
-    // Transform from database schema to application schema
-    const pdfFiles: PDFFile[] = (data || []).map(item => ({
-      id: item.id,
-      patient_id: item.patient_id,
-      file_name: item.file_name,
-      created_at: item.created_at,
-      created_by: item.users?.name || "Unknown",
-      url: item.url
-    }));
-    
-    return pdfFiles;
+    return {
+      id: data.id,
+      patient_id: data.patient_id,
+      form_id: data.form_id,
+      file_name: data.file_name,
+      url: data.url,
+      created_at: data.created_at,
+      created_by: data.created_by || "",
+      // Add aliases for compatibility
+      patientId: data.patient_id,
+      fileName: data.file_name,
+      createdAt: data.created_at,
+      createdBy: data.created_by || ""
+    };
   } catch (error) {
-    console.error("Error getting PDF files from Supabase:", error);
-    return [];
+    console.error("Error saving PDF file:", error);
+    return null;
   }
 };
 
@@ -92,67 +76,30 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
   try {
     const { data, error } = await supabase
       .from('pdf_files')
-      .select(`
-        id,
-        patient_id,
-        file_name,
-        created_at,
-        url,
-        users (name)
-      `)
-      .eq('patient_id', patientId);
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
     
     if (error) {
       throw error;
     }
     
-    // Transform from database schema to application schema
-    const pdfFiles: PDFFile[] = (data || []).map(item => ({
-      id: item.id,
-      patient_id: item.patient_id,
-      file_name: item.file_name,
-      created_at: item.created_at,
-      created_by: item.users?.name || "Unknown",
-      url: item.url
+    return (data || []).map(file => ({
+      id: file.id,
+      patient_id: file.patient_id,
+      form_id: file.form_id,
+      file_name: file.file_name,
+      url: file.url,
+      created_at: file.created_at,
+      created_by: file.created_by || "",
+      // Add aliases for compatibility
+      patientId: file.patient_id,
+      fileName: file.file_name,
+      createdAt: file.created_at,
+      createdBy: file.created_by || ""
     }));
-    
-    return pdfFiles;
   } catch (error) {
-    console.error(`Error getting PDF files for patient ${patientId} from Supabase:`, error);
+    console.error(`Error fetching PDF files for patient ${patientId}:`, error);
     return [];
-  }
-};
-
-// Implementation of savePDFFile function
-export const savePDFFile = async ({
-  patientId,
-  fileName,
-  pdfData,
-  formId
-}: PDFData): Promise<PDFFile | null> => {
-  try {
-    // Use pdfData to generate URL or save actual data (simplified here)
-    // In a real implementation, this might upload to storage
-    const url = `data:application/pdf;base64,${pdfData}`;
-    
-    // Create a new PDF reference in the database
-    const pdfFile = await savePDFReference(patientId, fileName, url);
-    
-    // If formId is provided, update the form record
-    if (formId) {
-      await supabase
-        .from('forms')
-        .update({
-          pdf_exported: true,
-          status: 'completed',
-          status_updated_at: new Date().toISOString()
-        })
-        .eq('id', formId);
-    }
-    
-    return pdfFile;
-  } catch (error) {
-    console.error("Error saving PDF file:", error);
-    return null;
   }
 };

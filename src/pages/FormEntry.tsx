@@ -206,50 +206,70 @@ const ExecutiveHealthScreeningForm = () => {
       const { generatePDF } = await import("@/lib/pdf/pdfGenerator");
       
       // Generate PDF
-      const pdfData = await generatePDF(formData);
-      const fileName = `${patient.name.replace(/\s+/g, "-")}-${formTypeSlug}-${new Date().toISOString().split("T")[0]}.pdf`;
+      const pdfBlob = await generatePDF(formData);
       
-      // Save PDF to database using the updated savePDFFile function
-      const pdfInfo: PDFData = {
-        patientId: patient.id,
-        fileName,
-        pdfData,
-        formId: formId,
+      // Convert blob to base64 string for storage
+      const reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      
+      reader.onloadend = async () => {
+        try {
+          const base64data = reader.result?.toString().split(',')[1] || '';
+          const fileName = `${patient.name.replace(/\s+/g, "-")}-${formTypeSlug}-${new Date().toISOString().split("T")[0]}.pdf`;
+          
+          // Save PDF to database using the updated savePDFFile function
+          const pdfInfo: PDFData = {
+            patientId: patient.id,
+            fileName,
+            pdfData: base64data,
+            formId: formId,
+          };
+          
+          const savedFile = await savePDFFile(pdfInfo);
+          
+          if (!savedFile) {
+            throw new Error("Failed to save PDF file");
+          }
+          
+          // Update form's pdf_exported status
+          await supabase
+            .from("forms")
+            .update({
+              pdf_exported: true,
+              status: 'completed',
+              status_updated_at: new Date().toISOString(),
+            })
+            .eq("id", formId);
+          
+          // Update form state
+          setForm({
+            ...form,
+            pdf_exported: true,
+            status: 'completed',
+          });
+          
+          toast({
+            title: "PDF Generated",
+            description: "PDF has been generated and saved successfully",
+          });
+          
+          // Open PDF in new tab
+          const pdfUrl = savedFile.url;
+          if (pdfUrl) {
+            window.open(pdfUrl, "_blank");
+          }
+        } catch (error) {
+          console.error("Error processing PDF:", error);
+          throw error;
+        } finally {
+          setIsExportingPDF(false);
+        }
       };
       
-      const savedFile = await savePDFFile(pdfInfo);
-      
-      if (!savedFile) {
-        throw new Error("Failed to save PDF file");
-      }
-      
-      // Update form's pdf_exported status
-      await supabase
-        .from("forms")
-        .update({
-          pdf_exported: true,
-          status: 'completed',
-          status_updated_at: new Date().toISOString(),
-        })
-        .eq("id", formId);
-      
-      // Update form state
-      setForm({
-        ...form,
-        pdf_exported: true,
-        status: 'completed',
-      });
-      
-      toast({
-        title: "PDF Generated",
-        description: "PDF has been generated and saved successfully",
-      });
-      
-      // Open PDF in new tab
-      const pdfUrl = savedFile.url;
-      if (pdfUrl) {
-        window.open(pdfUrl, "_blank");
-      }
+      reader.onerror = () => {
+        setIsExportingPDF(false);
+        throw new Error("Error reading PDF data");
+      };
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
@@ -257,7 +277,6 @@ const ExecutiveHealthScreeningForm = () => {
         description: "Failed to generate PDF",
         variant: "destructive",
       });
-    } finally {
       setIsExportingPDF(false);
     }
   };
