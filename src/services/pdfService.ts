@@ -1,5 +1,6 @@
+
 // PDF-related database operations
-import { PDFFile } from "@/types";
+import { PDFFile, Patient } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
@@ -52,6 +53,10 @@ export const savePDFReference = async (patientId: string, fileName: string, file
     console.error(`Error saving PDF reference for patient ${patientId} to Supabase:`, error);
     throw error;
   }
+};
+
+export const savePDFFile = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
+  return savePDFReference(patientId, fileName, fileUrl);
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {

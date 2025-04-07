@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PatientFormData } from "@/types";
+import { PatientFormData, FollowUp } from "@/types";
 import { CalendarClock, Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,11 +16,13 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 interface FollowUpTabProps {
-  formData: PatientFormData;
-  handleFollowUpChange: (index: number, field: string, value: string) => void;
-  handleAddFollowUp: () => void;
-  handleRemoveFollowUp: (index: number) => void;
-  canEditDoctorSection: boolean;
+  formData?: PatientFormData;
+  handleFollowUpChange?: (index: number, field: string, value: string) => void;
+  handleAddFollowUp?: () => void;
+  handleRemoveFollowUp?: (index: number) => void;
+  canEditDoctorSection?: boolean;
+  followUps?: FollowUp[];
+  onFollowUpsChange?: (followUps: FollowUp[]) => void;
 }
 
 export const FollowUpTab = ({
@@ -28,13 +30,51 @@ export const FollowUpTab = ({
   handleFollowUpChange,
   handleAddFollowUp,
   handleRemoveFollowUp,
-  canEditDoctorSection
+  canEditDoctorSection,
+  followUps: propFollowUps,
+  onFollowUpsChange
 }: FollowUpTabProps) => {
-  const followUps = formData.followUps || [];
+  const followUpsData = propFollowUps || (formData?.followUps || []);
   
+  const onChangeFollowUp = (index: number, field: string, value: string) => {
+    if (handleFollowUpChange) {
+      handleFollowUpChange(index, field, value);
+    } else if (onFollowUpsChange) {
+      const updatedFollowUps = [...followUpsData];
+      updatedFollowUps[index] = {
+        ...updatedFollowUps[index],
+        [field]: value
+      };
+      onFollowUpsChange(updatedFollowUps);
+    }
+  };
+
+  const onAddFollowUp = () => {
+    if (handleAddFollowUp) {
+      handleAddFollowUp();
+    } else if (onFollowUpsChange) {
+      const newFollowUp = {
+        withDoctor: "",
+        forReason: "",
+        date: ""
+      };
+      onFollowUpsChange([...followUpsData, newFollowUp]);
+    }
+  };
+
+  const onRemoveFollowUp = (index: number) => {
+    if (handleRemoveFollowUp) {
+      handleRemoveFollowUp(index);
+    } else if (onFollowUpsChange) {
+      const updatedFollowUps = [...followUpsData];
+      updatedFollowUps.splice(index, 1);
+      onFollowUpsChange(updatedFollowUps);
+    }
+  };
+
   const handleDateSelect = (index: number, date: Date | undefined) => {
     if (date) {
-      handleFollowUpChange(index, "date", format(date, "yyyy-MM-dd"));
+      onChangeFollowUp(index, "date", format(date, "yyyy-MM-dd"));
     }
   };
   
@@ -47,11 +87,11 @@ export const FollowUpTab = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {followUps.length === 0 ? (
+        {followUpsData.length === 0 ? (
           <p className="text-muted-foreground py-4 text-center">No follow-ups scheduled yet.</p>
         ) : (
           <div className="space-y-4">
-            {followUps.map((followUp, index) => (
+            {followUpsData.map((followUp, index) => (
               <div key={index} className="border rounded-md p-4 relative">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -59,7 +99,7 @@ export const FollowUpTab = ({
                     <Input
                       id={`followUp-with-${index}`}
                       value={followUp.withDoctor}
-                      onChange={(e) => handleFollowUpChange(index, "withDoctor", e.target.value)}
+                      onChange={(e) => onChangeFollowUp(index, "withDoctor", e.target.value)}
                       disabled={!canEditDoctorSection}
                     />
                   </div>
@@ -68,7 +108,7 @@ export const FollowUpTab = ({
                     <Input
                       id={`followUp-for-${index}`}
                       value={followUp.forReason}
-                      onChange={(e) => handleFollowUpChange(index, "forReason", e.target.value)}
+                      onChange={(e) => onChangeFollowUp(index, "forReason", e.target.value)}
                       disabled={!canEditDoctorSection}
                     />
                   </div>
@@ -105,7 +145,7 @@ export const FollowUpTab = ({
                     variant="ghost"
                     size="icon"
                     className="absolute top-2 right-2 h-8 w-8 text-destructive"
-                    onClick={() => handleRemoveFollowUp(index)}
+                    onClick={() => onRemoveFollowUp(index)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -119,7 +159,7 @@ export const FollowUpTab = ({
           <Button
             variant="outline"
             className="mt-4 w-full"
-            onClick={handleAddFollowUp}
+            onClick={onAddFollowUp}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Follow-up

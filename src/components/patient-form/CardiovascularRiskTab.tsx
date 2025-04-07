@@ -4,15 +4,21 @@ import { PatientFormData } from "@/types";
 import { Heart } from "lucide-react";
 
 interface CardiovascularRiskTabProps {
-  formData: PatientFormData;
-  canEditDoctorSection: boolean;
+  formData?: PatientFormData;
+  patient?: any;
+  vitals?: any;
+  canEditDoctorSection?: boolean;
 }
 
 export const CardiovascularRiskTab = ({
   formData,
+  patient,
+  vitals,
   canEditDoctorSection
 }: CardiovascularRiskTabProps) => {
-  const isMale = formData.patientInfo.gender === 'Male';
+  // Determine gender from formData or patient object
+  const isMale = formData?.patientInfo?.gender === 'Male' || 
+                 patient?.gender === 'Male';
   
   return (
     <Card>
