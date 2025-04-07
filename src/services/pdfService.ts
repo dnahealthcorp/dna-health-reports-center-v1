@@ -1,5 +1,5 @@
 // PDF-related database operations
-import { PDFFile } from "@/types";
+import { PDFFile, PDFData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
@@ -123,22 +123,17 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
   }
 };
 
-// Add the missing savePDFFile function
+// Implementation of savePDFFile function
 export const savePDFFile = async ({
   patientId,
   fileName,
   pdfData,
   formId
-}: {
-  patientId: string;
-  fileName: string;
-  pdfData: string;
-  formId?: string;
-}): Promise<PDFFile | null> => {
+}: PDFData): Promise<PDFFile | null> => {
   try {
     // Use pdfData to generate URL or save actual data (simplified here)
     // In a real implementation, this might upload to storage
-    const url = `data:application/pdf;base64,${pdfData.substring(0, 20)}...`;
+    const url = `data:application/pdf;base64,${pdfData}`;
     
     // Create a new PDF reference in the database
     const pdfFile = await savePDFReference(patientId, fileName, url);

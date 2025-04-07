@@ -5,17 +5,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dna } from "lucide-react";
 
-interface InsulinResistanceTabProps {
-  formData: PatientFormData;
+export interface InsulinResistanceTabProps {
+  formData: PatientFormData | any;
   handleInputChange: (section: keyof PatientFormData | "", field: string, value: string | boolean) => void;
   canEditDoctorSection: boolean;
 }
 
 export const InsulinResistanceTab = ({
-  formData,
-  handleInputChange,
-  canEditDoctorSection
-}: InsulinResistanceTabProps) => {
+  formData = { showInsulinResistance: false },
+  handleInputChange = () => {},
+  canEditDoctorSection = true
+}: Partial<InsulinResistanceTabProps>) => {
   return (
     <Card>
       <CardContent className="pt-6">

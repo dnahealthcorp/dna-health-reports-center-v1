@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
-import { Patient, PatientFormData } from '@/types';
+import { Patient, PatientFormData, PDFData } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PatientHeader } from '@/components/patient-form/PatientHeader';
@@ -94,12 +95,13 @@ const PatientForm = () => {
       const pdfData = await generatePDF(formData);
       const fileName = `${patient.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       
-      const { savePDFFile } = await import('@/services/pdfService');
-      const savedFile = await savePDFFile({
+      const pdfInfo: PDFData = {
         patientId: patient.id,
         fileName,
         pdfData,
-      });
+      };
+      
+      const savedFile = await savePDFFile(pdfInfo);
       
       if (!savedFile) {
         throw new Error("Failed to save PDF file");
@@ -183,11 +185,17 @@ const PatientForm = () => {
         </div>
       </div>
       
-      <PatientHeader patient={patient} />
+      <PatientHeader 
+        patient={patient} 
+        handleSave={handleSave}
+        handleExportPDF={handleGeneratePDF}
+        isSaving={isSaving}
+        isExportingPDF={isGeneratingPDF}
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="md:col-span-3">
-          <PatientInfoCard patient={patient} />
+          <PatientInfoCard formData={formData} />
         </div>
         
         <div className="md:col-span-9">
@@ -247,12 +255,23 @@ const PatientForm = () => {
             
             <TabsContent value="insulin" className="pt-4">
               {formData.showInsulinResistance && (
-                <InsulinResistanceTab />
+                <InsulinResistanceTab 
+                  formData={formData}
+                  handleInputChange={(section, field, value) => {
+                    if (field === "showInsulinResistance") {
+                      updateFormData({ showInsulinResistance: value as boolean });
+                    }
+                  }}
+                  canEditDoctorSection={true}
+                />
               )}
             </TabsContent>
             
             <TabsContent value="cv-risk" className="pt-4">
-              <CardiovascularRiskTab patient={patient} vitals={formData.vitals} />
+              <CardiovascularRiskTab 
+                patient={patient} 
+                vitals={formData.vitals} 
+              />
             </TabsContent>
             
             <TabsContent value="notes" className="pt-4">

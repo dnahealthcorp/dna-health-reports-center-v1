@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Save, FileText } from "lucide-react";
@@ -6,7 +7,7 @@ import { LoadingState } from "@/components/patient-form/LoadingState";
 import { useToast } from "@/hooks/use-toast";
 import { getFormById, getHealthScreeningDataByFormId, updateFormStatus } from "@/services/formService";
 import { getPatientById } from "@/services/patientService";
-import { Patient } from "@/types";
+import { Patient, PDFData } from "@/types";
 import { VitalsTab } from "@/components/patient-form/VitalsTab";
 import { SummaryFindingsTab } from "@/components/patient-form/SummaryFindingsTab";
 import { MedicationsTab } from "@/components/patient-form/MedicationsTab";
@@ -20,6 +21,7 @@ import { PatientHeader } from "@/components/patient-form/PatientHeader";
 import { PatientInfoCard } from "@/components/patient-form/PatientInfoCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { savePDFFile } from "@/services/pdfService";
 
 const ExecutiveHealthScreeningForm = () => {
   const { formTypeSlug, formId } = useParams<{ formTypeSlug: string; formId: string }>();
@@ -31,6 +33,7 @@ const ExecutiveHealthScreeningForm = () => {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [activeTab, setActiveTab] = useState("vitals");
 
   useEffect(() => {
@@ -197,22 +200,24 @@ const ExecutiveHealthScreeningForm = () => {
   const handleGeneratePDF = async () => {
     if (!formId || !patient || !formData) return;
     
+    setIsExportingPDF(true);
     try {
       // Import PDF generator
       const { generatePDF } = await import("@/lib/pdf/pdfGenerator");
-      const { savePDFFile } = await import("@/services/pdfService");
       
       // Generate PDF
       const pdfData = await generatePDF(formData);
       const fileName = `${patient.name.replace(/\s+/g, "-")}-${formTypeSlug}-${new Date().toISOString().split("T")[0]}.pdf`;
       
-      // Save PDF to database
-      const savedFile = await savePDFFile({
+      // Save PDF to database using the updated savePDFFile function
+      const pdfInfo: PDFData = {
         patientId: patient.id,
         fileName,
         pdfData,
         formId: formId,
-      });
+      };
+      
+      const savedFile = await savePDFFile(pdfInfo);
       
       if (!savedFile) {
         throw new Error("Failed to save PDF file");
@@ -252,6 +257,8 @@ const ExecutiveHealthScreeningForm = () => {
         description: "Failed to generate PDF",
         variant: "destructive",
       });
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -291,14 +298,20 @@ const ExecutiveHealthScreeningForm = () => {
             <Save className="mr-2 h-4 w-4" />
             {isSaving ? "Saving..." : "Save Changes"}
           </Button>
-          <Button onClick={handleGeneratePDF}>
+          <Button onClick={handleGeneratePDF} disabled={isExportingPDF}>
             <FileText className="mr-2 h-4 w-4" />
-            Generate PDF
+            {isExportingPDF ? "Generating..." : "Generate PDF"}
           </Button>
         </div>
       </div>
 
-      <PatientHeader patient={patient} />
+      <PatientHeader 
+        patient={patient} 
+        handleSave={handleSave}
+        handleExportPDF={handleGeneratePDF}
+        isSaving={isSaving}
+        isExportingPDF={isExportingPDF}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="md:col-span-3">
@@ -364,7 +377,18 @@ const ExecutiveHealthScreeningForm = () => {
             </TabsContent>
 
             <TabsContent value="insulin" className="pt-4">
-              {formData.showInsulinResistance && <InsulinResistanceTab />}
+              {formData.showInsulinResistance && (
+                <InsulinResistanceTab 
+                  formData={formData}
+                  handleInputChange={(section, field, value) => {
+                    // Simple wrapper to match the expected interface
+                    if (field === "showInsulinResistance") {
+                      updateFormData({ showInsulinResistance: value });
+                    }
+                  }}
+                  canEditDoctorSection={true}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="cv-risk" className="pt-4">
