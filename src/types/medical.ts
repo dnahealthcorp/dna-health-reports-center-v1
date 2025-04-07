@@ -11,7 +11,7 @@ export interface Vital {
 }
 
 export interface SummaryFinding {
-  glucoseMetabolism: string;
+  glucoseMetabolism: string; // Now supports HTML
   proteins: string;
   lipidProfile: string;
   inflammation: string;
@@ -106,23 +106,4 @@ export function isFollowUp(json: any): json is FollowUp {
     'forReason' in json &&
     'date' in json
   );
-}
-
-// Helper function to sanitize HTML (improved implementation)
-export function sanitizeHtml(html: string): string {
-  if (!html || typeof html !== 'string') return '';
-  
-  // Remove potentially dangerous tags and attributes
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+="[^"]*"/gi, '') // Remove event handlers
-    .replace(/on\w+='[^']*'/gi, '')
-    .replace(/on\w+=\w+/gi, '');
-}
-
-// Helper function to determine if text is HTML
-export function isHtml(text: string | any): boolean {
-  if (!text || typeof text !== 'string') return false;
-  return /<[a-z][\s\S]*>/i.test(text);
 }

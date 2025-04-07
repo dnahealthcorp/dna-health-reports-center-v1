@@ -32,7 +32,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       fileName = `${patientName}${apostrophe} Health Screening - ${currentDate}.pdf`;
       
       try {
-        // Generate the PDF with the correct filename format
+        // Generate the PDF with the correct filename format - now returns a Blob
         const pdfBlob = await generatePDFImpl(formData, medications);
         
         // Upload the PDF to Supabase Storage with a unique path to prevent caching
@@ -70,7 +70,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         while (uploadAttempts < 3) {
           uploadAttempts++;
           
-          // Try to upload the file
+          // Try to upload the file - now using the Blob directly
           const uploadResult = await supabase
             .storage
             .from('pdf_files')

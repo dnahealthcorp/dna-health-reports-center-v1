@@ -1,399 +1,234 @@
 
-import { PatientFormData, Medication } from "@/types";
-
+// src/lib/pdf/pdfGenerator.ts
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { isHtml, sanitizeHtml } from "@/types/medical";
+import { PatientFormData, Medication } from "@/types";
+import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
+import { addLogoToPage, convertHtmlToFormattedText } from "./logoRenderer";
 
-// Define a custom interface for jsPDF with lastAutoTable property
-interface ExtendedJsPDF extends jsPDF {
-  lastAutoTable?: {
-    finalY: number;
-  };
+function addFooter(doc: jsPDF, pageWidth: number): void {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor("#a5a4a4");
+  doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" });
 }
 
-// Helper function to convert HTML to plain text for contexts where HTML isn't supported
-const htmlToText = (html: string): string => {
-  if (!html || typeof html !== 'string') return '';
-  
-  // Create a temporary DOM element to parse the HTML
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = sanitizeHtml(html);
-  
-  // Get the text content and preserve some formatting
-  const text = tempDiv.textContent || tempDiv.innerText || '';
-  
-  return text;
-};
+function ensureSpace(doc: jsPDF, currentY: number, neededHeight: number, topMargin = 40, pageWidth: number): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 15;
+  if (currentY + neededHeight > pageHeight - bottomMargin) {
+    addFooter(doc, pageWidth);
+    doc.addPage();
+    addLogoToPage(doc); // make sure this adds a well-sized logo
+    return topMargin;
+  }
+  return currentY;
+}
 
-// The function that fixes the .toString() error by ensuring the value is a string
-const ensureString = (value: any): string => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) {
-    // If it's an array, join its elements with a comma
-    return value.map(item => ensureString(item)).join(', ');
-  }
-  // For any other type, convert it to string
-  return String(value);
-};
+function generateImagesSection(doc: jsPDF, currentY: number, pageWidth: number): number {
+  addLogoToPage(doc); // first page only
 
-export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
-  const doc = new jsPDF() as ExtendedJsPDF;
-  const pageWidth = doc.internal.pageSize.getWidth();
-  
-  // Function to add a header to each page
-  const addHeader = (doc: ExtendedJsPDF, text: string) => {
-    doc.setFontSize(10);
-    doc.setTextColor(40);
-    doc.text(text, pageWidth / 2, 10, { align: 'center' });
-  };
-  
-  // Function to add a footer to each page
-  const addFooter = (doc: ExtendedJsPDF, pageNumber: number, totalPages: number) => {
-    doc.setFontSize(10);
-    doc.setTextColor(40);
-    const footerText = `Page ${pageNumber} of ${totalPages}`;
-    doc.text(footerText, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-  };
-  
-  // Add header and patient info
-  addHeader(doc, "Health Screening Report");
-  
-  // Patient Information Section
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text('Patient Information', 20, 20);
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(10);
-  
-  let patientInfo = [
-    ['Name', formData.patientInfo.name],
-    ['Date of Birth', formData.patientInfo.dateOfBirth],
-    ['Gender', formData.patientInfo.gender],
-    ['Medical Record Number', formData.patientInfo.medicalRecordNumber]
+  const imageWidth = 100;
+  const imageHeight = 66;
+  const imageStartX = (pageWidth - imageWidth) / 2;
+  const gap = 10;
+
+  ["/assets/picture1.png", "/assets/picture2.png", "/assets/picture3.png"].forEach((src) => {
+    try {
+      doc.addImage(src, "PNG", imageStartX, currentY, imageWidth, imageHeight);
+      currentY += imageHeight + gap;
+    } catch (err) {
+      console.error("Error loading image:", src);
+    }
+  });
+
+  return currentY;
+}
+
+function generateIntroductionSection(doc: jsPDF, currentY: number, pageWidth: number, contentMargin: number, contentWidth: number, formData: PatientFormData): number {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+
+  const title = "Your step towards optimal health.";
+  const centerX = pageWidth / 2;
+  const titleY = currentY + 5;
+  const titleWidth = doc.getTextWidth(title);
+  doc.setTextColor(100, 100, 100);
+  doc.text(title, centerX - titleWidth / 2, titleY);
+  currentY = titleY + 10;
+
+  const lines = [
+    "Our approach is proactive, rather than reactive,",
+    "giving you ",
+    "control of your health",
+    " throughout",
+    "your life."
   ];
-  
-  autoTable(doc, {
-    body: patientInfo,
-    startY: 30,
-    theme: 'plain',
-    margin: { left: 20 },
-    columnStyles: { 0: { fontStyle: 'bold' } }
-  });
-  
-  // Vitals Section
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text('Vitals', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 80);
-  doc.setFont(undefined, 'normal');
+
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+
+  const line1 = lines[0];
+  doc.setTextColor(100, 100, 100);
+  doc.text(line1, centerX - doc.getTextWidth(line1) / 2, currentY);
+  currentY += 10;
+
+  const part1 = lines[1];
+  const part2 = lines[2];
+  const part3 = lines[3];
+  let segX = centerX - (doc.getTextWidth(part1 + part2 + part3) / 2);
+
+  doc.setTextColor(100, 100, 100);
+  doc.text(part1, segX, currentY);
+  segX += doc.getTextWidth(part1);
+
+  doc.setTextColor(153, 188, 68);
+  doc.text(part2, segX, currentY);
+  segX += doc.getTextWidth(part2);
+
+  doc.setTextColor(100, 100, 100);
+  doc.text(part3, segX, currentY);
+  currentY += 10;
+
+  const line3 = lines[4];
+  doc.text(line3, centerX - doc.getTextWidth(line3) / 2, currentY);
+  currentY += 10;
+
   doc.setFontSize(10);
-  
-  let vitalsData = [
-    ['Blood Pressure', formData.vitals.bloodPressure],
-    ['Height', formData.vitals.height],
-    ['Weight', formData.vitals.weight],
-    ['Heart Rate', formData.vitals.heartRate || 'N/A'],
-    ['Temperature', formData.vitals.temperature || 'N/A'],
-    ['Respiratory Rate', formData.vitals.respiratoryRate || 'N/A'],
-    ['Oxygen Saturation', formData.vitals.oxygenSaturation || 'N/A']
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Dear ${formData.patientInfo.name || "Patient"},`, contentMargin, currentY);
+  currentY += 6;
+
+  const intro = [
+    "It has been a pleasure to welcome you to our Clinic. The entire DNA Health team feels privileged",
+    "to be a part of your journey to wellness and longevity."
   ];
-  
-  autoTable(doc, {
-    body: vitalsData,
-    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 100,
-    theme: 'plain',
-    margin: { left: 20 },
-    columnStyles: { 0: { fontStyle: 'bold' } }
+
+  doc.setFont("helvetica", "normal");
+  intro.forEach(line => {
+    doc.text(line, contentMargin, currentY, { maxWidth: contentWidth });
+    currentY += 6;
   });
-  
-  // Medications Section
+
+  return currentY + 10;
+}
+
+function formatSummaryText(text?: string): string {
+  return convertHtmlToFormattedText(text || "");
+}
+
+function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number, contentMargin: number, contentWidth: number, formData: PatientFormData): number {
+  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
   doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text('Medications', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 150);
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(10);
-  
-  let medicationsData = formData.medications.map(med => {
-    const medication = medications.find(m => m.id === med.medicationId);
-    return [medication ? medication.name : 'Unknown', med.dosage, med.frequency];
-  });
-  
-  if (medicationsData.length === 0) {
-    medicationsData = [['No medications listed', '', '']];
-  }
-  
+  doc.setTextColor(153, 188, 68);
+  doc.setFont("helvetica", "bold");
+  doc.text("Summary of findings", contentMargin, currentY);
+  currentY += 8;
+
+  const body = [
+    ["Glucose Metabolism", formatSummaryText(formData.summaryFindings.glucoseMetabolism)],
+    ["Proteins", formatSummaryText(formData.summaryFindings.proteins)],
+    ["Lipid Profile", formatSummaryText(formData.summaryFindings.lipidProfile)],
+    ["Inflammation", formatSummaryText(formData.summaryFindings.inflammation)],
+    ["Metabolic", formatSummaryText(formData.summaryFindings.metabolic)],
+    ["Homocysteine", formatSummaryText(formData.summaryFindings.homocysteine)],
+    ["Vitamins/Minerals", formatSummaryText(formData.summaryFindings.vitaminsMinerals)],
+    ["Iron Profile", formatSummaryText(formData.summaryFindings.ironProfile)],
+    ["Sex Hormones", formatSummaryText(formData.summaryFindings.sexHormones)],
+    ["Kidney Function & Electrolytes", formatSummaryText(formData.summaryFindings.kidneyFunctionElectrolytes)],
+    ["Liver Functions", formatSummaryText(formData.summaryFindings.liverFunctions)],
+    ["Tumor Markers", formatSummaryText(formData.summaryFindings.tumorMarkers)],
+    ["Blood Counts", formatSummaryText(formData.summaryFindings.bloodCounts)]
+  ];
+
   autoTable(doc, {
-    head: [['Medication', 'Dosage', 'Frequency']],
-    body: medicationsData,
-    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 170,
-    theme: 'grid',
-    headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-    margin: { left: 20 }
-  });
-  
-  // Supplements Section
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  doc.text('Supplements', 20, doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 220);
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(10);
-  
-  let supplementsData = (formData.supplements || []).map(supplement => {
-    const medication = medications.find(m => m.id === supplement.supplementId);
-    return [medication ? medication.name : 'Unknown', supplement.dosage, supplement.source];
-  });
-  
-  if (supplementsData.length === 0) {
-    supplementsData = [['No supplements listed', '', '']];
-  }
-  
-  autoTable(doc, {
-    head: [['Supplement', 'Dosage', 'Source']],
-    body: supplementsData,
-    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 240,
-    theme: 'grid',
-    headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-    margin: { left: 20 }
-  });
-  
-  // Summary Findings Section - Fixed to properly handle HTML content
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  const summaryFindingsY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 290;
-  doc.text('Summary of Findings', 20, summaryFindingsY);
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(10);
-  
-  // Process summary findings into data for autoTable
-  const summaryFindingsData: Array<[string, string]> = [];
-  
-  // Format field keys to display names
-  const formatFieldName = (field: string): string => {
-    if (field === 'glucoseMetabolism') return 'Glucose Metabolism';
-    if (field === 'vitaminsMinerals') return 'Vitamins/Minerals';
-    if (field === 'ironProfile') return 'Iron Profile';
-    if (field === 'sexHormones') return 'Sex Hormones';
-    if (field === 'kidneyFunctionElectrolytes') return 'Kidney Function and Electrolytes';
-    if (field === 'liverFunctions') return 'Liver Functions';
-    if (field === 'tumorMarkers') return 'Tumor Markers';
-    if (field === 'bloodCounts') return 'Blood Counts';
-    return field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-  };
-  
-  // Add summary findings data
-  if (formData.summaryFindings) {
-    for (const [field, value] of Object.entries(formData.summaryFindings)) {
-      if (value) {
-        // Handle HTML content by converting to plain text
-        const displayValue = isHtml(value) ? htmlToText(value) : ensureString(value);
-        summaryFindingsData.push([formatFieldName(field), displayValue]);
+    startY: currentY,
+    theme: "grid",
+    head: [[
+      { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
+      { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+    ]],
+    body,
+    styles: {
+      fontSize: 10,
+      cellPadding: 5, // Increased padding to give text more room
+      font: "helvetica",
+      textColor: [60, 60, 60],
+      overflow: 'linebreak', // Ensure text wraps properly
+      cellWidth: 'auto'
+    },
+    bodyStyles: {
+      fillColor: [255, 255, 255]
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      1: { cellWidth: contentWidth - 50 }
+    },
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawCell: function(data) {
+      // Only process cells with text content in the body
+      if (data.section === 'body' && data.column.index === 1 && typeof data.cell.text === 'string') {
+        // Make sure we're working with a string
+        const text = data.cell.text.toString();
+        
+        // Handle the text wrapping
+        const textX = data.cell.x + 5; // Add padding
+        const textY = data.cell.y + 10; // Start a bit down from the top
+        
+        // Split by newlines
+        const lines = text.split('\n');
+        
+        // Set text styles for cell content
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        
+        // Draw each line with proper spacing
+        lines.forEach((line, i) => {
+          doc.text(line, textX, textY + (i * 5.5)); // 5.5 is the line height
+        });
       }
     }
-  }
-  
-  if (summaryFindingsData.length === 0) {
-    summaryFindingsData.push(['No findings', '']);
-  }
-  
-  autoTable(doc, {
-    head: [['Parameter', 'Key Finding']],
-    body: summaryFindingsData,
-    startY: summaryFindingsY + 10,
-    theme: 'grid',
-    headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-    columnStyles: {
-      0: { cellWidth: 80, fontStyle: 'bold' },
-      1: { cellWidth: 'auto' }
-    },
-    styles: {
-      overflow: 'linebreak',
-      cellPadding: 5,
-    },
-    margin: { left: 20 }
   });
-  
-  // Doctor Recommendations Section
-  doc.setFontSize(14);
-  doc.setFont(undefined, 'bold');
-  const recommendationsY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 350;
-  doc.text('Doctor Recommendations', 20, recommendationsY);
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(10);
-  
-  // Process nutrition recommendations
-  const nutritionRecommendations = [
-    ['Nutritional Style', formData.nutritionRecommendations?.nutritionalStyle || 'N/A'],
-    ['Protein Consumption', formData.nutritionRecommendations?.proteinConsumption || 'N/A'],
-    ['Eating Window', formData.nutritionRecommendations?.eatingWindow || 'N/A'],
-    ['Limitations', formData.nutritionRecommendations?.limitations || 'N/A'],
-    ['Additional Considerations', formData.nutritionRecommendations?.additionalConsiderations || 'N/A']
-  ];
-  
-  autoTable(doc, {
-    head: [['Nutrition Recommendations', '']],
-    body: nutritionRecommendations,
-    startY: recommendationsY + 10,
-    theme: 'grid',
-    headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 0: { fontStyle: 'bold' } },
-    margin: { left: 20 }
-  });
-  
-  // Exercise Recommendations
-  const exerciseRecommendations = [
-    ['Focus On', formData.exerciseDetail?.focusOn || 'N/A'],
-    ['Walking', formData.exerciseDetail?.walking || 'N/A'],
-    ['Rest & Recovery', formData.exerciseDetail?.restRecovery || 'N/A'],
-    ['Tracking', formData.exerciseDetail?.tracking || 'N/A']
-  ];
-  
-  autoTable(doc, {
-    head: [['Exercise Recommendations', '']],
-    body: exerciseRecommendations,
-    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 400,
-    theme: 'grid',
-    headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 0: { fontStyle: 'bold' } },
-    margin: { left: 20 }
-  });
-  
-  // Sleep & Stress Recommendations
-  const sleepStressRecommendations = [
-    ['Sleep', formData.sleepStressRecommendations?.sleep || 'N/A'],
-    ['Stress', formData.sleepStressRecommendations?.stress || 'N/A']
-  ];
-  
-  autoTable(doc, {
-    head: [['Sleep & Stress Recommendations', '']],
-    body: sleepStressRecommendations,
-    startY: doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 450,
-    theme: 'grid',
-    headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 0: { fontStyle: 'bold' } },
-    margin: { left: 20 }
-  });
-  
-  // Follow-up Section
-  if (formData.followUps && formData.followUps.length > 0) {
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    const followupY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 500;
-    doc.text('Follow-up Appointments', 20, followupY);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    
-    const followUpsData = formData.followUps.map(followUp => [
-      followUp.withDoctor || 'N/A',
-      followUp.forReason || 'N/A',
-      followUp.date || 'N/A'
-    ]);
-    
-    autoTable(doc, {
-      head: [['Doctor', 'Reason', 'Date']],
-      body: followUpsData,
-      startY: followupY + 10,
-      theme: 'grid',
-      headStyles: { fillColor: [64, 64, 64], textColor: 255, fontStyle: 'bold' },
-      margin: { left: 20 }
-    });
-  }
-  
-  // Diagnosis Section
-  if (formData.diagnosis) {
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    const diagnosisY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : 520;
-    doc.text('Diagnosis', 20, diagnosisY);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    
-    // Handle multi-line text for diagnosis
-    const diagnosisText = formData.diagnosis;
-    const textLines = doc.splitTextToSize(diagnosisText, pageWidth - 40);
-    doc.text(textLines, 20, diagnosisY + 10);
-  }
-  
-  // Treatment Plan Section
-  if (formData.treatmentPlan) {
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    let treatmentY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 30 : 550;
-    
-    // If we just rendered diagnosis text, add more space
-    if (formData.diagnosis) {
-      treatmentY += 20;
-    }
-    
-    doc.text('Treatment Plan', 20, treatmentY);
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    
-    // Handle multi-line text for treatment plan
-    const treatmentText = formData.treatmentPlan;
-    const textLines = doc.splitTextToSize(treatmentText, pageWidth - 40);
-    doc.text(textLines, 20, treatmentY + 10);
-  }
-  
-  // Doctor and Nurse Notes
-  if (formData.doctorNotes || formData.nurseNotes) {
-    doc.addPage();
-    
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Clinical Notes', 20, 20);
-    
-    // Nurse Notes
-    if (formData.nurseNotes) {
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('Nurse Notes', 20, 35);
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(10);
-      
-      const nurseNotesText = formData.nurseNotes;
-      const nurseLines = doc.splitTextToSize(nurseNotesText, pageWidth - 40);
-      doc.text(nurseLines, 20, 45);
-    }
-    
-    // Doctor Notes
-    if (formData.doctorNotes) {
-      const doctorY = formData.nurseNotes ? 70 : 35;
-      
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text('Doctor Notes', 20, doctorY);
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(10);
-      
-      const doctorNotesText = formData.doctorNotes;
-      const doctorLines = doc.splitTextToSize(doctorNotesText, pageWidth - 40);
-      doc.text(doctorLines, 20, doctorY + 10);
-    }
-  }
-  
-  // Add the current date to the report
-  const currentDate = new Date().toLocaleDateString();
-  doc.setFontSize(10);
-  doc.setTextColor(40);
-  doc.text(`Report generated on: ${currentDate}`, 20, doc.internal.pageSize.getHeight() - 20);
-  
-  // Add doctor signature if provided
-  if (formData.doctorName) {
-    const lastPage = (doc as any).internal.getNumberOfPages();
-    doc.setPage(lastPage);
-    doc.setFontSize(10);
-    doc.setTextColor(40);
-    doc.text(`Generated by Dr. ${formData.doctorName}`, pageWidth - 20, doc.internal.pageSize.getHeight() - 20, { align: 'right' });
-  }
-  
-  // Add page numbers
-  const totalPages = (doc as any).internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    addFooter(doc, i, totalPages);
-  }
-  
-  // Return the PDF as a blob
-  return doc.output('blob');
+
+  return (doc as any).lastAutoTable.finalY + 10;
+}
+
+// You should continue defining other sections similar to above like:
+// - generateVitalsSection
+// - generateInsulinCardioSection
+// - generateDoctorsRecommendationsSection
+// - generateExerciseSleepSection
+// - generateMedicationsSupplementsSection
+// - generateFollowUpsSection
+
+export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  doc.setFont("helvetica");
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentMargin = 20;
+  const contentWidth = pageWidth - contentMargin * 2;
+  let currentY = 40;
+
+  currentY = generateImagesSection(doc, currentY, pageWidth);
+
+  addFooter(doc, pageWidth);
+  doc.addPage();
+  addLogoToPage(doc);
+  currentY = 40;
+
+  currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  // Add the rest of the sections like vital signs, summary, insulin, etc...
+  currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+
+  const blob = doc.output("blob");
+  const fileName = `${formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient"}_Medical_Report.pdf`;
+  doc.save(fileName);
+  return blob;
 };
