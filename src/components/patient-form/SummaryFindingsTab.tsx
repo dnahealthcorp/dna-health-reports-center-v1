@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Edit, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { RichTextEditor, RichTextViewer } from "@/components/ui/rich-text-editor";
 import { isHtml, sanitizeHtml } from "@/types/medical";
 
 interface SummaryFindingsTabProps {
@@ -136,7 +136,7 @@ export const SummaryFindingsTab = ({
             <tbody>
               {Object.entries(predefinedOptions).map(([field, options]) => {
                 const value = formData.summaryFindings?.[field as SummaryFindingField] || '';
-                const isEditing = editingFields[field];
+                const isEditing = editingFields[field] || isValueHtml(field as SummaryFindingField);
                 
                 return (
                   <tr key={field}>
@@ -144,7 +144,7 @@ export const SummaryFindingsTab = ({
                       {formatFieldLabel(field)}
                     </td>
                     <td className="px-4 py-2 border">
-                      {isEditing || isValueHtml(field as SummaryFindingField) ? (
+                      {isEditing ? (
                         <div className="relative">
                           <RichTextEditor
                             content={value}
@@ -202,8 +202,8 @@ export const SummaryFindingsTab = ({
                               ))}
                               <SelectItem value="free-text" className="font-medium text-primary">
                                 <div className="flex items-center">
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  [Use Rich Text Editor]
+                                  <Edit className="mr-1 h-4 w-4" />
+                                  Use Rich Text Editor
                                 </div>
                               </SelectItem>
                             </SelectContent>
