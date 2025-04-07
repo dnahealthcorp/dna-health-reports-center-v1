@@ -748,7 +748,7 @@ function generateFollowUpsSection(
 export const generatePDF = async (
   formData: PatientFormData,
   medications: Medication[]
-): Promise<string> => {
+): Promise<Blob> => {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -796,15 +796,15 @@ export const generatePDF = async (
   // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
-  // Save
+  // Return as blob
+  const pdfBlob = doc.output('blob');
+  
   const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
   const fileName = `${patientName}_Medical_Report.pdf`;
+  
+  // Save locally as well for convenience
   doc.save(fileName);
 
-  // Save reference if needed
-  if (formData.patientInfo.medicalRecordNumber) {
-    await databaseService.savePDFReference(formData.patientInfo.medicalRecordNumber, fileName);
-  }
-
-  return fileName;
+  // Return the blob to be used in the calling function
+  return pdfBlob;
 };
