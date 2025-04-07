@@ -721,14 +721,17 @@ function generateFollowUpsSection(
 
   currentY += 6; // extra spacing before signature
 
-  // Signature
+  // Signature - Updated to use the doctor name from the form
   doc.setFontSize(10);
   doc.setTextColor(100,100,100);
   doc.setFont("helvetica", "normal");
   doc.text("Kind Regards,", contentMargin, currentY);
   currentY += 6;
   doc.setFont("helvetica", "bold");
-  doc.text("Dr Eslam Yakout", contentMargin, currentY);
+  
+  // Use the selected doctor name from the form or fall back to a default
+  const doctorName = formData.doctorName || "Dr. Practitioner";
+  doc.text(doctorName, contentMargin, currentY);
   currentY += 10;
 
   return currentY;
