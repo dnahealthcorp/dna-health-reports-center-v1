@@ -1,52 +1,9 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
-import sanitizeHtml from "sanitize-html";
-
-/**
- * Helper function to convert HTML to plain text with basic formatting preserved
- */
-function htmlToFormattedText(html: string): string {
-  if (!html) return "";
-  
-  // Sanitize the HTML first for security
-  const sanitized = sanitizeHtml(html, {
-    allowedTags: ['p', 'b', 'i', 'strong', 'em', 'ul', 'ol', 'li', 'br'],
-    allowedAttributes: {}
-  });
-  
-  // Simple HTML to text conversion preserving line breaks
-  return sanitized
-    .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
-    .replace(/<br\s*\/?>/g, '\n')
-    .replace(/<li>(.*?)<\/li>/g, '• $1\n')
-    .replace(/<strong>(.*?)<\/strong>/g, '$1')
-    .replace(/<b>(.*?)<\/b>/g, '$1')
-    .replace(/<em>(.*?)<\/em>/g, '$1')
-    .replace(/<i>(.*?)<\/i>/g, '$1')
-    .replace(/<\/?[^>]+(>|$)/g, '')
-    .trim();
-}
-
-/**
- * Helper function to convert markdown to plain text with basic formatting preserved
- */
-function markdownToFormattedText(markdown: string): string {
-  if (!markdown) return "";
-  
-  // For now, simply convert markdown to plain text
-  // This is a basic implementation - for complex markdown a more robust solution might be needed
-  return markdown
-    .replace(/#{1,6}\s+/g, '') // Remove headers
-    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-    .replace(/\*(.*?)\*/g, '$1')     // Remove italic
-    .replace(/\n- /g, '\n• ')        // Convert list items
-    .replace(/\n\d+\.\s+/g, '\n• ')  // Convert numbered lists to bullet points
-    .trim();
-}
+import * as databaseService from "@/services/databaseService";
 
 /**
  * Draws the footer on the current page.
@@ -63,7 +20,7 @@ function addFooter(doc: jsPDF, pageWidth: number): void {
 }
 
 /**
- * Checks if there's enough vertical space on the current page.
+ * Checks if there’s enough vertical space on the current page.
  * If not, draws a footer, adds a new page (with header logo), and resets currentY to topMargin.
  */
 function ensureSpace(
@@ -262,7 +219,6 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
- * Now supporting HTML formatting with improved cell handling for better wrapping
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -279,87 +235,44 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Process HTML content
-  const body = [
-    ["Glucose Metabolism", htmlToFormattedText(formData.summaryFindings.glucoseMetabolism || "")],
-    ["Proteins", htmlToFormattedText(formData.summaryFindings.proteins || "")],
-    ["Lipid Profile", htmlToFormattedText(formData.summaryFindings.lipidProfile || "")],
-    ["Inflammation", htmlToFormattedText(formData.summaryFindings.inflammation || "")],
-    ["Metabolic", htmlToFormattedText(formData.summaryFindings.metabolic || "")],
-    ["Homocysteine", htmlToFormattedText(formData.summaryFindings.homocysteine || "")],
-    ["Vitamins/Minerals", htmlToFormattedText(formData.summaryFindings.vitaminsMinerals || "")],
-    ["Iron Profile", htmlToFormattedText(formData.summaryFindings.ironProfile || "")],
-    ["Sex Hormones", htmlToFormattedText(formData.summaryFindings.sexHormones || "")],
-    ["Kidney Function and Electrolytes", htmlToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes || "")],
-    ["Liver Functions", htmlToFormattedText(formData.summaryFindings.liverFunctions || "")],
-    ["Tumor Markers", htmlToFormattedText(formData.summaryFindings.tumorMarkers || "")],
-    ["Blood Counts", htmlToFormattedText(formData.summaryFindings.bloodCounts || "")]
-  ];
-
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
     head: [
       [
-        { content: "Parameter", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
-        { content: "Key findings and next steps", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
       ]
     ],
-    body: body,
+    body: [
+      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
+      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
+      ["Inflammation", formData.summaryFindings.inflammation || ""],
+      ["Uric Acid", formData.summaryFindings.uricAcid || ""],
+      ["Vitamins", formData.summaryFindings.vitamins || ""],
+      ["Minerals", formData.summaryFindings.minerals || ""],
+      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
+      ["Renal & Liver Function", formData.summaryFindings.renalLiverFunction || ""],
+      ["Cancer markers", formData.summaryFindings.cancerMarkers || ""]
+    ],
     styles: {
       fontSize: 10,
-      cellPadding: 4,
+      cellPadding: 2,
       font: "helvetica",
-      textColor: [60,60,60],
-      lineWidth: 0.1,
-      overflow: 'linebreak'  // Ensure text wraps properly
+      textColor: [60, 60, 60]
     },
     bodyStyles: {
-      fillColor: [255,255,255]
+      fillColor: [255, 255, 255]
     },
     alternateRowStyles: {
-      fillColor: [245,245,245]
+      fillColor: [245, 245, 245]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240,250,230] },
-      1: { cellWidth: pageWidth - contentMargin * 2 - 50 }  // Calculate width based on page width
+      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didParseCell: function(data) {
-      // For the content cells (not the parameter names)
-      if (data.section === 'body' && data.column.index === 1) {
-        // Force text wrap for long content
-        data.cell.styles.cellWidth = 'wrap';
-        data.cell.styles.cellPadding = 4;
-        data.cell.styles.overflow = 'linebreak';
-        
-        // Handle text content with proper type checking
-        if (data.cell.text !== undefined && data.cell.text !== null) {
-          if (typeof data.cell.text === 'string') {
-            // Safe to use string methods since we've confirmed it's a string
-            const textContent = data.cell.text;
-            if (textContent.length > 500) {
-              data.cell.text = textContent.substring(0, 500) + "...";
-            }
-          } else if (Array.isArray(data.cell.text)) {
-            // Handle array of strings case
-            const processedLines: string[] = [];
-            
-            for (let i = 0; i < data.cell.text.length; i++) {
-              const line = data.cell.text[i];
-              // Make sure each line is treated as a string
-              const lineStr = String(line || '');
-              processedLines.push(lineStr.length > 100 ? lineStr.substring(0, 100) + "..." : lineStr);
-            }
-            
-            // Replace the array with processed lines
-            data.cell.text = processedLines;
-          }
-        }
-      }
-    }
+    margin: { left: contentMargin, right: contentMargin }
   });
-
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
@@ -480,10 +393,9 @@ function generateDoctorsRecommendationsSection(
       ]
     ],
     body: [
-      ["Nutritional Style", formData.nutritionRecommendations?.nutritionalStyle || ""],
+      ["Style (nutritional plan)", formData.nutritionRecommendations?.nutritionalPlan || ""],
       ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
-      ["Eating Window", formData.nutritionRecommendations?.eatingWindow || ""],
-      ["Limitations", formData.nutritionRecommendations?.limitations || ""],
+      ["Omissions", formData.nutritionRecommendations?.omissions || ""],
       ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
     ],
     styles: {
@@ -538,7 +450,7 @@ function generateExerciseSleepSection(
     body: [
       ["Focus on", formData.exerciseDetail?.focusOn || ""],
       ["Walking", formData.exerciseDetail?.walking || ""],
-      ["Rest/Recovery", formData.exerciseDetail?.restRecovery || ""],
+      ["Avoid", formData.exerciseDetail?.avoid || ""],
       ["Tracking", formData.exerciseDetail?.tracking || ""]
     ],
     styles: {
@@ -793,8 +705,6 @@ function generateFollowUpsSection(
     "Guide to Homocystein"
   ];
 
-  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth); // Ensure space for links and signature
-  
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100,100,100);
@@ -809,22 +719,17 @@ function generateFollowUpsSection(
     currentY += 6;
   });
 
-  currentY += 10; // extra spacing before signature
+  currentY += 6; // extra spacing before signature
 
-  // Signature with dynamic doctor name
-  currentY = ensureSpace(doc, currentY, 30, 40, pageWidth); // Ensure space for signature
-  
+  // Signature
   doc.setFontSize(10);
   doc.setTextColor(100,100,100);
   doc.setFont("helvetica", "normal");
   doc.text("Kind Regards,", contentMargin, currentY);
-  currentY += 10;
+  currentY += 6;
   doc.setFont("helvetica", "bold");
-  
-  // Use the dynamic doctor name from the form or a default if not provided
-  const doctorName = formData.doctorName || "Doctor";
-  doc.text(doctorName, contentMargin, currentY);
-  currentY += 15;
+  doc.text("Dr Eslam Yakout", contentMargin, currentY);
+  currentY += 10;
 
   return currentY;
 }
@@ -835,7 +740,7 @@ function generateFollowUpsSection(
 export const generatePDF = async (
   formData: PatientFormData,
   medications: Medication[]
-): Promise<Blob> => {
+): Promise<string> => {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -846,9 +751,6 @@ export const generatePDF = async (
   const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm for A4
   const contentMargin = 20;
   const contentWidth = pageWidth - contentMargin * 2;
-
-  // Add logo to first page immediately
-  addLogoToPage(doc);
 
   // Start at 40mm from the top for extra spacing
   let currentY = 40;
@@ -886,9 +788,15 @@ export const generatePDF = async (
   // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
-  // Add final footer
-  addFooter(doc, pageWidth);
+  // Save
+  const patientName = formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient";
+  const fileName = `${patientName}_Medical_Report.pdf`;
+  doc.save(fileName);
 
-  // Return the PDF as a Blob instead of saving it
-  return doc.output('blob');
+  // Save reference if needed
+  if (formData.patientInfo.medicalRecordNumber) {
+    await databaseService.savePDFReference(formData.patientInfo.medicalRecordNumber, fileName);
+  }
+
+  return fileName;
 };
