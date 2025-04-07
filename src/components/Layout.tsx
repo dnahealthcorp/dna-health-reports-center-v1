@@ -147,7 +147,7 @@ const Layout = ({
         <div className="flex flex-col h-full">
           {/* Logo and app name */}
           <div className="flex items-center h-16 px-6 border-b border-border">
-            <img src="/assets/dna-logo.svg" alt="DNA Health" className="h-10 mr-2" />
+            <img src="/assets/DNA Logo - Grey.svg" alt="DNA Health" className="h-10 mr-2" />
             <span className="text-lg font-semibold text-brand-text">DNA Health</span>
           </div>
 
