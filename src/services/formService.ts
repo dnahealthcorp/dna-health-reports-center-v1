@@ -1,4 +1,3 @@
-
 // Form-related database operations
 import { 
   PatientFormData, Json, Vital, SummaryFinding,
@@ -6,7 +5,7 @@ import {
   toJson, safeJsonArray, NutritionRecommendation, ExerciseRecommendation,
   SleepStressRecommendation, isVital, isSummaryFinding, isNutritionRecommendation,
   isExerciseRecommendation, isSleepStressRecommendation, isFollowUp, 
-  isMedicationItem, isSupplementItem
+  isMedicationItem, isSupplementItem, FormType, Form
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatientById } from "./patientService";
@@ -316,5 +315,195 @@ export const savePatientFormData = async (patientId: string, formData: PatientFo
   } catch (error) {
     console.error(`Error saving form data for patient ${patientId} to Supabase:`, error);
     throw error;
+  }
+};
+
+// Multi-form system operations
+export const getFormTypes = async (): Promise<FormType[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('form_types')
+      .select('*')
+      .order('title', { ascending: true });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data as FormType[];
+  } catch (error) {
+    console.error("Error fetching form types:", error);
+    return [];
+  }
+};
+
+export const getPatientForms = async (patientId: string): Promise<Form[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('forms')
+      .select(`
+        *,
+        formType:form_type_id (
+          id, title, description, slug
+        )
+      `)
+      .eq('patient_id', patientId)
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return (data || []).map(form => ({
+      ...form,
+      formType: form.formType as FormType
+    }));
+  } catch (error) {
+    console.error(`Error fetching forms for patient ${patientId}:`, error);
+    return [];
+  }
+};
+
+export const getFormById = async (formId: string): Promise<Form | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('forms')
+      .select(`
+        *,
+        formType:form_type_id (
+          id, title, description, slug
+        )
+      `)
+      .eq('id', formId)
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (!data) return null;
+    
+    return {
+      ...data,
+      formType: data.formType as FormType
+    };
+  } catch (error) {
+    console.error(`Error fetching form ${formId}:`, error);
+    return null;
+  }
+};
+
+export const createForm = async (
+  patientId: string, 
+  formTypeId: string, 
+  userId: string | null
+): Promise<Form | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('forms')
+      .insert([{
+        patient_id: patientId,
+        form_type_id: formTypeId,
+        created_by: userId,
+        status: 'in-process',
+        pdf_exported: false
+      }])
+      .select(`
+        *,
+        formType:form_type_id (
+          id, title, description, slug
+        )
+      `)
+      .single();
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (!data) return null;
+    
+    // Create empty form data
+    await createFormSpecificData(data.id, formTypeId);
+    
+    return {
+      ...data,
+      formType: data.formType as FormType
+    };
+  } catch (error) {
+    console.error("Error creating form:", error);
+    return null;
+  }
+};
+
+export const createFormSpecificData = async (formId: string, formTypeId: string): Promise<void> => {
+  try {
+    // Get the form type slug
+    const { data: formTypeData, error: formTypeError } = await supabase
+      .from('form_types')
+      .select('slug')
+      .eq('id', formTypeId)
+      .single();
+    
+    if (formTypeError) throw formTypeError;
+    
+    const formType = formTypeData.slug;
+    
+    // For now, focus on the health screening form type
+    if (formType === 'executive-health-screening') {
+      // Create empty health screening data
+      const { error } = await supabase
+        .from('health_screening_data')
+        .insert([{
+          form_id: formId,
+          vitals: {},
+          summary_findings: {},
+          medications: [],
+          supplements: [],
+          last_updated: new Date().toISOString()
+        }]);
+        
+      if (error) throw error;
+    }
+    // Future: Add support for other form types like food intolerance
+    // else if (formType === 'food-intolerance') {
+    //   // Create empty food intolerance data
+    // }
+  } catch (error) {
+    console.error(`Error creating form-specific data for form ${formId}:`, error);
+    throw error;
+  }
+};
+
+export const updateFormStatus = async (formId: string, status: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('forms')
+      .update({
+        status,
+        status_updated_at: new Date().toISOString()
+      })
+      .eq('id', formId);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error(`Error updating status for form ${formId}:`, error);
+    throw error;
+  }
+};
+
+export const getHealthScreeningDataByFormId = async (formId: string): Promise<any | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('health_screening_data')
+      .select('*')
+      .eq('form_id', formId)
+      .single();
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error(`Error fetching health screening data for form ${formId}:`, error);
+    return null;
   }
 };

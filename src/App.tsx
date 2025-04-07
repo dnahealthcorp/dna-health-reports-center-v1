@@ -10,6 +10,7 @@ import Medications from "@/pages/Medications";
 import Settings from "@/pages/Settings";
 import UserManagement from "@/pages/UserManagement";
 import Forms from "@/pages/Forms";
+import FormEntry from "@/pages/FormEntry";
 import NotFound from "@/pages/NotFound";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -27,6 +28,7 @@ function App() {
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/forms" element={<Forms />} />
+        <Route path="/forms/:formTypeSlug/:formId" element={<FormEntry />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>

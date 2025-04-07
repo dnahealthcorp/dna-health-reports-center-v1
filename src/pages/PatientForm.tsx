@@ -1,679 +1,306 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import { 
-  getPatientById, 
-  getMedications, 
-  getCurrentUser, 
-  getPatientFormData,
-  savePatientFormData,
-  updatePatient
-} from "@/services/databaseService";
-import { 
-  Patient, 
-  Medication, 
-  User, 
-  PatientFormData 
-} from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import { generatePDF } from "@/lib/pdfService";
 
-import { PatientHeader } from "@/components/patient-form/PatientHeader";
-import { PatientInfoCard } from "@/components/patient-form/PatientInfoCard";
-import { VitalsTab } from "@/components/patient-form/VitalsTab";
-import { SummaryFindingsTab } from "@/components/patient-form/SummaryFindingsTab";
-import { MedicationsTab } from "@/components/patient-form/MedicationsTab";
-import { SupplementsTab } from "@/components/patient-form/SupplementsTab";
-import { LoadingState } from "@/components/patient-form/LoadingState";
-import { NotFoundState } from "@/components/patient-form/NotFoundState";
-import { calculateBMI, calculateAge } from "@/components/patient-form/utils";
-import { InsulinResistanceTab } from "@/components/patient-form/InsulinResistanceTab";
-import { CardiovascularRiskTab } from "@/components/patient-form/CardiovascularRiskTab";
-import { DoctorRecommendationsTab } from "@/components/patient-form/DoctorRecommendationsTab";
-import { FollowUpTab } from "@/components/patient-form/FollowUpTab";
-import { supabase } from "@/integrations/supabase/client";
-
-import "@/components/patient-form/markdown-styles.css";
+import { useState, useEffect } from 'react';
+import { useParams, Link, Navigate } from 'react-router-dom';
+import { Patient, PatientFormData } from '@/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import PatientHeader from '@/components/patient-form/PatientHeader';
+import PatientInfoCard from '@/components/patient-form/PatientInfoCard';
+import VitalsTab from '@/components/patient-form/VitalsTab';
+import SummaryFindingsTab from '@/components/patient-form/SummaryFindingsTab';
+import InsulinResistanceTab from '@/components/patient-form/InsulinResistanceTab';
+import NotesRecommendationsTab from '@/components/patient-form/NotesRecommendationsTab';
+import DoctorRecommendationsTab from '@/components/patient-form/DoctorRecommendationsTab';
+import MedicationsTab from '@/components/patient-form/MedicationsTab';
+import SupplementsTab from '@/components/patient-form/SupplementsTab';
+import CardiovascularRiskTab from '@/components/patient-form/CardiovascularRiskTab';
+import FollowUpTab from '@/components/patient-form/FollowUpTab';
+import LoadingState from '@/components/patient-form/LoadingState';
+import NotFoundState from '@/components/patient-form/NotFoundState';
+import FormsTab from '@/components/patient-form/FormsTab';
+import { useToast } from '@/hooks/use-toast';
+import { getPatientById } from '@/services/patientService';
+import { getPatientFormData, savePatientFormData } from '@/services/formService';
+import { generatePDF } from '@/lib/pdf/pdfGenerator';
+import { savePDFFile } from '@/services/pdfService';
+import { ArrowLeft, Save, FileText } from 'lucide-react';
 
 const PatientForm = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
   
+  const [activeTab, setActiveTab] = useState('forms');
   const [patient, setPatient] = useState<Patient | null>(null);
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<PatientFormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
+  const hasId = id !== undefined;
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-      
+    if (!hasId) return;
+
+    const loadData = async () => {
+      setIsLoading(true);
       try {
-        const [patientData, medsData, userData, formDataResult] = await Promise.all([
-          getPatientById(id),
-          getMedications(),
-          getCurrentUser(),
-          getPatientFormData(id)
-        ]);
-        
-        if (!patientData) {
-          toast({
-            title: "Patient not found",
-            description: "The patient you're looking for doesn't exist",
-            variant: "destructive"
-          });
-          navigate("/patients");
-          return;
-        }
-        
+        // Load patient
+        const patientData = await getPatientById(id);
+        if (!patientData) throw new Error("Patient not found");
         setPatient(patientData);
-        setMedications(medsData);
-        setCurrentUser(userData);
         
-        if (!formDataResult) {
-          const defaultFormData: PatientFormData = {
-            patientInfo: {
-              name: patientData.name,
-              dateOfBirth: patientData.dateOfBirth,
-              gender: patientData.gender,
-              medicalRecordNumber: patientData.medicalRecordNumber
-            },
-            vitals: { bloodPressure: '', height: '', weight: '' },
-            summaryFindings: {
-              glucoseMetabolism: '',
-              proteins: '',
-              lipidProfile: '',
-              inflammation: '',
-              metabolic: '',
-              homocysteine: '',
-              vitaminsMinerals: '',
-              ironProfile: '',
-              sexHormones: '',
-              kidneyFunctionElectrolytes: '',
-              liverFunctions: '',
-              tumorMarkers: '',
-              bloodCounts: ''
-            },
-            nutritionRecommendations: {
-              nutritionalStyle: '',
-              proteinConsumption: '',
-              eatingWindow: '',
-              limitations: '',
-              additionalConsiderations: ''
-            },
-            exerciseDetail: {
-              focusOn: '',
-              walking: '',
-              restRecovery: '',
-              tracking: ''
-            },
-            sleepStressRecommendations: { sleep: '', stress: '' },
-            medications: [],
-            doctorName: '',
-            exerciseRecommendations: '',
-            nurseNotes: '',
-            doctorNotes: '',
-            diagnosis: '',
-            treatmentPlan: '',
-            showInsulinResistance: false,
-            followUps: []
-          };
-          setFormData(defaultFormData);
-        } else {
-          const updatedFormData = {
-            ...formDataResult,
-            summaryFindings: {
-              glucoseMetabolism: formDataResult.summaryFindings?.glucoseMetabolism || '',
-              proteins: formDataResult.summaryFindings?.proteins || '',
-              lipidProfile: formDataResult.summaryFindings?.lipidProfile || '',
-              inflammation: formDataResult.summaryFindings?.inflammation || '',
-              metabolic: formDataResult.summaryFindings?.metabolic || '',
-              homocysteine: formDataResult.summaryFindings?.homocysteine || '',
-              vitaminsMinerals: formDataResult.summaryFindings?.vitaminsMinerals || '',
-              ironProfile: formDataResult.summaryFindings?.ironProfile || '',
-              sexHormones: formDataResult.summaryFindings?.sexHormones || '',
-              kidneyFunctionElectrolytes: formDataResult.summaryFindings?.kidneyFunctionElectrolytes || '',
-              liverFunctions: formDataResult.summaryFindings?.liverFunctions || '',
-              tumorMarkers: formDataResult.summaryFindings?.tumorMarkers || '',
-              bloodCounts: formDataResult.summaryFindings?.bloodCounts || ''
-            },
-            nutritionRecommendations: {
-              nutritionalStyle: formDataResult.nutritionRecommendations?.nutritionalStyle || '',
-              proteinConsumption: formDataResult.nutritionRecommendations?.proteinConsumption || '',
-              eatingWindow: formDataResult.nutritionRecommendations?.eatingWindow || '',
-              limitations: formDataResult.nutritionRecommendations?.limitations || '',
-              additionalConsiderations: formDataResult.nutritionRecommendations?.additionalConsiderations || ''
-            },
-            exerciseDetail: {
-              focusOn: formDataResult.exerciseDetail?.focusOn || '',
-              walking: formDataResult.exerciseDetail?.walking || '',
-              restRecovery: formDataResult.exerciseDetail?.restRecovery || '',
-              tracking: formDataResult.exerciseDetail?.tracking || ''
-            },
-            doctorName: formDataResult.doctorName || ''
-          };
-          setFormData(updatedFormData);
-        }
+        // Load form data
+        const loadedFormData = await getPatientFormData(id);
+        setFormData(loadedFormData);
       } catch (error) {
-        console.error("Error fetching patient data:", error);
+        console.error("Error loading patient data:", error);
         toast({
           title: "Error",
-          description: "Could not load patient data",
+          description: "Failed to load patient data. Please try again.",
           variant: "destructive"
         });
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchData();
-    
-    // Set up realtime subscriptions for both form data and patient changes
-    const formChannel = supabase
-      .channel('form-data-changes')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'patient_form_data',
-        filter: `patient_id=eq.${id}`
-      }, (payload) => {
-        console.log('Form data updated:', payload);
-        getPatientFormData(id as string).then(data => {
-          if (data) setFormData(data);
-        });
-      })
-      .subscribe();
-      
-    const patientChannel = supabase
-      .channel('patient-changes')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'patients',
-        filter: `id=eq.${id}`
-      }, (payload) => {
-        console.log('Patient data updated:', payload);
-        getPatientById(id as string).then(data => {
-          if (data) setPatient(data);
-        });
-      })
-      .subscribe();
-    
-    const pdfFilesChannel = supabase
-      .channel('pdf-files-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'pdf_files',
-        filter: `patient_id=eq.${id}`
-      }, (payload) => {
-        console.log('PDF files updated in PatientForm:', payload);
-        // No direct action needed here as PatientHeader handles PDF files
-      })
-      .subscribe((status) => {
-        console.log(`PDF files channel status: ${status}`);
-      });
-    
-    return () => {
-      supabase.removeChannel(formChannel);
-      supabase.removeChannel(patientChannel);
-      supabase.removeChannel(pdfFilesChannel);
-    };
-  }, [id, navigate, toast]);
 
+    loadData();
+  }, [id, hasId, toast]);
+  
   const handleSave = async () => {
-    if (!formData || !patient) return;
+    if (!patient || !formData) return;
     
     setIsSaving(true);
-    
     try {
-      formData.patientInfo = {
-        name: patient.name,
-        dateOfBirth: patient.dateOfBirth,
-        gender: patient.gender,
-        medicalRecordNumber: patient.medicalRecordNumber
-      };
-      
       await savePatientFormData(patient.id, formData);
-      
-      let updatedStatus = patient.status;
-      
-      if (currentUser?.role === "nurse" && patient.status === 'in-process') {
-        updatedStatus = 'in-process';
-      } else if (currentUser?.role === "doctor" && patient.status === 'in-process') {
-        updatedStatus = 'completed';
-      }
-      
-      if (updatedStatus !== patient.status) {
-        const updatedPatient = {
-          ...patient,
-          status: updatedStatus,
-          lastUpdated: new Date().toISOString()
-        };
-        
-        await updatePatient(updatedPatient);
-        setPatient(updatedPatient);
-      }
-      
       toast({
-        title: "Form saved",
-        description: "Patient form has been saved successfully",
+        title: "Changes saved",
+        description: "Patient information has been updated successfully."
       });
     } catch (error) {
-      console.error("Error saving form:", error);
+      console.error("Error saving patient data:", error);
       toast({
-        title: "Error",
-        description: "Could not save patient form",
+        title: "Save failed",
+        description: "Could not save changes. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsSaving(false);
     }
   };
-
-  const handleExportPDF = async () => {
-    if (!formData || !patient) return;
+  
+  const handleGeneratePDF = async () => {
+    if (!patient || !formData) return;
     
-    setIsSaving(true);
-    
+    setIsGeneratingPDF(true);
     try {
-      formData.patientInfo = {
-        name: patient.name,
-        dateOfBirth: patient.dateOfBirth,
-        gender: patient.gender,
-        medicalRecordNumber: patient.medicalRecordNumber
-      };
+      const pdfData = await generatePDF(patient, formData);
+      const fileName = `${patient.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       
-      await savePatientFormData(patient.id, formData);
-      setIsSaving(false);
+      // Save PDF to database
+      const savedFile = await savePDFFile({
+        patientId: patient.id,
+        fileName,
+        pdfData,
+      });
       
-      setIsExportingPDF(true);
+      if (!savedFile) {
+        throw new Error("Failed to save PDF file");
+      }
       
-      const fileName = await generatePDF(formData, medications);
-      
-      const refreshedPatient = await getPatientById(patient.id);
-      if (refreshedPatient) {
-        setPatient(refreshedPatient);
+      // Update patient's pdf_exported status
+      if (!patient.pdf_exported) {
+        patient.pdf_exported = true;
+        const { updatePatient } = await import('@/services/patientService');
+        await updatePatient(patient);
       }
       
       toast({
         title: "PDF Generated",
-        description: `"${fileName}" has been generated and patient status updated to completed`,
+        description: "PDF has been generated and saved successfully."
       });
+      
+      // Open PDF in new tab
+      const pdfUrl = savedFile.url;
+      if (pdfUrl) {
+        window.open(pdfUrl, '_blank');
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({
-        title: "Error",
-        description: "Could not generate PDF",
+        title: "PDF Generation Failed",
+        description: "Could not generate PDF file. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsExportingPDF(false);
-      setIsSaving(false);
+      setIsGeneratingPDF(false);
     }
   };
 
-  const handleInputChange = (section: keyof PatientFormData | "", field: string, value: string | boolean) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      if (section === "patientInfo" || section === "vitals" || section === "summaryFindings" || 
-          section === "nutritionRecommendations" || section === "exerciseDetail" || 
-          section === "sleepStressRecommendations") {
-        return {
-          ...prev,
-          [section]: {
-            ...prev[section],
-            [field]: value
-          }
-        };
-      }
-      
-      return {
-        ...prev,
-        [field]: value
-      };
+  // Update form data
+  const updateFormData = (updates: Partial<PatientFormData>) => {
+    setFormData(prevData => {
+      if (!prevData) return null;
+      return { ...prevData, ...updates };
     });
   };
 
-  const handleAddMedication = () => {
-    if (!formData) return;
-    
-    const newMed = {
-      id: `temp-${Date.now()}`,
-      medicationId: "",
-      dosage: "",
-      frequency: "",
-    };
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      return {
-        ...prev,
-        medications: [...prev.medications, newMed]
-      };
-    });
-  };
-
-  const handleRemoveMedication = (index: number) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      const updatedMeds = [...prev.medications];
-      updatedMeds.splice(index, 1);
-      
-      return {
-        ...prev,
-        medications: updatedMeds
-      };
-    });
-  };
-
-  const handleMedicationChange = (index: number, field: string, value: string) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      const updatedMeds = [...prev.medications];
-      updatedMeds[index] = {
-        ...updatedMeds[index],
-        [field]: value
-      };
-      
-      return {
-        ...prev,
-        medications: updatedMeds
-      };
-    });
-  };
-  
-  const handleAddSupplement = () => {
-    if (!formData) return;
-    
-    const newSupplement = {
-      id: `temp-${Date.now()}`,
-      supplementId: "",
-      dosage: "",
-      source: "",
-    };
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      return {
-        ...prev,
-        supplements: [...(prev.supplements || []), newSupplement]
-      };
-    });
-  };
-
-  const handleRemoveSupplement = (index: number) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      const updatedSupplements = [...(prev.supplements || [])];
-      updatedSupplements.splice(index, 1);
-      
-      return {
-        ...prev,
-        supplements: updatedSupplements
-      };
-    });
-  };
-
-  const handleSupplementChange = (index: number, field: string, value: string) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      const updatedSupplements = [...(prev.supplements || [])];
-      updatedSupplements[index] = {
-        ...updatedSupplements[index],
-        [field]: value
-      };
-      
-      return {
-        ...prev,
-        supplements: updatedSupplements
-      };
-    });
-  };
-
-  const handleAddFollowUp = () => {
-    if (!formData) return;
-    
-    const newFollowUp = {
-      withDoctor: "",
-      forReason: "",
-      date: ""
-    };
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      return {
-        ...prev,
-        followUps: [...(prev.followUps || []), newFollowUp]
-      };
-    });
-  };
-
-  const handleRemoveFollowUp = (index: number) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      const updatedFollowUps = [...(prev.followUps || [])];
-      updatedFollowUps.splice(index, 1);
-      
-      return {
-        ...prev,
-        followUps: updatedFollowUps
-      };
-    });
-  };
-
-  const handleFollowUpChange = (index: number, field: string, value: string) => {
-    if (!formData) return;
-    
-    setFormData(prev => {
-      if (!prev) return prev;
-      
-      const updatedFollowUps = [...(prev.followUps || [])];
-      updatedFollowUps[index] = {
-        ...updatedFollowUps[index],
-        [field]: value
-      };
-      
-      return {
-        ...prev,
-        followUps: updatedFollowUps
-      };
-    });
-  };
-
-  const canEdit = true;
+  if (!hasId) {
+    return <Navigate to="/patients" />;
+  }
 
   if (isLoading) {
-    return (
-      <Layout>
-        <LoadingState />
-      </Layout>
-    );
+    return <LoadingState />;
   }
 
   if (!patient || !formData) {
-    return (
-      <Layout>
-        <NotFoundState />
-      </Layout>
-    );
+    return <NotFoundState patientId={id} />;
   }
 
   return (
-    <Layout>
-      <div className="animate-fade-in">
-        <PatientHeader 
-          patient={patient}
-          handleExportPDF={handleExportPDF}
-          handleSave={handleSave}
-          isSaving={isSaving}
-          isExportingPDF={isExportingPDF}
-        />
-
-        <PatientInfoCard 
-          formData={formData}
-          handleInputChange={handleInputChange}
-          canEditNurseSection={canEdit}
-        />
-
-        <Tabs defaultValue="vitals" className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-          <TabsList className="mb-6 flex flex-wrap w-full bg-gray-300 p-1 rounded-lg">
-            <TabsTrigger 
-              value="vitals" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Vitals
-            </TabsTrigger>
-            <TabsTrigger 
-              value="summaryFindings" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Summary Findings
-            </TabsTrigger>
-            <TabsTrigger 
-              value="insulinResistance" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Insulin Resistance
-            </TabsTrigger>
-            <TabsTrigger 
-              value="cardiovascularRisk" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Cardiovascular Risk
-            </TabsTrigger>
-            <TabsTrigger 
-              value="medications" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Medications
-            </TabsTrigger>
-            <TabsTrigger 
-              value="supplements" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Supplements
-            </TabsTrigger>
-            <TabsTrigger 
-              value="docRecommendations" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Doctor Recommendations
-            </TabsTrigger>
-            <TabsTrigger 
-              value="followUps" 
-              className="rounded-md flex-grow text-gray-600 data-[state=active]:bg-white data-[state=active]:text-primary"
-            >
-              Follow-ups
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="vitals" className="mt-0">
-            <VitalsTab 
-              formData={formData}
-              handleInputChange={handleInputChange}
-              canEditNurseSection={canEdit}
-              calculateAge={calculateAge}
-              calculateBMI={calculateBMI}
-            />
-          </TabsContent>
-
-          <TabsContent value="summaryFindings" className="mt-0">
-            <SummaryFindingsTab 
-              formData={formData}
-              handleInputChange={handleInputChange}
-              canEditDoctorSection={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="insulinResistance" className="mt-0">
-            <InsulinResistanceTab
-              formData={formData}
-              handleInputChange={handleInputChange}
-              canEditDoctorSection={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="cardiovascularRisk" className="mt-0">
-            <CardiovascularRiskTab
-              formData={formData}
-              canEditDoctorSection={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="medications" className="mt-0">
-            <MedicationsTab 
-              formData={formData}
-              medications={medications.filter(med => med.type === 'medication')}
-              handleAddMedication={handleAddMedication}
-              handleRemoveMedication={handleRemoveMedication}
-              handleMedicationChange={handleMedicationChange}
-              canEditNurseSection={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="supplements" className="mt-0">
-            <SupplementsTab 
-              formData={formData}
-              medications={medications}
-              handleAddSupplement={handleAddSupplement}
-              handleRemoveSupplement={handleRemoveSupplement}
-              handleSupplementChange={handleSupplementChange}
-              canEdit={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="docRecommendations" className="mt-0">
-            <DoctorRecommendationsTab
-              formData={formData}
-              handleInputChange={handleInputChange}
-              canEditDoctorSection={canEdit}
-            />
-          </TabsContent>
-          
-          <TabsContent value="followUps" className="mt-0">
-            <FollowUpTab
-              formData={formData}
-              handleFollowUpChange={handleFollowUpChange}
-              handleAddFollowUp={handleAddFollowUp}
-              handleRemoveFollowUp={handleRemoveFollowUp}
-              canEditDoctorSection={canEdit}
-            />
-          </TabsContent>
-        </Tabs>
+    <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6 md:px-8 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <Link 
+            to="/patients" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
+          >
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Back to patients
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight">Patient Details</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+          <Button
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            {isGeneratingPDF ? 'Generating...' : 'Generate PDF'}
+          </Button>
+        </div>
       </div>
-    </Layout>
+      
+      <PatientHeader patient={patient} />
+      
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="md:col-span-3">
+          <PatientInfoCard patient={patient} />
+        </div>
+        
+        <div className="md:col-span-9">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="space-y-6"
+          >
+            <TabsList className="w-full sm:w-auto flex-wrap">
+              <TabsTrigger value="forms">Forms</TabsTrigger>
+              <TabsTrigger value="vitals">Vitals</TabsTrigger>
+              <TabsTrigger value="summary">Summary Findings</TabsTrigger>
+              <TabsTrigger value="medications">Medications</TabsTrigger>
+              <TabsTrigger value="supplements">Supplements</TabsTrigger>
+              <TabsTrigger value="insulin" disabled={!formData.showInsulinResistance}>
+                Insulin Resistance
+              </TabsTrigger>
+              <TabsTrigger value="cv-risk">CV Risk</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="doctor">Recommendations</TabsTrigger>
+              <TabsTrigger value="followup">Follow Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="forms" className="pt-4">
+              <FormsTab patientId={patient.id} />
+            </TabsContent>
+            
+            <TabsContent value="vitals" className="pt-4">
+              <VitalsTab 
+                vitals={formData.vitals}
+                onVitalsChange={(vitals) => updateFormData({ vitals })}
+              />
+            </TabsContent>
+            
+            <TabsContent value="summary" className="pt-4">
+              <SummaryFindingsTab 
+                summaryFindings={formData.summaryFindings}
+                onSummaryChange={(summaryFindings) => updateFormData({ summaryFindings })}
+                onToggleInsulinResistance={(showInsulinResistance) => updateFormData({ showInsulinResistance })}
+                showInsulinResistance={formData.showInsulinResistance}
+              />
+            </TabsContent>
+            
+            <TabsContent value="medications" className="pt-4">
+              <MedicationsTab 
+                medications={formData.medications}
+                onMedicationsChange={(medications) => updateFormData({ medications })}
+              />
+            </TabsContent>
+            
+            <TabsContent value="supplements" className="pt-4">
+              <SupplementsTab 
+                supplements={formData.supplements || []}
+                onSupplementsChange={(supplements) => updateFormData({ supplements })}
+              />
+            </TabsContent>
+            
+            <TabsContent value="insulin" className="pt-4">
+              {formData.showInsulinResistance && (
+                <InsulinResistanceTab />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="cv-risk" className="pt-4">
+              <CardiovascularRiskTab patient={patient} vitals={formData.vitals} />
+            </TabsContent>
+            
+            <TabsContent value="notes" className="pt-4">
+              <NotesRecommendationsTab 
+                nurseNotes={formData.nurseNotes}
+                onNurseNotesChange={(nurseNotes) => updateFormData({ nurseNotes })}
+                doctorNotes={formData.doctorNotes}
+                onDoctorNotesChange={(doctorNotes) => updateFormData({ doctorNotes })}
+                diagnosis={formData.diagnosis}
+                onDiagnosisChange={(diagnosis) => updateFormData({ diagnosis })}
+                treatmentPlan={formData.treatmentPlan}
+                onTreatmentPlanChange={(treatmentPlan) => updateFormData({ treatmentPlan })}
+              />
+            </TabsContent>
+            
+            <TabsContent value="doctor" className="pt-4">
+              <DoctorRecommendationsTab 
+                nutritionRecommendations={formData.nutritionRecommendations}
+                onNutritionRecommendationsChange={(nutritionRecommendations) => 
+                  updateFormData({ nutritionRecommendations })}
+                exerciseDetail={formData.exerciseDetail}
+                onExerciseDetailChange={(exerciseDetail) => 
+                  updateFormData({ exerciseDetail })}
+                sleepStressRecommendations={formData.sleepStressRecommendations}
+                onSleepStressRecommendationsChange={(sleepStressRecommendations) => 
+                  updateFormData({ sleepStressRecommendations })}
+                doctorName={formData.doctorName}
+                onDoctorNameChange={(doctorName) => 
+                  updateFormData({ doctorName })}
+              />
+            </TabsContent>
+            
+            <TabsContent value="followup" className="pt-4">
+              <FollowUpTab 
+                followUps={formData.followUps}
+                onFollowUpsChange={(followUps) => updateFormData({ followUps })}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
   );
 };
 
