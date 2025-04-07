@@ -76,8 +76,8 @@ export const convertHtmlToFormattedText = (html: string): string => {
       // Handle list items with bullets
       .replace(/<li>/gi, '• ')
       .replace(/<\/li>/gi, '\n')
-      .replace(/<\/?ul>/gi, '')
-      .replace(/<\/?ol>/gi, '')
+      .replace(/<\/?ul>/gi, '\n')
+      .replace(/<\/?ol>/gi, '\n')
       
       // Handle headers with spacing
       .replace(/<h[1-4][^>]*>/gi, '\n')
@@ -111,3 +111,63 @@ export const convertHtmlToFormattedText = (html: string): string => {
     return html.replace(/<[^>]*>/g, '').trim();
   }
 };
+
+/**
+ * Adds a footer to the current page
+ */
+export const addFooterToPage = (doc: jsPDF, pageWidth: number): void => {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor("#a5a4a4");
+  doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" });
+};
+
+/**
+ * Splits long text content across multiple pages if necessary
+ * Returns the updated Y position after rendering the text
+ */
+export const addMultiPageText = (
+  doc: jsPDF, 
+  text: string, 
+  startY: number, 
+  contentMargin: number, 
+  contentWidth: number, 
+  pageWidth: number,
+  fontSize: number = 10,
+  topMargin: number = 40,
+  bottomMargin: number = 20
+): number => {
+  if (!text || text.trim() === '') {
+    return startY;
+  }
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let currentY = startY;
+  
+  // Set font properties
+  doc.setFontSize(fontSize);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+  
+  // Split text into lines based on content width
+  const lines = doc.splitTextToSize(text, contentWidth);
+  const lineHeight = fontSize * 0.5;
+
+  // Process each line and check for page breaks
+  for (let i = 0; i < lines.length; i++) {
+    // Check if we need a page break
+    if (currentY + lineHeight > pageHeight - bottomMargin) {
+      addFooterToPage(doc, pageWidth);
+      doc.addPage();
+      addLogoToPage(doc);
+      currentY = topMargin;
+    }
+    
+    doc.text(lines[i], contentMargin, currentY);
+    currentY += lineHeight + 1; // Add 1 for spacing between lines
+  }
+  
+  return currentY + 5; // Add a small margin after text block
+};
+
