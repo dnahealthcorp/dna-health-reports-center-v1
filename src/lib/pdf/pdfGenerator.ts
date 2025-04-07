@@ -3,6 +3,32 @@ import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
+import MarkdownIt from "markdown-it";
+
+// Initialize markdown parser
+const md = new MarkdownIt({
+  breaks: true,
+  html: false
+});
+
+/**
+ * Helper function to convert markdown to plain text with basic formatting preserved
+ */
+function markdownToFormattedText(markdown: string): string {
+  if (!markdown) return "";
+  
+  // Convert markdown to HTML
+  const html = md.render(markdown);
+  
+  // Simple HTML to text conversion preserving line breaks
+  // This is a basic implementation - for complex markdown a more robust solution might be needed
+  return html
+    .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
+    .replace(/<br\s*\/?>/g, '\n')
+    .replace(/<li>(.*?)<\/li>/g, '• $1\n')
+    .replace(/<\/?[^>]+(>|$)/g, '')
+    .trim();
+}
 
 /**
  * Draws the footer on the current page.
@@ -218,6 +244,7 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
+ * Now supporting Markdown formatting
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -234,6 +261,23 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
+  // Process markdown content
+  const body = [
+    ["Glucose Metabolism", markdownToFormattedText(formData.summaryFindings.glucoseMetabolism || "")],
+    ["Proteins", markdownToFormattedText(formData.summaryFindings.proteins || "")],
+    ["Lipid Profile", markdownToFormattedText(formData.summaryFindings.lipidProfile || "")],
+    ["Inflammation", markdownToFormattedText(formData.summaryFindings.inflammation || "")],
+    ["Metabolic", markdownToFormattedText(formData.summaryFindings.metabolic || "")],
+    ["Homocysteine", markdownToFormattedText(formData.summaryFindings.homocysteine || "")],
+    ["Vitamins/Minerals", markdownToFormattedText(formData.summaryFindings.vitaminsMinerals || "")],
+    ["Iron Profile", markdownToFormattedText(formData.summaryFindings.ironProfile || "")],
+    ["Sex Hormones", markdownToFormattedText(formData.summaryFindings.sexHormones || "")],
+    ["Kidney Function and Electrolytes", markdownToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes || "")],
+    ["Liver Functions", markdownToFormattedText(formData.summaryFindings.liverFunctions || "")],
+    ["Tumor Markers", markdownToFormattedText(formData.summaryFindings.tumorMarkers || "")],
+    ["Blood Counts", markdownToFormattedText(formData.summaryFindings.bloodCounts || "")]
+  ];
+
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -243,26 +287,13 @@ function generateSummarySection(
         { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
       ]
     ],
-    body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
-    ],
+    body: body,
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60, 60, 60],
+      lineWidth: 0.1
     },
     bodyStyles: {
       fillColor: [255, 255, 255]
@@ -274,8 +305,17 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin }
+    margin: { left: contentMargin, right: contentMargin },
+    didParseCell: function(data) {
+      // For the content cells (not the parameter names)
+      if (data.section === 'body' && data.column.index === 1) {
+        // Allow text wrapping
+        data.cell.styles.cellWidth = 'wrap';
+        data.cell.styles.cellPadding = 3;
+      }
+    }
   });
+
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }

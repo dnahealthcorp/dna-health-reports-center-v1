@@ -4,8 +4,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown } from "lucide-react";
+import { Check, Edit, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -79,6 +83,7 @@ export const SummaryFindingsTab = ({
 }: SummaryFindingsTabProps) => {
   // State to track which fields are in editing mode after selecting [Free Text Option]
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
+  const [previewMode, setPreviewMode] = useState<Record<string, boolean>>({});
 
   // Handle select change with special handling for free text option
   const handleSelectChange = (field: string, value: string) => {
@@ -99,11 +104,54 @@ export const SummaryFindingsTab = ({
     return value !== "" && !predefinedOptions[field].includes(value);
   };
 
+  // Toggle preview mode for a specific field
+  const togglePreview = (field: string) => {
+    setPreviewMode(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const getFormattedFieldName = (field: string) => {
+    return field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
+           field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
+           field === 'ironProfile' ? 'Iron Profile' : 
+           field === 'sexHormones' ? 'Sex Hormones' : 
+           field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
+           field === 'liverFunctions' ? 'Liver Functions' : 
+           field === 'tumorMarkers' ? 'Tumor Markers' : 
+           field === 'bloodCounts' ? 'Blood Counts' : 
+           field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
+  // Add a helper message for Markdown
+  const markdownHelperText = `
+  **Formatting Guide:**
+  - **Bold**: \`**text**\`
+  - *Italic*: \`*text*\`
+  - Bullet List: \`- item\`
+  - Numbered List: \`1. item\`
+  - Headers: \`# Heading\` or \`## Subheading\`
+  - Line Break: Add two spaces at the end of a line
+  `;
+
   return <Card>
       <CardHeader>
-        <CardTitle>Summary of Findings</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          <span>Summary of Findings</span>
+          {canEditDoctorSection && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setPreviewMode({})} 
+              className="text-xs"
+            >
+              <Edit className="h-3 w-3 mr-1" /> Edit All
+            </Button>
+          )}
+        </CardTitle>
         <CardDescription>
-          Record patient's health parameters and findings
+          Record patient's health parameters and findings with Markdown formatting
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -120,68 +168,117 @@ export const SummaryFindingsTab = ({
                 const value = formData.summaryFindings?.[field as SummaryFindingField] || '';
                 const isCustom = isCustomValue(field as SummaryFindingField, value);
                 const isEditing = editingFields[field] || isCustom;
+                const isPreviewActive = previewMode[field];
+                const fieldName = getFormattedFieldName(field);
                 
                 return (
                   <tr key={field}>
                     <td className="px-4 py-2 border bg-gray-50 w-1/4 text-left">
-                      {field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
-                       field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
-                       field === 'ironProfile' ? 'Iron Profile' : 
-                       field === 'sexHormones' ? 'Sex Hormones' : 
-                       field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
-                       field === 'liverFunctions' ? 'Liver Functions' : 
-                       field === 'tumorMarkers' ? 'Tumor Markers' : 
-                       field === 'bloodCounts' ? 'Blood Counts' : 
-                       field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      {fieldName}
                     </td>
                     <td className="px-4 py-2 border">
-                      {isEditing ? (
-                        <Textarea 
-                          value={value} 
-                          onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
-                          disabled={!canEditDoctorSection}
-                          className="border-0 p-0 min-h-[60px]" 
-                          placeholder="Enter custom text"
-                        />
-                      ) : (
-                        <div className="relative">
-                          <Select
-                            disabled={!canEditDoctorSection}
-                            value={value || ""}
-                            onValueChange={(val) => handleSelectChange(field, val)}
-                          >
-                            <SelectTrigger className={cn(
-                              "w-full border-0 p-0 min-h-[60px] h-auto text-left",
-                              "focus:ring-0 focus:ring-offset-0",
-                              value ? "text-foreground" : "text-muted-foreground"
-                            )}>
-                              <SelectValue placeholder="Select an option or enter custom text" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {options.map((option, index) => (
-                                <SelectItem key={index} value={option}>
-                                  {option.length > 60 ? `${option.substring(0, 60)}...` : option}
-                                </SelectItem>
-                              ))}
-                              <SelectItem value="free-text" className="font-medium text-primary">
-                                <div className="flex items-center">
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  [Free Text Option]
+                      <div className="relative">
+                        {canEditDoctorSection && (
+                          <div className="absolute right-2 top-2 flex space-x-1 z-10">
+                            {isEditing && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => togglePreview(field)}
+                              >
+                                {isPreviewActive ? (
+                                  <Edit className="h-3 w-3" />
+                                ) : (
+                                  <Eye className="h-3 w-3" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {isEditing ? (
+                          <div>
+                            {isPreviewActive ? (
+                              <div className="border rounded-md p-3 min-h-[100px] bg-gray-50">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  className="prose prose-sm max-w-none"
+                                >
+                                  {value}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              <>
+                                <Textarea 
+                                  value={value} 
+                                  onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
+                                  disabled={!canEditDoctorSection}
+                                  className="min-h-[100px] font-mono text-sm" 
+                                  placeholder="Enter Markdown text here..."
+                                />
+                                <div className="mt-1 text-xs text-gray-500">
+                                  <details>
+                                    <summary className="cursor-pointer font-medium text-primary">Markdown Tips</summary>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm max-w-none mt-2">
+                                      {markdownHelperText}
+                                    </ReactMarkdown>
+                                  </details>
                                 </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {canEditDoctorSection && value && !isEditing && (
-                            <button 
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100"
-                              onClick={() => setEditingFields(prev => ({ ...prev, [field]: true }))}
-                              type="button"
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <Select
+                              disabled={!canEditDoctorSection}
+                              value={value || ""}
+                              onValueChange={(val) => handleSelectChange(field, val)}
                             >
-                              <Edit className="h-4 w-4 text-gray-500" />
-                            </button>
-                          )}
-                        </div>
-                      )}
+                              <SelectTrigger className={cn(
+                                "w-full border-0 p-0 min-h-[60px] h-auto text-left",
+                                "focus:ring-0 focus:ring-offset-0",
+                                value ? "text-foreground" : "text-muted-foreground"
+                              )}>
+                                {value ? (
+                                  <div className="py-1">
+                                    <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm]}
+                                      className="prose prose-sm max-w-none"
+                                    >
+                                      {value.length > 80 ? `${value.substring(0, 80)}...` : value}
+                                    </ReactMarkdown>
+                                  </div>
+                                ) : (
+                                  <SelectValue placeholder="Select an option or enter custom text" />
+                                )}
+                              </SelectTrigger>
+                              <SelectContent>
+                                {options.map((option, index) => (
+                                  <SelectItem key={index} value={option}>
+                                    {option.length > 60 ? `${option.substring(0, 60)}...` : option}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="free-text" className="font-medium text-primary">
+                                  <div className="flex items-center">
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    [Markdown Editor]
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {canEditDoctorSection && value && !isEditing && (
+                              <button 
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100"
+                                onClick={() => setEditingFields(prev => ({ ...prev, [field]: true }))}
+                                type="button"
+                              >
+                                <Edit className="h-4 w-4 text-gray-500" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
