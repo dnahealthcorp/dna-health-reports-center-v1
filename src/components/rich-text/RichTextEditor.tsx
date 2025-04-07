@@ -3,9 +3,14 @@ import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import BulletList from '@tiptap/extension-bullet-list';
+import OrderedList from '@tiptap/extension-ordered-list';
+import ListItem from '@tiptap/extension-list-item';
 import sanitizeHtml from 'sanitize-html';
 import { Button } from "@/components/ui/button";
-import { Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Bold as BoldIcon, Italic as ItalicIcon, List, ListOrdered } from 'lucide-react';
 
 // Sanitize HTML to prevent XSS attacks
 export const sanitizeContent = (content: string): string => {
@@ -37,6 +42,11 @@ const RichTextEditor = ({
       Placeholder.configure({
         placeholder
       }),
+      Bold,
+      Italic,
+      BulletList,
+      OrderedList,
+      ListItem,
     ],
     content: content || '',
     editable: !disabled,
@@ -67,7 +77,7 @@ const RichTextEditor = ({
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`h-8 w-8 ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
           >
-            <Bold className="h-4 w-4" />
+            <BoldIcon className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -75,7 +85,7 @@ const RichTextEditor = ({
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`h-8 w-8 ${editor.isActive('italic') ? 'bg-gray-200' : ''}`}
           >
-            <Italic className="h-4 w-4" />
+            <ItalicIcon className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"

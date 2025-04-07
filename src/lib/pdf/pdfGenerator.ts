@@ -36,16 +36,14 @@ function htmlToFormattedText(html: string): string {
 function markdownToFormattedText(markdown: string): string {
   if (!markdown) return "";
   
-  // Convert markdown to HTML
-  const html = md.render(markdown);
-  
-  // Simple HTML to text conversion preserving line breaks
+  // For now, simply convert markdown to plain text
   // This is a basic implementation - for complex markdown a more robust solution might be needed
-  return html
-    .replace(/<p>(.*?)<\/p>/g, '$1\n\n')
-    .replace(/<br\s*\/?>/g, '\n')
-    .replace(/<li>(.*?)<\/li>/g, '• $1\n')
-    .replace(/<\/?[^>]+(>|$)/g, '')
+  return markdown
+    .replace(/#{1,6}\s+/g, '') // Remove headers
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.*?)\*/g, '$1')     // Remove italic
+    .replace(/\n- /g, '\n• ')        // Convert list items
+    .replace(/\n\d+\.\s+/g, '\n• ')  // Convert numbered lists to bullet points
     .trim();
 }
 
