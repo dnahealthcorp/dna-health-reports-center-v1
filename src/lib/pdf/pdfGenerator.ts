@@ -127,21 +127,26 @@ function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number,
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  const body = [
-    ["Glucose Metabolism", formatSummaryText(formData.summaryFindings.glucoseMetabolism)],
-    ["Proteins", formatSummaryText(formData.summaryFindings.proteins)],
-    ["Lipid Profile", formatSummaryText(formData.summaryFindings.lipidProfile)],
-    ["Inflammation", formatSummaryText(formData.summaryFindings.inflammation)],
-    ["Metabolic", formatSummaryText(formData.summaryFindings.metabolic)],
-    ["Homocysteine", formatSummaryText(formData.summaryFindings.homocysteine)],
-    ["Vitamins/Minerals", formatSummaryText(formData.summaryFindings.vitaminsMinerals)],
-    ["Iron Profile", formatSummaryText(formData.summaryFindings.ironProfile)],
-    ["Sex Hormones", formatSummaryText(formData.summaryFindings.sexHormones)],
-    ["Kidney Function & Electrolytes", formatSummaryText(formData.summaryFindings.kidneyFunctionElectrolytes)],
-    ["Liver Functions", formatSummaryText(formData.summaryFindings.liverFunctions)],
-    ["Tumor Markers", formatSummaryText(formData.summaryFindings.tumorMarkers)],
-    ["Blood Counts", formatSummaryText(formData.summaryFindings.bloodCounts)]
+  const summaryFields = [
+    { name: "Glucose Metabolism", value: formatSummaryText(formData.summaryFindings.glucoseMetabolism) },
+    { name: "Proteins", value: formatSummaryText(formData.summaryFindings.proteins) },
+    { name: "Lipid Profile", value: formatSummaryText(formData.summaryFindings.lipidProfile) },
+    { name: "Inflammation", value: formatSummaryText(formData.summaryFindings.inflammation) },
+    { name: "Metabolic", value: formatSummaryText(formData.summaryFindings.metabolic) },
+    { name: "Homocysteine", value: formatSummaryText(formData.summaryFindings.homocysteine) },
+    { name: "Vitamins/Minerals", value: formatSummaryText(formData.summaryFindings.vitaminsMinerals) },
+    { name: "Iron Profile", value: formatSummaryText(formData.summaryFindings.ironProfile) },
+    { name: "Sex Hormones", value: formatSummaryText(formData.summaryFindings.sexHormones) },
+    { name: "Kidney Function & Electrolytes", value: formatSummaryText(formData.summaryFindings.kidneyFunctionElectrolytes) },
+    { name: "Liver Functions", value: formatSummaryText(formData.summaryFindings.liverFunctions) },
+    { name: "Tumor Markers", value: formatSummaryText(formData.summaryFindings.tumorMarkers) },
+    { name: "Blood Counts", value: formatSummaryText(formData.summaryFindings.bloodCounts) }
   ];
+  
+  // Filter out empty fields
+  const body = summaryFields
+    .filter(field => field.value && field.value.trim() !== '')
+    .map(field => [field.name, field.value]);
 
   autoTable(doc, {
     startY: currentY,
@@ -170,42 +175,25 @@ function generateSummarySection(doc: jsPDF, currentY: number, pageWidth: number,
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
+    didParseCell: function(data) {
+      // Format the text for readability
+      if (data.section === 'body' && data.column.index === 1) {
+        data.cell.text = String(data.cell.text).split('\n').filter(line => line.trim() !== '');
+      }
+    },
     didDrawCell: function(data) {
       // Only process cells with text content in the body
-      if (data.section === 'body' && data.column.index === 1 && typeof data.cell.text === 'string') {
-        // Make sure we're working with a string
-        const text = data.cell.text.toString();
-        
-        // Handle the text wrapping
-        const textX = data.cell.x + 5; // Add padding
-        const textY = data.cell.y + 10; // Start a bit down from the top
-        
-        // Split by newlines
-        const lines = text.split('\n');
-        
+      if (data.section === 'body' && data.column.index === 1 && typeof data.cell.text === 'object' && data.cell.text.length > 0) {
         // Set text styles for cell content
         doc.setTextColor(60, 60, 60);
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        
-        // Draw each line with proper spacing
-        lines.forEach((line, i) => {
-          doc.text(line, textX, textY + (i * 5.5)); // 5.5 is the line height
-        });
       }
     }
   });
 
   return (doc as any).lastAutoTable.finalY + 10;
 }
-
-// You should continue defining other sections similar to above like:
-// - generateVitalsSection
-// - generateInsulinCardioSection
-// - generateDoctorsRecommendationsSection
-// - generateExerciseSleepSection
-// - generateMedicationsSupplementsSection
-// - generateFollowUpsSection
 
 export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -216,19 +204,18 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
   const contentWidth = pageWidth - contentMargin * 2;
   let currentY = 40;
 
-  currentY = generateImagesSection(doc, currentY, pageWidth);
-
-  addFooter(doc, pageWidth);
-  doc.addPage();
+  // Add logo to the first page
   addLogoToPage(doc);
-  currentY = 40;
-
+  
+  // Generate introduction and content sections
   currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  // Add the rest of the sections like vital signs, summary, insulin, etc...
   currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
 
+  // Add footer to all pages
+  addFooter(doc, pageWidth);
+  
+  // Generate the blob without duplicating the download
   const blob = doc.output("blob");
-  const fileName = `${formData.patientInfo.name?.replace(/\s+/g, "_") || "Patient"}_Medical_Report.pdf`;
-  doc.save(fileName);
+  
   return blob;
 };

@@ -1,7 +1,6 @@
 
 import { jsPDF } from "jspdf";
 import sanitizeHtml from "sanitize-html";
-import parse from "html-react-parser";
 
 /**
  * Adds the DNA Health logo to the top right corner of the PDF page
@@ -10,27 +9,30 @@ export const addLogoToPage = (doc: jsPDF): void => {
   try {
     const margin = 10; // Margin from the page edge
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoWidth = 20; // Keep width fixed
-    const logoHeight = 10; // Adjusted height for correct aspect ratio (1:0.5 ratio)
-    // Calculate x-coordinate so that the logo appears at the top right
+    
+    // Fixed dimensions to maintain correct aspect ratio - DNA logo has ~2.7:1 ratio
+    const logoWidth = 30; // Slightly larger for better visibility
+    const logoHeight = 11; // Maintains proper aspect ratio
+    
+    // Calculate x-coordinate for top right positioning
     const x = pageWidth - logoWidth - margin;
     const y = margin;
     
-    // Use an absolute path for the logo with origin
-    const logoPath = `${window.location.origin}/assets/DNA Logo - Grey.svg`;
+    // Use absolute path with origin for reliable access across environments
+    const logoPath = `${window.location.origin}/assets/dna-logo.svg`;
     
-    // Add the image using addImage with proper aspect ratio
+    // Add the image with correct dimensions
     doc.addImage(logoPath, 'SVG', x, y, logoWidth, logoHeight);
-    console.log("Logo added to PDF successfully at the top right corner");
+    console.log("Logo added to PDF successfully");
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
     
-    // Fallback to using standard image with absolute path if SVG fails
+    // Fallback to PNG version if SVG fails
     try {
       const margin = 10;
       const pageWidth = doc.internal.pageSize.getWidth();
-      const logoWidth = 20;
-      const logoHeight = 10; // Maintain the same aspect ratio in fallback
+      const logoWidth = 30;
+      const logoHeight = 11;
       const x = pageWidth - logoWidth - margin;
       const y = margin;
       
@@ -45,22 +47,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
 };
 
 /**
- * Loads the Montserrat font files for the PDF
- */
-export const loadMontserratFonts = async (doc: jsPDF): Promise<void> => {
-  try {
-    // Use standard fonts instead of trying to load custom fonts.
-    // jsPDF has built-in support for Helvetica.
-    doc.setFont("helvetica");
-    console.log("Using standard helvetica font for PDF");
-  } catch (error) {
-    console.error("Error loading Montserrat fonts:", error);
-    // Fall back to default font if there's an error.
-  }
-};
-
-/**
- * Converts HTML to plain text with simple formatting preservation for PDF
+ * Converts HTML to plain text with formatting preservation for PDF
  * This handles basic formatting like paragraphs, lists, bold/italic text
  */
 export const convertHtmlToFormattedText = (html: string): string => {
@@ -69,7 +56,7 @@ export const convertHtmlToFormattedText = (html: string): string => {
   try {
     // Sanitize HTML first for safety
     const sanitizedHtml = sanitizeHtml(html, {
-      allowedTags: ['p', 'br', 'b', 'strong', 'i', 'em', 'ul', 'ol', 'li', 'span'],
+      allowedTags: ['p', 'br', 'b', 'strong', 'i', 'em', 'ul', 'ol', 'li', 'span', 'h1', 'h2', 'h3', 'h4'],
       allowedAttributes: {
         'span': ['style'],
         'p': ['style']
@@ -78,22 +65,36 @@ export const convertHtmlToFormattedText = (html: string): string => {
     
     // Replace common HTML elements with text formatting that jsPDF can handle
     let formattedText = sanitizedHtml
-      .replace(/<br\s*\/?>/gi, '\n')
+      // Handle paragraph breaks properly
       .replace(/<\/p>\s*<p>/gi, '\n\n')
       .replace(/<p[^>]*>/gi, '')
       .replace(/<\/p>/gi, '\n')
+      
+      // Handle line breaks
+      .replace(/<br\s*\/?>/gi, '\n')
+      
+      // Handle list items with bullets
       .replace(/<li>/gi, '• ')
       .replace(/<\/li>/gi, '\n')
       .replace(/<\/?ul>/gi, '')
       .replace(/<\/?ol>/gi, '')
+      
+      // Handle headers with spacing
+      .replace(/<h[1-4][^>]*>/gi, '\n')
+      .replace(/<\/h[1-4]>/gi, '\n')
+      
+      // Remove style markup but preserve content
       .replace(/<strong>|<b>/gi, '')
       .replace(/<\/strong>|<\/b>/gi, '')
       .replace(/<em>|<i>/gi, '')
       .replace(/<\/em>|<\/i>/gi, '')
+      
+      // Handle common HTML entities
       .replace(/&nbsp;/gi, ' ')
       .replace(/&amp;/gi, '&')
       .replace(/&lt;/gi, '<')
-      .replace(/&gt;/gi, '>');
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"');
       
     // Remove any other HTML tags
     formattedText = formattedText.replace(/<[^>]*>/g, '');
@@ -107,6 +108,6 @@ export const convertHtmlToFormattedText = (html: string): string => {
   } catch (error) {
     console.error('Error converting HTML to text:', error);
     // Return plain text as fallback
-    return html.replace(/<[^>]*>/g, '');
+    return html.replace(/<[^>]*>/g, '').trim();
   }
 };
