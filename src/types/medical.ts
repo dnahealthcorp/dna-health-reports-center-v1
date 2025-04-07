@@ -108,16 +108,21 @@ export function isFollowUp(json: any): json is FollowUp {
   );
 }
 
-// Helper function to sanitize HTML (basic implementation)
+// Helper function to sanitize HTML (improved implementation)
 export function sanitizeHtml(html: string): string {
-  // In a production app, you'd want to use a proper HTML sanitizer
-  // like DOMPurify, but for this example, we'll use a simple implementation
   if (!html || typeof html !== 'string') return '';
-  return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  
+  // Remove potentially dangerous tags and attributes
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+="[^"]*"/gi, '') // Remove event handlers
+    .replace(/on\w+='[^']*'/gi, '')
+    .replace(/on\w+=\w+/gi, '');
 }
 
 // Helper function to determine if text is HTML
-export function isHtml(text: string): boolean {
+export function isHtml(text: string | any): boolean {
   if (!text || typeof text !== 'string') return false;
   return /<[a-z][\s\S]*>/i.test(text);
 }
