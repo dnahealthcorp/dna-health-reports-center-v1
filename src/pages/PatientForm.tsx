@@ -1,22 +1,21 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { Patient, PatientFormData } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import PatientHeader from '@/components/patient-form/PatientHeader';
-import PatientInfoCard from '@/components/patient-form/PatientInfoCard';
-import VitalsTab from '@/components/patient-form/VitalsTab';
-import SummaryFindingsTab from '@/components/patient-form/SummaryFindingsTab';
-import InsulinResistanceTab from '@/components/patient-form/InsulinResistanceTab';
-import NotesRecommendationsTab from '@/components/patient-form/NotesRecommendationsTab';
-import DoctorRecommendationsTab from '@/components/patient-form/DoctorRecommendationsTab';
-import MedicationsTab from '@/components/patient-form/MedicationsTab';
-import SupplementsTab from '@/components/patient-form/SupplementsTab';
-import CardiovascularRiskTab from '@/components/patient-form/CardiovascularRiskTab';
-import FollowUpTab from '@/components/patient-form/FollowUpTab';
-import LoadingState from '@/components/patient-form/LoadingState';
-import NotFoundState from '@/components/patient-form/NotFoundState';
+import { PatientHeader } from '@/components/patient-form/PatientHeader';
+import { PatientInfoCard } from '@/components/patient-form/PatientInfoCard';
+import { VitalsTab } from '@/components/patient-form/VitalsTab';
+import { SummaryFindingsTab } from '@/components/patient-form/SummaryFindingsTab';
+import { InsulinResistanceTab } from '@/components/patient-form/InsulinResistanceTab';
+import { NotesRecommendationsTab } from '@/components/patient-form/NotesRecommendationsTab';
+import { DoctorRecommendationsTab } from '@/components/patient-form/DoctorRecommendationsTab';
+import { MedicationsTab } from '@/components/patient-form/MedicationsTab';
+import { SupplementsTab } from '@/components/patient-form/SupplementsTab';
+import { CardiovascularRiskTab } from '@/components/patient-form/CardiovascularRiskTab';
+import { FollowUpTab } from '@/components/patient-form/FollowUpTab';
+import { LoadingState } from '@/components/patient-form/LoadingState';
+import { NotFoundState } from '@/components/patient-form/NotFoundState';
 import FormsTab from '@/components/patient-form/FormsTab';
 import { useToast } from '@/hooks/use-toast';
 import { getPatientById } from '@/services/patientService';
@@ -44,12 +43,10 @@ const PatientForm = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load patient
         const patientData = await getPatientById(id);
         if (!patientData) throw new Error("Patient not found");
         setPatient(patientData);
         
-        // Load form data
         const loadedFormData = await getPatientFormData(id);
         setFormData(loadedFormData);
       } catch (error) {
@@ -94,10 +91,10 @@ const PatientForm = () => {
     
     setIsGeneratingPDF(true);
     try {
-      const pdfData = await generatePDF(patient, formData);
+      const pdfData = await generatePDF(formData);
       const fileName = `${patient.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       
-      // Save PDF to database
+      const { savePDFFile } = await import('@/services/pdfService');
       const savedFile = await savePDFFile({
         patientId: patient.id,
         fileName,
@@ -108,7 +105,6 @@ const PatientForm = () => {
         throw new Error("Failed to save PDF file");
       }
       
-      // Update patient's pdf_exported status
       if (!patient.pdf_exported) {
         patient.pdf_exported = true;
         const { updatePatient } = await import('@/services/patientService');
@@ -120,7 +116,6 @@ const PatientForm = () => {
         description: "PDF has been generated and saved successfully."
       });
       
-      // Open PDF in new tab
       const pdfUrl = savedFile.url;
       if (pdfUrl) {
         window.open(pdfUrl, '_blank');
@@ -137,7 +132,6 @@ const PatientForm = () => {
     }
   };
 
-  // Update form data
   const updateFormData = (updates: Partial<PatientFormData>) => {
     setFormData(prevData => {
       if (!prevData) return null;

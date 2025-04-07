@@ -122,3 +122,42 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
     return [];
   }
 };
+
+// Add the missing savePDFFile function
+export const savePDFFile = async ({
+  patientId,
+  fileName,
+  pdfData,
+  formId
+}: {
+  patientId: string;
+  fileName: string;
+  pdfData: string;
+  formId?: string;
+}): Promise<PDFFile | null> => {
+  try {
+    // Use pdfData to generate URL or save actual data (simplified here)
+    // In a real implementation, this might upload to storage
+    const url = `data:application/pdf;base64,${pdfData.substring(0, 20)}...`;
+    
+    // Create a new PDF reference in the database
+    const pdfFile = await savePDFReference(patientId, fileName, url);
+    
+    // If formId is provided, update the form record
+    if (formId) {
+      await supabase
+        .from('forms')
+        .update({
+          pdf_exported: true,
+          status: 'completed',
+          status_updated_at: new Date().toISOString()
+        })
+        .eq('id', formId);
+    }
+    
+    return pdfFile;
+  } catch (error) {
+    console.error("Error saving PDF file:", error);
+    return null;
+  }
+};

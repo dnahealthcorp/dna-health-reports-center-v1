@@ -1,3 +1,4 @@
+
 // Form-related database operations
 import { 
   PatientFormData, Json, Vital, SummaryFinding,
@@ -5,7 +6,7 @@ import {
   toJson, safeJsonArray, NutritionRecommendation, ExerciseRecommendation,
   SleepStressRecommendation, isVital, isSummaryFinding, isNutritionRecommendation,
   isExerciseRecommendation, isSleepStressRecommendation, isFollowUp, 
-  isMedicationItem, isSupplementItem, FormType, Form
+  isMedicationItem, isSupplementItem, FormType, Form, isValidFormStatus
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatientById } from "./patientService";
@@ -356,7 +357,9 @@ export const getPatientForms = async (patientId: string): Promise<Form[]> => {
     
     return (data || []).map(form => ({
       ...form,
-      formType: form.formType as FormType
+      formType: form.formType as FormType,
+      // Ensure status is a valid Form status
+      status: isValidFormStatus(form.status) ? form.status : 'in-process'
     }));
   } catch (error) {
     console.error(`Error fetching forms for patient ${patientId}:`, error);
@@ -385,7 +388,9 @@ export const getFormById = async (formId: string): Promise<Form | null> => {
     
     return {
       ...data,
-      formType: data.formType as FormType
+      formType: data.formType as FormType,
+      // Ensure status is a valid Form status
+      status: isValidFormStatus(data.status) ? data.status : 'in-process'
     };
   } catch (error) {
     console.error(`Error fetching form ${formId}:`, error);
@@ -427,7 +432,9 @@ export const createForm = async (
     
     return {
       ...data,
-      formType: data.formType as FormType
+      formType: data.formType as FormType,
+      // Ensure status is a valid Form status
+      status: 'in-process'
     };
   } catch (error) {
     console.error("Error creating form:", error);

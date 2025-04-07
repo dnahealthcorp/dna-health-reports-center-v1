@@ -1,24 +1,23 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Save, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import LoadingState from "@/components/patient-form/LoadingState";
+import { LoadingState } from "@/components/patient-form/LoadingState";
 import { useToast } from "@/hooks/use-toast";
 import { getFormById, getHealthScreeningDataByFormId, updateFormStatus } from "@/services/formService";
 import { getPatientById } from "@/services/patientService";
 import { Patient } from "@/types";
-import VitalsTab from "@/components/patient-form/VitalsTab";
-import SummaryFindingsTab from "@/components/patient-form/SummaryFindingsTab";
-import MedicationsTab from "@/components/patient-form/MedicationsTab";
-import SupplementsTab from "@/components/patient-form/SupplementsTab";
-import NotesRecommendationsTab from "@/components/patient-form/NotesRecommendationsTab";
-import DoctorRecommendationsTab from "@/components/patient-form/DoctorRecommendationsTab";
-import FollowUpTab from "@/components/patient-form/FollowUpTab";
-import InsulinResistanceTab from "@/components/patient-form/InsulinResistanceTab";
-import CardiovascularRiskTab from "@/components/patient-form/CardiovascularRiskTab";
-import PatientHeader from "@/components/patient-form/PatientHeader";
-import PatientInfoCard from "@/components/patient-form/PatientInfoCard";
+import { VitalsTab } from "@/components/patient-form/VitalsTab";
+import { SummaryFindingsTab } from "@/components/patient-form/SummaryFindingsTab";
+import { MedicationsTab } from "@/components/patient-form/MedicationsTab";
+import { SupplementsTab } from "@/components/patient-form/SupplementsTab";
+import { NotesRecommendationsTab } from "@/components/patient-form/NotesRecommendationsTab";
+import { DoctorRecommendationsTab } from "@/components/patient-form/DoctorRecommendationsTab";
+import { FollowUpTab } from "@/components/patient-form/FollowUpTab";
+import { InsulinResistanceTab } from "@/components/patient-form/InsulinResistanceTab";
+import { CardiovascularRiskTab } from "@/components/patient-form/CardiovascularRiskTab";
+import { PatientHeader } from "@/components/patient-form/PatientHeader";
+import { PatientInfoCard } from "@/components/patient-form/PatientInfoCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -204,7 +203,7 @@ const ExecutiveHealthScreeningForm = () => {
       const { savePDFFile } = await import("@/services/pdfService");
       
       // Generate PDF
-      const pdfData = await generatePDF(patient, formData);
+      const pdfData = await generatePDF(formData);
       const fileName = `${patient.name.replace(/\s+/g, "-")}-${formTypeSlug}-${new Date().toISOString().split("T")[0]}.pdf`;
       
       // Save PDF to database
@@ -224,7 +223,7 @@ const ExecutiveHealthScreeningForm = () => {
         .from("forms")
         .update({
           pdf_exported: true,
-          status: "completed",
+          status: 'completed',
           status_updated_at: new Date().toISOString(),
         })
         .eq("id", formId);
@@ -233,7 +232,7 @@ const ExecutiveHealthScreeningForm = () => {
       setForm({
         ...form,
         pdf_exported: true,
-        status: "completed",
+        status: 'completed',
       });
       
       toast({

@@ -40,3 +40,8 @@ export interface Form {
   status_updated_at: string | null;
   formType?: FormType; // For JOIN operations
 }
+
+// Helper function to check if a status string is a valid Form status
+export function isValidFormStatus(status: string): status is Form['status'] {
+  return ['in-process', 'late', 'completed', 'draft'].includes(status);
+}
