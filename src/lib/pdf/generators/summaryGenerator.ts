@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
@@ -6,9 +5,6 @@ import { addLogoToPage, addFooter, ensureSpace } from "../pdfUtilities";
 import { prepareHtmlForPdf } from "@/lib/pdf/richTextUtils";
 import { renderRichText } from "@/lib/pdf/richTextRenderer";
 
-/**
- * Section 4: Summary of Findings (striped).
- */
 export function generateSummarySection(
   doc: jsPDF,
   currentY: number,
@@ -18,37 +14,48 @@ export function generateSummarySection(
   formData: PatientFormData
 ): number {
   currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
+
+  // Section Title
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Create table for summary findings
+  // Prepare table structure only
+  const tableData = [
+    ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ''],
+    ["Proteins", formData.summaryFindings.proteins || ''],
+    ["Lipid Profile", formData.summaryFindings.lipidProfile || ''],
+    ["Inflammation", formData.summaryFindings.inflammation || ''],
+    ["Metabolic", formData.summaryFindings.metabolic || ''],
+    ["Homocysteine", formData.summaryFindings.homocysteine || ''],
+    ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ''],
+    ["Iron Profile", formData.summaryFindings.ironProfile || ''],
+    ["Sex Hormones", formData.summaryFindings.sexHormones || ''],
+    ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ''],
+    ["Liver Functions", formData.summaryFindings.liverFunctions || ''],
+    ["Tumor Markers", formData.summaryFindings.tumorMarkers || ''],
+    ["Blood Counts", formData.summaryFindings.bloodCounts || '']
+  ];
+
+  // Capture rich text to draw later
+  const richTextToRender: {
+    html: string;
+    x: number;
+    y: number;
+    width: number;
+  }[] = [];
+
   autoTable(doc, {
     startY: currentY,
-    theme: "grid",
     head: [
       [
         { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } },
         { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } }
       ]
     ],
-    body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ''],
-      ["Proteins", formData.summaryFindings.proteins || ''],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ''],
-      ["Inflammation", formData.summaryFindings.inflammation || ''],
-      ["Metabolic", formData.summaryFindings.metabolic || ''],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ''],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ''],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ''],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ''],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ''],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ''],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ''],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || '']
-    ],
+    body: tableData,
     styles: {
       fontSize: 10,
       cellPadding: 2,
@@ -67,39 +74,37 @@ export function generateSummarySection(
     },
     margin: { left: contentMargin, right: contentMargin },
     didDrawPage: (data) => {
-      // Add logo and footer to each page
       addLogoToPage(doc);
-      
-      // Add footer only on completed pages
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
       }
     },
-    // Custom cell renderer to handle rich text
-    didDrawCell: (data) => {
-      // Only process cells in the second column (index 1) that contain HTML
-      if (data.column.index === 1 && data.cell.raw && typeof data.cell.raw === 'string' && 
-          data.cell.raw.includes('<')) {
-        // Access cell properties correctly
-        const cellX = data.cell.x;
-        const cellY = data.cell.y;
-        const cellWidth = data.cell.width;
-        const cellHeight = data.cell.height;
-        
-        // Use our rich text renderer within the cell boundaries
-        const padding = 2; // Match cell padding from styles
-        
-        renderRichText(
-          doc, 
-          prepareHtmlForPdf(data.cell.raw), 
-          cellX + padding, 
-          cellY + padding + 2, // Add a bit more vertical padding
-          cellWidth - (padding * 2)
-        );
+    willDrawCell: (data) => {
+      if (
+        data.section === "body" &&
+        data.column.index === 1 &&
+        typeof data.cell.raw === "string" &&
+        data.cell.raw.includes("<")
+      ) {
+        // Store rich text content to draw after table rendering
+        richTextToRender.push({
+          html: data.cell.raw,
+          x: data.cell.x + 2,
+          y: data.cell.y + 3,
+          width: data.cell.width - 4
+        });
+
+        // Clear the cell to avoid overlapping text
+        data.cell.text = [""];
       }
     }
   });
-  
+
+  // Render rich text manually after the table is drawn
+  richTextToRender.forEach(({ html, x, y, width }) => {
+    renderRichText(doc, prepareHtmlForPdf(html), x, y, width);
+  });
+
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
