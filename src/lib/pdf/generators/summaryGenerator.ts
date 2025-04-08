@@ -15,51 +15,56 @@ export function generateSummarySection(
 ): number {
   currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
 
-  // Section Title
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Prepare table structure only
-  const tableData = [
-    ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ''],
-    ["Proteins", formData.summaryFindings.proteins || ''],
-    ["Lipid Profile", formData.summaryFindings.lipidProfile || ''],
-    ["Inflammation", formData.summaryFindings.inflammation || ''],
-    ["Metabolic", formData.summaryFindings.metabolic || ''],
-    ["Homocysteine", formData.summaryFindings.homocysteine || ''],
-    ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ''],
-    ["Iron Profile", formData.summaryFindings.ironProfile || ''],
-    ["Sex Hormones", formData.summaryFindings.sexHormones || ''],
-    ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ''],
-    ["Liver Functions", formData.summaryFindings.liverFunctions || ''],
-    ["Tumor Markers", formData.summaryFindings.tumorMarkers || ''],
-    ["Blood Counts", formData.summaryFindings.bloodCounts || '']
-  ];
-
-  // Capture rich text to draw later
-  const richTextToRender: {
-    html: string;
-    x: number;
-    y: number;
-    width: number;
-  }[] = [];
+  const findings = formData.summaryFindings;
 
   autoTable(doc, {
     startY: currentY,
+    theme: "grid",
     head: [
       [
-        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } },
-        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } }
+        {
+          content: "Parameter",
+          styles: {
+            fillColor: [153, 188, 68],
+            textColor: [255, 255, 255],
+            fontStyle: "bold"
+          }
+        },
+        {
+          content: "Key findings and next steps",
+          styles: {
+            fillColor: [153, 188, 68],
+            textColor: [255, 255, 255],
+            fontStyle: "bold"
+          }
+        }
       ]
     ],
-    body: tableData,
+    body: [
+      ["Glucose Metabolism", { content: "", raw: findings.glucoseMetabolism || "" }],
+      ["Proteins", { content: "", raw: findings.proteins || "" }],
+      ["Lipid Profile", { content: "", raw: findings.lipidProfile || "" }],
+      ["Inflammation", { content: "", raw: findings.inflammation || "" }],
+      ["Metabolic", { content: "", raw: findings.metabolic || "" }],
+      ["Homocysteine", { content: "", raw: findings.homocysteine || "" }],
+      ["Vitamins/Minerals", { content: "", raw: findings.vitaminsMinerals || "" }],
+      ["Iron Profile", { content: "", raw: findings.ironProfile || "" }],
+      ["Sex Hormones", { content: "", raw: findings.sexHormones || "" }],
+      ["Kidney Function and Electrolytes", { content: "", raw: findings.kidneyFunctionElectrolytes || "" }],
+      ["Liver Functions", { content: "", raw: findings.liverFunctions || "" }],
+      ["Tumor Markers", { content: "", raw: findings.tumorMarkers || "" }],
+      ["Blood Counts", { content: "", raw: findings.bloodCounts || "" }]
+    ],
     styles: {
       fontSize: 10,
-      cellPadding: 2,
       font: "helvetica",
+      cellPadding: 2,
       textColor: [60, 60, 60]
     },
     bodyStyles: {
@@ -69,40 +74,35 @@ export function generateSummarySection(
       fillColor: [245, 245, 245]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230], fontStyle: 'bold' },
+      0: { cellWidth: 50, fillColor: [240, 250, 230], fontStyle: "bold" },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
+
+    // Add header/footer on each page
     didDrawPage: (data) => {
       addLogoToPage(doc);
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
       }
     },
-    willDrawCell: (data) => {
+
+    // Custom render rich HTML inside right cells
+    didDrawCell: (data) => {
       if (
-        data.section === "body" &&
         data.column.index === 1 &&
+        data.cell.raw &&
         typeof data.cell.raw === "string" &&
         data.cell.raw.includes("<")
       ) {
-        // Store rich text content to draw after table rendering
-        richTextToRender.push({
-          html: data.cell.raw,
-          x: data.cell.x + 2,
-          y: data.cell.y + 3,
-          width: data.cell.width - 4
-        });
+        const padding = 2;
+        const x = data.cell.x + padding;
+        const y = data.cell.y + padding + 1;
+        const width = data.cell.width - padding * 2;
 
-        // Clear the cell to avoid overlapping text
-        data.cell.text = [""];
+        renderRichText(doc, prepareHtmlForPdf(data.cell.raw), x, y, width);
       }
     }
-  });
-
-  // Render rich text manually after the table is drawn
-  richTextToRender.forEach(({ html, x, y, width }) => {
-    renderRichText(doc, prepareHtmlForPdf(html), x, y, width);
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 10;
