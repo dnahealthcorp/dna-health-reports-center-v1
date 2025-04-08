@@ -4,7 +4,7 @@
  */
 
 /**
- * Sanitizes HTML to prevent XSS and ensure compatibility with pdfMake
+ * Sanitizes HTML to prevent XSS and ensure compatibility with PDF rendering
  * @param html Raw HTML from the editor
  * @returns Sanitized HTML
  */
@@ -63,43 +63,14 @@ export const prepareHtmlForPdf = (html: string): string => {
 };
 
 /**
- * Converts HTML to a content structure compatible with pdfMake
- * Uses browser's native DOM parser for browser compatibility
+ * This is now just a compatibility function 
+ * to maintain API compatibility while we transition to the new renderer
  */
-export const htmlToPdfMakeContent = (html: string): any => {
+export const htmlToPdfMakeContent = (html: string): string => {
   if (!html || html === '') return '';
   
-  try {
-    // Clean and prepare HTML
-    const processedHtml = prepareHtmlForPdf(html);
-    
-    // Use the browser's built-in DOMParser instead of JSDOM
-    const htmlToPdfmake = require('html-to-pdfmake');
-    
-    // Create a temporary document to hold our HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(processedHtml, 'text/html');
-    
-    // Convert HTML to pdfMake content
-    const content = htmlToPdfmake(processedHtml, {
-      window: window,
-      defaultStyles: {
-        b: { bold: true },
-        strong: { bold: true },
-        i: { italics: true },
-        em: { italics: true },
-        u: { decoration: 'underline' },
-        s: { decoration: 'lineThrough' },
-        ul: { margin: [0, 5, 0, 5] },
-        ol: { margin: [0, 5, 0, 5] },
-        li: { margin: [0, 2, 0, 2] }
-      }
-    });
-    
-    return content;
-  } catch (error) {
-    console.error('Error converting HTML to pdfMake content:', error);
-    // Fallback to text without formatting
-    return html.replace(/<[^>]*>?/gm, '');
-  }
+  // Clean and prepare HTML
+  const processedHtml = prepareHtmlForPdf(html);
+  
+  return processedHtml; // Return processed HTML directly
 };

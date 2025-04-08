@@ -3,7 +3,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
 import { addLogoToPage, addFooter, ensureSpace } from "../pdfUtilities";
-import { htmlToPdfMakeContent } from "@/lib/pdf/richTextUtils";
+import { prepareHtmlForPdf } from "@/lib/pdf/richTextUtils";
+import { renderRichText } from "@/lib/pdf/richTextRenderer";
 
 /**
  * Section 4: Summary of Findings (striped).
@@ -23,23 +24,7 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Create table body with formatted HTML content
-  const tableBody = [
-    ["Glucose Metabolism", htmlToPdfMakeContent(formData.summaryFindings.glucoseMetabolism || '')],
-    ["Proteins", htmlToPdfMakeContent(formData.summaryFindings.proteins || '')],
-    ["Lipid Profile", htmlToPdfMakeContent(formData.summaryFindings.lipidProfile || '')],
-    ["Inflammation", htmlToPdfMakeContent(formData.summaryFindings.inflammation || '')],
-    ["Metabolic", htmlToPdfMakeContent(formData.summaryFindings.metabolic || '')],
-    ["Homocysteine", htmlToPdfMakeContent(formData.summaryFindings.homocysteine || '')],
-    ["Vitamins/Minerals", htmlToPdfMakeContent(formData.summaryFindings.vitaminsMinerals || '')],
-    ["Iron Profile", htmlToPdfMakeContent(formData.summaryFindings.ironProfile || '')],
-    ["Sex Hormones", htmlToPdfMakeContent(formData.summaryFindings.sexHormones || '')],
-    ["Kidney Function and Electrolytes", htmlToPdfMakeContent(formData.summaryFindings.kidneyFunctionElectrolytes || '')],
-    ["Liver Functions", htmlToPdfMakeContent(formData.summaryFindings.liverFunctions || '')],
-    ["Tumor Markers", htmlToPdfMakeContent(formData.summaryFindings.tumorMarkers || '')],
-    ["Blood Counts", htmlToPdfMakeContent(formData.summaryFindings.bloodCounts || '')]
-  ];
-
+  // Create table for summary findings
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -49,7 +34,21 @@ export function generateSummarySection(
         { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } }
       ]
     ],
-    body: tableBody,
+    body: [
+      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ''],
+      ["Proteins", formData.summaryFindings.proteins || ''],
+      ["Lipid Profile", formData.summaryFindings.lipidProfile || ''],
+      ["Inflammation", formData.summaryFindings.inflammation || ''],
+      ["Metabolic", formData.summaryFindings.metabolic || ''],
+      ["Homocysteine", formData.summaryFindings.homocysteine || ''],
+      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ''],
+      ["Iron Profile", formData.summaryFindings.ironProfile || ''],
+      ["Sex Hormones", formData.summaryFindings.sexHormones || ''],
+      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ''],
+      ["Liver Functions", formData.summaryFindings.liverFunctions || ''],
+      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ''],
+      ["Blood Counts", formData.summaryFindings.bloodCounts || '']
+    ],
     styles: {
       fontSize: 10,
       cellPadding: 2,
@@ -74,6 +73,25 @@ export function generateSummarySection(
       // Add footer only on completed pages
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
+      }
+    },
+    // Custom cell renderer to handle rich text
+    didDrawCell: (data) => {
+      // Only process cells in the second column (index 1) that contain HTML
+      if (data.column.index === 1 && data.cell.raw && typeof data.cell.raw === 'string' && 
+          data.cell.raw.includes('<')) {
+        const cellRect = data.cell.rect;
+        // Clear the cell since we'll redraw with our custom renderer
+        const padding = 2; // Match cell padding from styles
+        
+        // Use our rich text renderer within the cell boundaries
+        renderRichText(
+          doc, 
+          prepareHtmlForPdf(data.cell.raw), 
+          cellRect.x + padding, 
+          cellRect.y + padding + 2, // Add a bit more vertical padding
+          cellRect.w - (padding * 2)
+        );
       }
     }
   });

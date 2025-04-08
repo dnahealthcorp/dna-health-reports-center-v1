@@ -3,6 +3,7 @@ import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
+import { stripHtml } from "@/lib/pdf/richTextRenderer";
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
@@ -55,45 +56,11 @@ export const savePDFReference = async (patientId: string, fileName: string, file
 };
 
 /**
- * Helper function to strip HTML tags from a string
+ * Browser-compatible function to convert HTML to plain text
  */
-export const stripHtml = (html: string): string => {
-  if (!html) return "";
-  return html.replace(/<[^>]*>?/gm, '');
-};
-
-/**
- * Browser-compatible function to convert HTML to pdfMake format
- * This preserves rich text formatting without requiring Node.js modules
- */
-export const htmlToFormattedText = (html: string): any => {
+export const htmlToFormattedText = (html: string): string => {
   if (!html || html === '') return '';
-  
-  try {
-    // Use browser's built-in DOM parser
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    
-    // Use html-to-pdfmake with browser's document
-    const htmlToPdfmake = require('html-to-pdfmake');
-    const content = htmlToPdfmake(html, {
-      window: window,
-      defaultStyles: {
-        b: { bold: true },
-        strong: { bold: true },
-        i: { italics: true },
-        em: { italics: true },
-        u: { decoration: 'underline' },
-        s: { decoration: 'lineThrough' }
-      }
-    });
-    
-    return content;
-  } catch (error) {
-    console.error("Error converting HTML to formatted text:", error);
-    // Fallback to simple text
-    return stripHtml(html);
-  }
+  return stripHtml(html);
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {

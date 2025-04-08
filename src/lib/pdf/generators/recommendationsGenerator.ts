@@ -3,7 +3,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
 import { addLogoToPage, addFooter, ensureSpace } from "../pdfUtilities";
-import { htmlToPdfMakeContent } from "@/lib/pdf/richTextUtils";
+import { prepareHtmlForPdf } from "@/lib/pdf/richTextUtils";
+import { renderRichText } from "@/lib/pdf/richTextRenderer";
 
 /**
  * Section 6: Doctor's Recommendations (Nutrition), striped.
@@ -33,11 +34,11 @@ export function generateDoctorsRecommendationsSection(
       ]
     ],
     body: [
-      ["Nutritional Style", htmlToPdfMakeContent(formData.nutritionRecommendations?.nutritionalStyle || "")],
-      ["Protein Consumption", htmlToPdfMakeContent(formData.nutritionRecommendations?.proteinConsumption || "")],
-      ["Eating Window", htmlToPdfMakeContent(formData.nutritionRecommendations?.eatingWindow || "")],
-      ["Limitations", htmlToPdfMakeContent(formData.nutritionRecommendations?.limitations || "")],
-      ["Additional Considerations", htmlToPdfMakeContent(formData.nutritionRecommendations?.additionalConsiderations || "")]
+      ["Nutritional Style", formData.nutritionRecommendations?.nutritionalStyle || ""],
+      ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
+      ["Eating Window", formData.nutritionRecommendations?.eatingWindow || ""],
+      ["Limitations", formData.nutritionRecommendations?.limitations || ""],
+      ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
     ],
     styles: {
       fontSize: 10,
@@ -63,6 +64,25 @@ export function generateDoctorsRecommendationsSection(
       // Add footer only on completed pages
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
+      }
+    },
+    // Custom cell renderer to handle rich text
+    didDrawCell: (data) => {
+      // Only process cells in the second column (index 1) that contain HTML
+      if (data.column.index === 1 && data.cell.raw && typeof data.cell.raw === 'string' && 
+          data.cell.raw.includes('<')) {
+        const cellRect = data.cell.rect;
+        // Clear the cell since we'll redraw with our custom renderer
+        const padding = 2; // Match cell padding from styles
+        
+        // Use our rich text renderer within the cell boundaries
+        renderRichText(
+          doc, 
+          prepareHtmlForPdf(data.cell.raw), 
+          cellRect.x + padding, 
+          cellRect.y + padding + 2, // Add a bit more vertical padding
+          cellRect.w - (padding * 2)
+        );
       }
     }
   });
