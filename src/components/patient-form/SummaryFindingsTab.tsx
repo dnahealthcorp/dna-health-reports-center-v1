@@ -214,7 +214,8 @@ export const SummaryFindingsTab = ({
             </tbody>
           </table>
         </div>
-        <style jsx global>{`
+        <style>
+          {`
           .quill-wrapper .ql-toolbar.ql-snow {
             border-top-left-radius: 0.375rem;
             border-top-right-radius: 0.375rem;
@@ -232,7 +233,8 @@ export const SummaryFindingsTab = ({
           .quill-wrapper .ql-editor.ql-blank::before {
             color: #a0aec0;
           }
-        `}</style>
+          `}
+        </style>
       </CardContent>
     </Card>;
 };
