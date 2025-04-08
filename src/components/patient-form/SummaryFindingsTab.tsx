@@ -1,13 +1,11 @@
-import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Toggle } from "@/components/ui/toggle";
-import { Button } from "@/components/ui/button";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
+import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Check, Edit, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Edit, List } from "lucide-react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -15,23 +13,61 @@ interface SummaryFindingsTabProps {
   canEditDoctorSection: boolean;
 }
 
+// Predefined options for each summary finding field
 const predefinedOptions = {
   glucoseMetabolism: [
     "Optimal glucose metabolism.",
-    "Elevated HbA1c of [xxx]%, with high fasting glucose, indicates a prediabetic state, accompanied by low QUICKI and dHOMA2-S scores, suggestive of insulin resistance."
+    "Elevated HbA1c of [xxx]%, with high fasting glucose, indicates a prediabetic state, accompanied by low QUICKI and dHOMA2-S scores, suggestive of insulin resistance. Contributing Factors: - High intake of refined carbohydrates - Irregular and late meal timing - Elevated cortisol levels",
   ],
-  proteins: ["All protein markers within optimal range.", "Albumin slightly below optimal."],
-  lipidProfile: ["Optimal lipid profile.", "Elevated total cholesterol."],
-  inflammation: ["No signs of systemic inflammation.", "Elevated high-sensitivity CRP."],
-  metabolic: ["Metabolic markers within normal ranges.", "Multiple markers outside optimal range."],
-  homocysteine: ["Homocysteine within optimal range.", "Elevated homocysteine levels."],
-  vitaminsMinerals: ["Optimal vitamin and mineral status.", "Vitamin D deficiency."],
-  ironProfile: ["Iron markers within optimal ranges.", "Elevated ferritin."],
-  sexHormones: ["Hormones within age-appropriate range.", "Low testosterone with elevated estradiol."],
-  kidneyFunctionElectrolytes: ["Kidney function within limits.", "Elevated BUN/creatinine."],
-  liverFunctions: ["Liver enzymes within range.", "Mildly elevated AST/ALT."],
-  tumorMarkers: ["All tumor markers within normal range.", "Slightly elevated PSA."],
-  bloodCounts: ["Blood count normal.", "Mild anemia detected."]
+  proteins: [
+    "All protein markers within optimal range.",
+    "Albumin slightly below optimal, indicating potential nutritional deficiency."
+  ],
+  lipidProfile: [
+    "Optimal lipid profile.",
+    "Elevated total cholesterol (TC) and LDL, with normal HDL and triglycerides.",
+    "Low HDL with elevated triglycerides, suggesting metabolic syndrome pattern."
+  ],
+  inflammation: [
+    "No signs of systemic inflammation.",
+    "Elevated high-sensitivity CRP indicating low-grade inflammation."
+  ],
+  metabolic: [
+    "Metabolic markers within normal ranges.",
+    "Multiple metabolic markers outside optimal ranges, suggesting metabolic stress."
+  ],
+  homocysteine: [
+    "Homocysteine within optimal range.",
+    "Elevated homocysteine levels indicating potential methylation issues."
+  ],
+  vitaminsMinerals: [
+    "Optimal vitamin and mineral status.",
+    "Vitamin D deficiency with suboptimal magnesium levels."
+  ],
+  ironProfile: [
+    "Iron markers within optimal ranges.",
+    "Elevated ferritin with normal iron suggests inflammatory process."
+  ],
+  sexHormones: [
+    "Sex hormones within age-appropriate ranges.",
+    "Low testosterone with elevated estradiol, suggesting aromatase activity."
+  ],
+  kidneyFunctionElectrolytes: [
+    "Kidney function and electrolytes within normal limits.",
+    "Elevated BUN and creatinine suggesting reduced kidney function."
+  ],
+  liverFunctions: [
+    "Liver enzymes within optimal ranges.",
+    "Mildly elevated AST and ALT suggesting hepatic stress."
+  ],
+  tumorMarkers: [
+    "All tumor markers within normal range.",
+    "Slightly elevated PSA requiring follow-up."
+  ],
+  bloodCounts: [
+    "Complete blood count within normal parameters.",
+    "Mild anemia with reduced hemoglobin and hematocrit."
+  ]
 };
 
 type SummaryFindingField = keyof typeof predefinedOptions;
@@ -41,85 +77,110 @@ export const SummaryFindingsTab = ({
   handleInputChange,
   canEditDoctorSection
 }: SummaryFindingsTabProps) => {
-  const [useEditor, setUseEditor] = useState<Record<SummaryFindingField, boolean>>(
-    Object.keys(predefinedOptions).reduce((acc, key) => ({ ...acc, [key]: false }), {} as Record<SummaryFindingField, boolean>)
-  );
+  // State to track which fields are in editing mode after selecting [Free Text Option]
+  const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
 
-  const toggleEditor = (field: SummaryFindingField) => {
-    setUseEditor(prev => ({ ...prev, [field]: !prev[field] }));
+  // Handle select change with special handling for free text option
+  const handleSelectChange = (field: string, value: string) => {
+    if (value === "free-text") {
+      // Enable editing mode for this field
+      setEditingFields(prev => ({ ...prev, [field]: true }));
+      // Default to current value or empty string when selecting free text option
+      return;
+    }
+    
+    // For predefined options, update the form data and exit editing mode
+    handleInputChange("summaryFindings", field, value);
+    setEditingFields(prev => ({ ...prev, [field]: false }));
   };
 
-  const handleEditorChange = (field: SummaryFindingField, html: string) => {
-    handleInputChange("summaryFindings", field, html);
+  // Check if a value matches any predefined option
+  const isCustomValue = (field: SummaryFindingField, value: string) => {
+    return value !== "" && !predefinedOptions[field].includes(value);
   };
 
-  return (
-    <Card>
+  return <Card>
       <CardHeader>
         <CardTitle>Summary of Findings</CardTitle>
-        <CardDescription>Record patient's health parameters and findings</CardDescription>
+        <CardDescription>
+          Record patient's health parameters and findings
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-primary text-white">
-                <th className="text-left px-4 py-2 border w-1/4">Parameters</th>
+                <th className="text-left px-4 py-2 border">Parameters</th>
                 <th className="text-left px-4 py-2 border">Key findings</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(predefinedOptions).map(([field, options]) => {
-                const fieldKey = field as SummaryFindingField;
-                const value = formData.summaryFindings?.[fieldKey] || "";
-
-                const editor = useEditor({
-                  content: value,
-                  extensions: [StarterKit],
-                  onUpdate: ({ editor }) => {
-                    handleEditorChange(fieldKey, editor.getHTML());
-                  }
-                });
-
+                const value = formData.summaryFindings?.[field as SummaryFindingField] || '';
+                const isCustom = isCustomValue(field as SummaryFindingField, value);
+                const isEditing = editingFields[field] || isCustom;
+                
                 return (
-                  <tr key={fieldKey}>
-                    <td className="px-4 py-2 border bg-gray-50 text-left align-top">
-                      <div className="flex items-center justify-between">
-                        <span>{fieldKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => toggleEditor(fieldKey)}
-                          type="button"
-                        >
-                          {useEditor[fieldKey] ? <List className="mr-1 w-4 h-4" /> : <Edit className="mr-1 w-4 h-4" />}
-                          {useEditor[fieldKey] ? "Select" : "Edit"}
-                        </Button>
-                      </div>
+                  <tr key={field}>
+                    <td className="px-4 py-2 border bg-gray-50 w-1/4 text-left">
+                      {field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
+                       field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
+                       field === 'ironProfile' ? 'Iron Profile' : 
+                       field === 'sexHormones' ? 'Sex Hormones' : 
+                       field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
+                       field === 'liverFunctions' ? 'Liver Functions' : 
+                       field === 'tumorMarkers' ? 'Tumor Markers' : 
+                       field === 'bloodCounts' ? 'Blood Counts' : 
+                       field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                     </td>
-                    <td className="px-4 py-2 border align-top">
-                      {useEditor[fieldKey] ? (
-                        <div className="border rounded p-2">
-                          {editor && <EditorContent editor={editor} />}
-                        </div>
-                      ) : (
-                        <Select
-                          value={value}
+                    <td className="px-4 py-2 border">
+                      {isEditing ? (
+                        <Textarea 
+                          value={value} 
+                          onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
                           disabled={!canEditDoctorSection}
-                          onValueChange={(val) => handleInputChange("summaryFindings", fieldKey, val)}
-                        >
-                          <SelectTrigger className="w-full h-auto min-h-[60px] p-2 text-left border">
-                            <SelectValue placeholder="Select an option or switch to editor" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.map((opt, idx) => (
-                              <SelectItem key={idx} value={opt}>
-                                {opt.length > 60 ? `${opt.slice(0, 60)}...` : opt}
+                          className="border-0 p-0 min-h-[60px]" 
+                          placeholder="Enter custom text"
+                        />
+                      ) : (
+                        <div className="relative">
+                          <Select
+                            disabled={!canEditDoctorSection}
+                            value={value || ""}
+                            onValueChange={(val) => handleSelectChange(field, val)}
+                          >
+                            <SelectTrigger className={cn(
+                              "w-full border-0 p-0 min-h-[60px] h-auto text-left",
+                              "focus:ring-0 focus:ring-offset-0",
+                              value ? "text-foreground" : "text-muted-foreground"
+                            )}>
+                              <SelectValue placeholder="Select an option or enter custom text" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {options.map((option, index) => (
+                                <SelectItem key={index} value={option}>
+                                  {option.length > 60 ? `${option.substring(0, 60)}...` : option}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="free-text" className="font-medium text-primary">
+                                <div className="flex items-center">
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  [Free Text Option]
+                                </div>
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                            </SelectContent>
+                          </Select>
+                          {canEditDoctorSection && value && !isEditing && (
+                            <button 
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100"
+                              onClick={() => setEditingFields(prev => ({ ...prev, [field]: true }))}
+                              type="button"
+                            >
+                              <Edit className="h-4 w-4 text-gray-500" />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -129,6 +190,5 @@ export const SummaryFindingsTab = ({
           </table>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };

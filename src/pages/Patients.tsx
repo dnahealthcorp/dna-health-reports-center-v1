@@ -1,19 +1,31 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Patient } from "@/types";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Search, Trash2, Edit, Eye, ArrowUp, ArrowDown } from "lucide-react";
+import PatientCard from "@/components/PatientCard";
 import AddPatientDialog from "@/components/AddPatientDialog";
 import EditPatientDialog from "@/components/EditPatientDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPatients, deletePatient } from "@/services/databaseService";
-
-// Import the new components
-import SearchControls from "@/components/patients/SearchControls";
-import PatientTable from "@/components/patients/PatientTable";
-import PatientCardList from "@/components/patients/PatientCardList";
-import EmptyPatientState from "@/components/patients/EmptyPatientState";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 type SortField = 'lastUpdated' | 'status' | 'name';
 type SortDirection = 'asc' | 'desc';
@@ -30,6 +42,7 @@ const Patients = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchPatients = async () => {
     setIsLoading(true);
@@ -114,6 +127,14 @@ const Patients = () => {
     }
   };
 
+  const getSortIcon = (field: SortField) => {
+    if (field !== sortField) return null;
+    
+    return sortDirection === 'asc' 
+      ? <ArrowUp size={14} className="inline ml-1" /> 
+      : <ArrowDown size={14} className="inline ml-1" />;
+  };
+
   const handleAddPatient = (newPatient: Patient) => {
     setPatients(prev => [newPatient, ...prev]);
     toast({
@@ -171,21 +192,27 @@ const Patients = () => {
     setEditingPatient(null);
   };
 
-  const filteredPatients = searchQuery && patients ? patients.filter(patient => 
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    patient.medicalRecordNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  ) : patients;
+  const filteredPatients = searchQuery && patients ? patients.filter(patient => patient.name.toLowerCase().includes(searchQuery.toLowerCase()) || patient.medicalRecordNumber.toLowerCase().includes(searchQuery.toLowerCase())) : patients;
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'in-process':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Process</Badge>;
+      case 'late':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Late</Badge>;
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
+      default:
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Process</Badge>;
+    }
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery("");
+  const canDeletePatient = (patientCreatedBy: string | undefined | null): boolean => {
+    if (!currentUserId || !patientCreatedBy) return false;
+    return currentUserId === patientCreatedBy;
   };
 
-  return (
-    <Layout>
+  return <Layout>
       <div className="animate-fade-in">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div>
@@ -196,66 +223,123 @@ const Patients = () => {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center space-x-2">
-              <Switch 
-                id="view-mode" 
-                checked={viewMode === 'cards'} 
-                onCheckedChange={checked => setViewMode(checked ? 'cards' : 'table')}
-              />
+              <Switch id="view-mode" checked={viewMode === 'cards'} onCheckedChange={checked => setViewMode(checked ? 'cards' : 'table')} />
               <label htmlFor="view-mode">Card View</label>
             </div>
             <AddPatientDialog onAddPatient={handleAddPatient} />
           </div>
         </div>
 
-        <SearchControls 
-          searchQuery={searchQuery} 
-          onSearchChange={handleSearchChange} 
-        />
+        <div className="relative mb-8">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+          <Input placeholder="Search patients by name or medical record number..." className="pl-10" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+        </div>
 
-        {isLoading ? (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, index) => (
-              <div key={index} className="rounded-lg border border-border p-5 h-40 animate-pulse">
+        {isLoading ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => <div key={index} className="rounded-lg border border-border p-5 h-40 animate-pulse">
                 <div className="h-5 bg-muted/50 rounded w-3/4 mb-4"></div>
                 <div className="h-4 bg-muted/50 rounded w-1/2 mb-6"></div>
                 <div className="h-4 bg-muted/50 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
-        ) : filteredPatients && filteredPatients.length > 0 ? (
-          viewMode === 'cards' ? (
-            <PatientCardList 
-              patients={filteredPatients}
-              onDelete={handleDeletePatient}
-              onEdit={handleEditPatient}
-            />
-          ) : (
-            <PatientTable
-              patients={filteredPatients}
-              sortField={sortField}
-              sortDirection={sortDirection}
-              currentUserId={currentUserId}
-              onSort={handleSort}
-              onEdit={handleEditPatient}
-              onDelete={handleDeletePatient}
-            />
-          )
-        ) : (
-          <EmptyPatientState 
-            searchQuery={searchQuery} 
-            onClearSearch={handleClearSearch} 
-          />
-        )}
+              </div>)}
+          </div> : filteredPatients && filteredPatients.length > 0 ? viewMode === 'cards' ? <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {filteredPatients.map(patient => <PatientCard key={patient.id} patient={patient} onDelete={handleDeletePatient} onEdit={handleEditPatient} />)}
+            </div> : <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>MRN</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
+                      Name {getSortIcon('name')}
+                    </TableHead>
+                    <TableHead>Gender</TableHead>
+                    <TableHead>Created By</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
+                      Status {getSortIcon('status')}
+                    </TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('lastUpdated')}>
+                      Last Updated {getSortIcon('lastUpdated')}
+                    </TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPatients.map(patient => <TableRow key={patient.id}>
+                      <TableCell className="font-medium">{patient.medicalRecordNumber}</TableCell>
+                      <TableCell>{patient.name}</TableCell>
+                      <TableCell>{patient.gender}</TableCell>
+                      <TableCell>{patient.createdByName || "Unknown"}</TableCell>
+                      <TableCell>{getStatusBadge(patient.status)}</TableCell>
+                      <TableCell>{new Date(patient.lastUpdated).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => handleEditPatient(patient)}>
+                            <Edit size={16} />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button size="icon" variant="outline" onClick={() => navigate(`/patients/${patient.id}`)}>
+                            <Eye size={16} />
+                            <span className="sr-only">View</span>
+                          </Button>
+                          
+                          {canDeletePatient(patient.created_by) ? (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="outline" className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                                  <Trash2 size={16} />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Patient</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {patient.name}'s record? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    className="bg-red-500 hover:bg-red-600" 
+                                    onClick={() => handleDeletePatient(patient.id)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="icon" variant="outline" disabled className="text-muted-foreground">
+                                    <Trash2 size={16} />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>You can only delete patients you created</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>)}
+                </TableBody>
+              </Table>
+            </div> : <div className="text-center py-12">
+            <p className="text-muted-foreground mb-2">No patients found</p>
+            {searchQuery && <p className="text-sm">
+                Try adjusting your search or{" "}
+                <button className="text-primary" onClick={() => setSearchQuery("")}>
+                  clear the search
+                </button>
+              </p>}
+          </div>}
         
-        <EditPatientDialog 
-          patient={editingPatient} 
-          open={isEditDialogOpen} 
-          onOpenChange={setIsEditDialogOpen} 
-          onUpdate={handleUpdatePatient} 
-        />
+        <EditPatientDialog patient={editingPatient} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} onUpdate={handleUpdatePatient} />
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
 
 export default Patients;
