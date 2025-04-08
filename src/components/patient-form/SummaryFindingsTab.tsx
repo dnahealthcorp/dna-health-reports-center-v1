@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown, ArrowLeft } from "lucide-react";
+import { Check, Edit, ChevronDown, ArrowLeft, ArrowLeftCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -167,13 +167,13 @@ export const SummaryFindingsTab = ({
                           {canEditDoctorSection && (
                             <div className="flex justify-end mb-1">
                               <Button 
-                                variant="outline" 
-                                size="sm" 
+                                variant="ghost" 
+                                size="icon"
                                 onClick={() => handleBackToSelect(field)}
-                                className="text-xs flex items-center"
+                                className="h-6 w-6 rounded-full"
+                                title="Back to predefined options"
                               >
-                                <ArrowLeft className="h-3 w-3 mr-1" />
-                                Back to options
+                                <ArrowLeftCircle className="h-4 w-4 text-gray-500 hover:text-primary" />
                               </Button>
                             </div>
                           )}

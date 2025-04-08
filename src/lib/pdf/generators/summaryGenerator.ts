@@ -23,14 +23,14 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Now using the imported htmlToFormattedText function
+  // Using the enhanced htmlToFormattedText function
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
     head: [
       [
-        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
-        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
+        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } },
+        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255], fontStyle: 'bold' } }
       ]
     ],
     body: [
@@ -61,7 +61,7 @@ export function generateSummarySection(
       fillColor: [245, 245, 245]
     },
     columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
+      0: { cellWidth: 50, fillColor: [240, 250, 230], fontStyle: 'bold' },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
@@ -72,6 +72,33 @@ export function generateSummarySection(
       // Add footer only on completed pages
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
+      }
+    },
+    // Enable HTML/rich text parsing in cells
+    didParseCell: function(data) {
+      // Check for markers in the cell content that indicate formatting
+      if (typeof data.cell.text === 'string') {
+        const text = data.cell.text;
+        
+        // If text contains bold markers <b>...</b>
+        if (text.includes('<b>')) {
+          const parts = [];
+          let boldParts = text.split('<b>');
+          
+          parts.push({ text: boldParts[0], style: {} });
+          
+          for (let i = 1; i < boldParts.length; i++) {
+            const boldContent = boldParts[i].split('</b>');
+            if (boldContent.length > 1) {
+              parts.push({ text: boldContent[0], style: { bold: true } });
+              parts.push({ text: boldContent[1], style: {} });
+            } else {
+              parts.push({ text: boldContent[0], style: {} });
+            }
+          }
+          
+          data.cell.text = parts;
+        }
       }
     }
   });

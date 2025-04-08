@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import { Medication } from "@/types";
 
@@ -97,18 +96,19 @@ export const addPageNumber = (doc: jsPDF, pageNumber: number, pageWidth: number)
 };
 
 /**
- * Adds the DNA Health logo to the top left corner of the PDF page
+ * Adds the DNA Health logo to the top right corner of the PDF page
  */
 export const addLogoToPage = (doc: jsPDF): void => {
   try {
-    // Position the logo in the top left corner with specific dimensions
-    const x = 20;
-    const y = 10;
+    // Position the logo in the top right corner with better dimensions
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const x = pageWidth - 60; // Position from right
+    const y = 15; // Position from top
     const logoWidth = 40;
     const logoHeight = 15;
     
     try {
-      // First attempt to use the PNG logo directly using doc.addImage as requested
+      // Use the PNG logo directly
       doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
       console.log("Logo added to PDF successfully using direct PNG method");
     } catch (directImageError) {
@@ -132,9 +132,10 @@ export const addLogoToPage = (doc: jsPDF): void => {
     
     // Final fallback - create a text-based "DNA Health" label if all else fails
     try {
+      const pageWidth = doc.internal.pageSize.getWidth();
       doc.setFontSize(12);
       doc.setTextColor(153, 188, 68); // Green color
-      doc.text("DNA HEALTH", 20, 15);
+      doc.text("DNA HEALTH", pageWidth - 20, 15, { align: "right" });
       console.log("Added text fallback for logo");
     } catch (fallbackError) {
       console.error("Failed to add any logo or text:", fallbackError);

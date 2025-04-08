@@ -1,4 +1,3 @@
-
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,25 +64,65 @@ export const stripHtml = (html: string): string => {
 
 /**
  * Helper function to convert HTML content to plain text
- * with some formatting preserved (line breaks, etc)
+ * with formatting preserved (bold, italic, lists, etc.)
+ * for use in PDF generation
  */
 export const htmlToFormattedText = (html: string): string => {
   if (!html) return "";
   
+  // Create a temporary DOM element to parse the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Process text for jsPDF-AutoTable
+  // We need to preserve bold, italic, lists, etc.
+  // This is a simplified approach for common HTML elements
+  
+  // Process bold tags
+  const boldElements = tempDiv.querySelectorAll('strong, b');
+  boldElements.forEach(el => {
+    // Create a marker that jsPDF-AutoTable can interpret
+    el.textContent = `<b>${el.textContent}</b>`;
+  });
+  
+  // Process italic tags
+  const italicElements = tempDiv.querySelectorAll('em, i');
+  italicElements.forEach(el => {
+    el.textContent = `<i>${el.textContent}</i>`;
+  });
+  
+  // Process underline tags
+  const underlineElements = tempDiv.querySelectorAll('u');
+  underlineElements.forEach(el => {
+    el.textContent = `<u>${el.textContent}</u>`;
+  });
+  
   // Replace <br>, <p>, <div> closing tags with new lines
-  let text = html
+  let text = tempDiv.innerHTML
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<\/div>/gi, '\n');
   
-  // Replace ordered list numbers
+  // Replace list items with bullet points
   text = text.replace(/<li>/gi, '• ');
-  
-  // Replace bullets
-  text = text.replace(/<ul>/gi, '\n');
   text = text.replace(/<\/li>/gi, '\n');
   
-  // Strip remaining HTML tags
+  // Replace ordered list numbers
+  const olRegex = /<ol[^>]*>([\s\S]*?)<\/ol>/gi;
+  let olMatch;
+  while ((olMatch = olRegex.exec(text)) !== null) {
+    const listItems = olMatch[1].match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+    if (listItems) {
+      let numberedList = '';
+      listItems.forEach((item, index) => {
+        const content = item.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, '$1');
+        numberedList += `${index + 1}. ${content}\n`;
+      });
+      text = text.replace(olMatch[0], numberedList);
+    }
+  }
+  
+  // Clean up any remaining HTML tags
   text = text.replace(/<[^>]*>?/gm, '');
   
   // Fix multiple consecutive line breaks
@@ -160,3 +199,6 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
     return [];
   }
 };
+
+// Export generatePDF to prevent import errors
+export { generatePDF } from "@/lib/pdf/pdfGenerator";
