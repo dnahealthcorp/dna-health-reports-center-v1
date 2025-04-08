@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -244,6 +243,9 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
+  // Import the HTML converter function
+  const { htmlToFormattedText } = require('@/services/pdfService');
+
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -254,19 +256,19 @@ function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
+      ["Glucose Metabolism", htmlToFormattedText(formData.summaryFindings.glucoseMetabolism || '')],
+      ["Proteins", htmlToFormattedText(formData.summaryFindings.proteins || '')],
+      ["Lipid Profile", htmlToFormattedText(formData.summaryFindings.lipidProfile || '')],
+      ["Inflammation", htmlToFormattedText(formData.summaryFindings.inflammation || '')],
+      ["Metabolic", htmlToFormattedText(formData.summaryFindings.metabolic || '')],
+      ["Homocysteine", htmlToFormattedText(formData.summaryFindings.homocysteine || '')],
+      ["Vitamins/Minerals", htmlToFormattedText(formData.summaryFindings.vitaminsMinerals || '')],
+      ["Iron Profile", htmlToFormattedText(formData.summaryFindings.ironProfile || '')],
+      ["Sex Hormones", htmlToFormattedText(formData.summaryFindings.sexHormones || '')],
+      ["Kidney Function and Electrolytes", htmlToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes || '')],
+      ["Liver Functions", htmlToFormattedText(formData.summaryFindings.liverFunctions || '')],
+      ["Tumor Markers", htmlToFormattedText(formData.summaryFindings.tumorMarkers || '')],
+      ["Blood Counts", htmlToFormattedText(formData.summaryFindings.bloodCounts || '')]
     ],
     styles: {
       fontSize: 10,

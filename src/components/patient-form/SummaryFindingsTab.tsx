@@ -4,10 +4,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown } from "lucide-react";
+import { Check, Edit, ChevronDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { Button } from "@/components/ui/button";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -119,6 +120,11 @@ export const SummaryFindingsTab = ({
   const isCustomValue = (field: SummaryFindingField, value: string) => {
     return value !== "" && !predefinedOptions[field].includes(value);
   };
+  
+  // Handle going back to select mode from editor
+  const handleBackToSelect = (field: string) => {
+    setEditingFields(prev => ({ ...prev, [field]: false }));
+  };
 
   return <Card>
       <CardHeader>
@@ -158,6 +164,19 @@ export const SummaryFindingsTab = ({
                     <td className="px-4 py-2 border">
                       {isEditing ? (
                         <div className="quill-wrapper">
+                          {canEditDoctorSection && (
+                            <div className="flex justify-end mb-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleBackToSelect(field)}
+                                className="text-xs flex items-center"
+                              >
+                                <ArrowLeft className="h-3 w-3 mr-1" />
+                                Back to options
+                              </Button>
+                            </div>
+                          )}
                           <ReactQuill
                             theme="snow"
                             value={value}

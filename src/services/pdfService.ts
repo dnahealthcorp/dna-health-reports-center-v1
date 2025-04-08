@@ -1,3 +1,4 @@
+
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,43 @@ export const savePDFReference = async (patientId: string, fileName: string, file
     console.error(`Error saving PDF reference for patient ${patientId} to Supabase:`, error);
     throw error;
   }
+};
+
+/**
+ * Helper function to strip HTML tags from a string
+ */
+export const stripHtml = (html: string): string => {
+  if (!html) return "";
+  return html.replace(/<[^>]*>?/gm, '');
+};
+
+/**
+ * Helper function to convert HTML content to plain text
+ * with some formatting preserved (line breaks, etc)
+ */
+export const htmlToFormattedText = (html: string): string => {
+  if (!html) return "";
+  
+  // Replace <br>, <p>, <div> closing tags with new lines
+  let text = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n');
+  
+  // Replace ordered list numbers
+  text = text.replace(/<li>/gi, '• ');
+  
+  // Replace bullets
+  text = text.replace(/<ul>/gi, '\n');
+  text = text.replace(/<\/li>/gi, '\n');
+  
+  // Strip remaining HTML tags
+  text = text.replace(/<[^>]*>?/gm, '');
+  
+  // Fix multiple consecutive line breaks
+  text = text.replace(/\n\s*\n/g, '\n\n');
+  
+  return text.trim();
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {
