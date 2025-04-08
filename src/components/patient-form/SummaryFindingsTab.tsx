@@ -168,9 +168,9 @@ export const SummaryFindingsTab = ({
                             <div className="flex justify-end mb-1">
                               <Button 
                                 variant="ghost" 
-                                size="icon"
+                                size="sm"
                                 onClick={() => handleBackToSelect(field)}
-                                className="h-6 w-6 rounded-full"
+                                className="h-8 w-8 rounded-full flex items-center justify-center"
                                 title="Back to predefined options"
                               >
                                 <ArrowLeftCircle className="h-4 w-4 text-gray-500 hover:text-primary" />

@@ -103,15 +103,15 @@ export const addLogoToPage = (doc: jsPDF): void => {
   try {
     // Position the logo in the top right corner with proper dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
-    const x = pageWidth - 45; // Position from right
+    const x = pageWidth - 40; // Position from right
     const y = 10; // Position from top
-    const logoWidth = 35;
-    const logoHeight = 14;
+    const logoWidth = 30;
+    const logoHeight = 12;
     
     try {
-      // First try to use the SVG logo from public/assets
+      // First try to use the logo as an SVG
       doc.addSvgAsImage(
-        '/assets/DNA Logo - Grey.svg', 
+        '/assets/dna-logo.svg', 
         x, 
         y, 
         logoWidth, 
@@ -119,19 +119,20 @@ export const addLogoToPage = (doc: jsPDF): void => {
       );
       console.log("Logo added to PDF successfully using SVG method");
     } catch (svgError) {
-      console.warn("Could not add SVG logo, trying PNG method:", svgError);
+      console.warn("Could not add SVG logo, trying image method:", svgError);
       
-      // Fallback to PNG logo
+      // Fallback to image logo
       try {
         doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
         console.log("Logo added to PDF successfully using PNG method");
       } catch (pngError) {
-        console.warn("Could not add PNG logo:", pngError);
+        console.warn("Could not add PNG logo, using text fallback:", pngError);
         
         // Final text fallback
-        doc.setFontSize(12);
-        doc.setTextColor(153, 188, 68); // Green color for "DNA"
-        doc.text("DNA HEALTH", pageWidth - 15, 15, { align: "right" });
+        doc.setFontSize(14);
+        doc.setTextColor(153, 188, 68); // Green color for DNA
+        doc.setFont("helvetica", "bold");
+        doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
         console.log("Added text fallback for logo");
       }
     }
@@ -141,10 +142,11 @@ export const addLogoToPage = (doc: jsPDF): void => {
     // Ultimate fallback - create a text-based label if all else fails
     try {
       const pageWidth = doc.internal.pageSize.getWidth();
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.setTextColor(153, 188, 68); // Green color
-      doc.text("DNA HEALTH", pageWidth - 15, 15, { align: "right" });
-      console.log("Added text fallback for logo");
+      doc.setFont("helvetica", "bold");
+      doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
+      console.log("Added text fallback for logo due to error");
     } catch (fallbackError) {
       console.error("Failed to add any logo or text:", fallbackError);
     }

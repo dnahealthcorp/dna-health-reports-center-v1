@@ -76,55 +76,92 @@ export function generateSummarySection(
     },
     // Enhanced cell parser to handle text formatting
     didParseCell: function(data) {
-      // Check for markers in the cell content that indicate formatting
-      if (data.cell.text && typeof data.cell.text === 'string') {
-        const text = data.cell.text as string;
+      // Skip non-text cells or cells with already processed text
+      if (!data.cell.text || typeof data.cell.text !== 'string' || Array.isArray(data.cell.text)) {
+        return;
+      }
+      
+      const text = data.cell.text as string;
+      let formattedContent = [];
+      
+      // Check for formatting tags
+      if (text.includes('<b>') || text.includes('<i>') || text.includes('<u>')) {
+        // Process the text to handle multiple formatting tags
+        let currentIndex = 0;
+        let remainingText = text;
         
-        // If text contains bold markers <b>...</b>
-        if (text.includes('<b>')) {
-          const parts: Array<{text: string, style: Record<string, any>}> = [];
-          const boldParts = text.split('<b>');
-          
-          // Add the first part (before any bold tags)
-          parts.push({ text: boldParts[0], style: {} });
-          
-          // Process each bold section
-          for (let i = 1; i < boldParts.length; i++) {
-            const boldContent = boldParts[i].split('</b>');
-            if (boldContent.length > 1) {
-              // This is the bold text
-              parts.push({ text: boldContent[0], style: { bold: true } });
-              // This is the text after the bold section
-              parts.push({ text: boldContent[1], style: {} });
-            } else {
-              // If there's no closing tag, treat it as normal text
-              parts.push({ text: boldContent[0], style: {} });
+        // Find all formatting tags in sequence
+        while (currentIndex < remainingText.length) {
+          // Check for bold text
+          const boldStartIndex = remainingText.indexOf('<b>', currentIndex);
+          if (boldStartIndex !== -1) {
+            // Add text before the bold tag
+            if (boldStartIndex > currentIndex) {
+              formattedContent.push({
+                text: remainingText.substring(currentIndex, boldStartIndex),
+                style: {}
+              });
             }
+            
+            const boldEndIndex = remainingText.indexOf('</b>', boldStartIndex);
+            if (boldEndIndex !== -1) {
+              // Add the bold text
+              formattedContent.push({
+                text: remainingText.substring(boldStartIndex + 3, boldEndIndex),
+                style: { bold: true }
+              });
+              currentIndex = boldEndIndex + 4; // Move past the closing tag
+            } else {
+              // No closing tag, treat the rest as normal text
+              formattedContent.push({
+                text: remainingText.substring(currentIndex),
+                style: {}
+              });
+              break;
+            }
+          } 
+          // Check for italic text
+          else if (remainingText.indexOf('<i>', currentIndex) !== -1) {
+            const italicStartIndex = remainingText.indexOf('<i>', currentIndex);
+            
+            // Add text before the italic tag
+            if (italicStartIndex > currentIndex) {
+              formattedContent.push({
+                text: remainingText.substring(currentIndex, italicStartIndex),
+                style: {}
+              });
+            }
+            
+            const italicEndIndex = remainingText.indexOf('</i>', italicStartIndex);
+            if (italicEndIndex !== -1) {
+              // Add the italic text
+              formattedContent.push({
+                text: remainingText.substring(italicStartIndex + 3, italicEndIndex),
+                style: { italic: true }
+              });
+              currentIndex = italicEndIndex + 4; // Move past the closing tag
+            } else {
+              // No closing tag, treat the rest as normal text
+              formattedContent.push({
+                text: remainingText.substring(currentIndex),
+                style: {}
+              });
+              break;
+            }
+          } 
+          // Add any remaining text without formatting
+          else {
+            formattedContent.push({
+              text: remainingText.substring(currentIndex),
+              style: {}
+            });
+            break;
           }
-          
-          // Replace the text with the formatted parts
-          data.cell.text = parts;
         }
         
-        // Handle italic text if present
-        if (text.includes('<i>') && typeof data.cell.text === 'string') {
-          const italicText = data.cell.text as string;
-          const parts: Array<{text: string, style: Record<string, any>}> = [];
-          const italicParts = italicText.split('<i>');
-          
-          parts.push({ text: italicParts[0], style: {} });
-          
-          for (let i = 1; i < italicParts.length; i++) {
-            const italicContent = italicParts[i].split('</i>');
-            if (italicContent.length > 1) {
-              parts.push({ text: italicContent[0], style: { italic: true } });
-              parts.push({ text: italicContent[1], style: {} });
-            } else {
-              parts.push({ text: italicContent[0], style: {} });
-            }
-          }
-          
-          data.cell.text = parts;
+        // Update cell content with formatted parts if we found any
+        if (formattedContent.length > 0) {
+          data.cell.text = formattedContent;
         }
       }
     }
