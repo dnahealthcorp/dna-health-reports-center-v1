@@ -70,47 +70,32 @@ export const stripHtml = (html: string): string => {
 export const htmlToFormattedText = (html: string): string => {
   if (!html) return "";
   
-  // Create a temporary DOM element to parse the HTML
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
+  // Replace direct HTML tag sequences with special markers the PDF processor can understand
+  // For bold text in jsPDF-AutoTable
+  let processedText = html.replace(/<strong>|<b>/g, '<b>');
+  processedText = processedText.replace(/<\/strong>|<\/b>/g, '</b>');
   
-  // Process text for jsPDF-AutoTable
-  // We need to preserve bold, italic, lists, etc.
-  // This is a simplified approach for common HTML elements
+  // For italic text
+  processedText = processedText.replace(/<em>|<i>/g, '<i>');
+  processedText = processedText.replace(/<\/em>|<\/i>/g, '</i>');
   
-  // Process bold tags
-  const boldElements = tempDiv.querySelectorAll('strong, b');
-  boldElements.forEach(el => {
-    // Create a marker that jsPDF-AutoTable can interpret
-    el.textContent = `<b>${el.textContent}</b>`;
-  });
-  
-  // Process italic tags
-  const italicElements = tempDiv.querySelectorAll('em, i');
-  italicElements.forEach(el => {
-    el.textContent = `<i>${el.textContent}</i>`;
-  });
-  
-  // Process underline tags
-  const underlineElements = tempDiv.querySelectorAll('u');
-  underlineElements.forEach(el => {
-    el.textContent = `<u>${el.textContent}</u>`;
-  });
+  // For underline text
+  processedText = processedText.replace(/<u>/g, '<u>');
+  processedText = processedText.replace(/<\/u>/g, '</u>');
   
   // Replace <br>, <p>, <div> closing tags with new lines
-  let text = tempDiv.innerHTML
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/div>/gi, '\n');
+  processedText = processedText.replace(/<br\s*\/?>/gi, '\n');
+  processedText = processedText.replace(/<\/p>/gi, '\n');
+  processedText = processedText.replace(/<\/div>/gi, '\n');
   
   // Replace list items with bullet points
-  text = text.replace(/<li>/gi, '• ');
-  text = text.replace(/<\/li>/gi, '\n');
+  processedText = processedText.replace(/<li>/gi, '• ');
+  processedText = processedText.replace(/<\/li>/gi, '\n');
   
-  // Replace ordered list numbers
+  // Replace ordered list items with numbered points
   const olRegex = /<ol[^>]*>([\s\S]*?)<\/ol>/gi;
   let olMatch;
-  while ((olMatch = olRegex.exec(text)) !== null) {
+  while ((olMatch = olRegex.exec(html)) !== null) {
     const listItems = olMatch[1].match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
     if (listItems) {
       let numberedList = '';
@@ -118,17 +103,19 @@ export const htmlToFormattedText = (html: string): string => {
         const content = item.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, '$1');
         numberedList += `${index + 1}. ${content}\n`;
       });
-      text = text.replace(olMatch[0], numberedList);
+      processedText = processedText.replace(olMatch[0], numberedList);
     }
   }
   
-  // Clean up any remaining HTML tags
-  text = text.replace(/<[^>]*>?/gm, '');
+  // Remove paragraph and div opening tags and other remaining HTML tags
+  // but leave our special markers alone
+  const cleanupRegex = /<(?!\/?(b|i|u)>)[^>]+>/g;
+  processedText = processedText.replace(cleanupRegex, '');
   
   // Fix multiple consecutive line breaks
-  text = text.replace(/\n\s*\n/g, '\n\n');
+  processedText = processedText.replace(/\n\s*\n/g, '\n\n');
   
-  return text.trim();
+  return processedText.trim();
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {

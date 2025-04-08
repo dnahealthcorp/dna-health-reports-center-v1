@@ -74,26 +74,53 @@ export function generateSummarySection(
         addFooter(doc, pageWidth);
       }
     },
-    // Enable HTML/rich text parsing in cells
+    // Enhanced cell parser to handle text formatting
     didParseCell: function(data) {
       // Check for markers in the cell content that indicate formatting
       if (data.cell.text && typeof data.cell.text === 'string') {
-        const text = data.cell.text;
+        const text = data.cell.text as string;
         
         // If text contains bold markers <b>...</b>
         if (text.includes('<b>')) {
-          const parts = [];
-          let boldParts = text.split('<b>');
+          const parts: Array<{text: string, style: Record<string, any>}> = [];
+          const boldParts = text.split('<b>');
           
+          // Add the first part (before any bold tags)
           parts.push({ text: boldParts[0], style: {} });
           
+          // Process each bold section
           for (let i = 1; i < boldParts.length; i++) {
             const boldContent = boldParts[i].split('</b>');
             if (boldContent.length > 1) {
+              // This is the bold text
               parts.push({ text: boldContent[0], style: { bold: true } });
+              // This is the text after the bold section
               parts.push({ text: boldContent[1], style: {} });
             } else {
+              // If there's no closing tag, treat it as normal text
               parts.push({ text: boldContent[0], style: {} });
+            }
+          }
+          
+          // Replace the text with the formatted parts
+          data.cell.text = parts;
+        }
+        
+        // Handle italic text if present
+        if (text.includes('<i>') && typeof data.cell.text === 'string') {
+          const italicText = data.cell.text as string;
+          const parts: Array<{text: string, style: Record<string, any>}> = [];
+          const italicParts = italicText.split('<i>');
+          
+          parts.push({ text: italicParts[0], style: {} });
+          
+          for (let i = 1; i < italicParts.length; i++) {
+            const italicContent = italicParts[i].split('</i>');
+            if (italicContent.length > 1) {
+              parts.push({ text: italicContent[0], style: { italic: true } });
+              parts.push({ text: italicContent[1], style: {} });
+            } else {
+              parts.push({ text: italicContent[0], style: {} });
             }
           }
           
