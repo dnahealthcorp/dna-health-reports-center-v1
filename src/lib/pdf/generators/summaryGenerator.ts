@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
 import { addLogoToPage, addFooter, ensureSpace } from "../pdfUtilities";
+import { htmlToFormattedText } from "@/services/pdfService";
 
 /**
  * Section 4: Summary of Findings (striped).
@@ -22,9 +23,7 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Import the HTML converter function
-  const { htmlToFormattedText } = require('@/services/pdfService');
-
+  // Now using the imported htmlToFormattedText function
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
