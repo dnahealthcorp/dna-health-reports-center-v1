@@ -1,9 +1,10 @@
-
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
+import htmlToPdfmake from 'html-to-pdfmake';
+import { JSDOM } from 'jsdom';
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
@@ -64,68 +65,49 @@ export const stripHtml = (html: string): string => {
 };
 
 /**
- * Helper function to convert HTML content to formatted text
- * that can be properly parsed by the PDF generator
+ * Converts HTML content to a structure compatible with pdfMake
+ * This preserves rich text formatting including bold, italic, lists, etc.
  */
-export const htmlToFormattedText = (html: string): string => {
+export const htmlToFormattedText = (html: string): any => {
   if (!html) return "";
   
-  // First clean up any excessive whitespace and normalize line breaks
-  let processedText = html.replace(/\s+/g, ' ').trim();
-  
-  // Replace <p> tags with proper spacing
-  processedText = processedText.replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '\n\n');
-  
-  // Handle basic formatting - we'll use special marker tags that our PDF renderer can recognize
-  // Bold formatting
-  processedText = processedText.replace(/<strong>|<b>/gi, '<b>');
-  processedText = processedText.replace(/<\/strong>|<\/b>/gi, '</b>');
-  
-  // Italic formatting
-  processedText = processedText.replace(/<em>|<i>/gi, '<i>');
-  processedText = processedText.replace(/<\/em>|<\/i>/gi, '</i>');
-  
-  // Underline formatting
-  processedText = processedText.replace(/<u>/gi, '<u>');
-  processedText = processedText.replace(/<\/u>/gi, '</u>');
-  
-  // Replace <br> tags with line breaks
-  processedText = processedText.replace(/<br\s*\/?>/gi, '\n');
-  processedText = processedText.replace(/<\/div>/gi, '\n');
-  
-  // Handle list items
-  processedText = processedText.replace(/<li>/gi, '• ');
-  processedText = processedText.replace(/<\/li>/gi, '\n');
-  
-  // Handle ordered lists by converting them to numbered items
-  const olRegex = /<ol[^>]*>([\s\S]*?)<\/ol>/gi;
-  let olMatch;
-  while ((olMatch = olRegex.exec(html)) !== null) {
-    const listContent = olMatch[1];
-    const listItems = listContent.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+  try {
+    // Create a virtual DOM to parse HTML safely
+    const window = new JSDOM('').window;
+    const document = window.document;
     
-    if (listItems) {
-      let numberedList = '';
-      listItems.forEach((item, index) => {
-        const content = item.replace(/<li[^>]*>([\s\S]*?)<\/li>/i, '$1');
-        numberedList += `${index + 1}. ${content}\n`;
-      });
-      
-      // Replace the entire <ol> with our numbered list
-      processedText = processedText.replace(olMatch[0], numberedList);
+    // Clean and normalize HTML
+    let cleanHtml = html.trim();
+    
+    // Fix common issues with HTML from WYSIWYG editors
+    cleanHtml = cleanHtml
+      .replace(/<p><br><\/p>/gi, '<p>&nbsp;</p>')
+      .replace(/<div><br><\/div>/gi, '<div>&nbsp;</div>');
+    
+    // Use html-to-pdfmake to convert HTML to pdfMake compatible format
+    const content = htmlToPdfmake(cleanHtml, {
+      window,
+      defaultStyles: {
+        b: { bold: true },
+        strong: { bold: true },
+        i: { italics: true },
+        em: { italics: true },
+        u: { decoration: 'underline' }
+      }
+    });
+    
+    // If the result is simple text, return it as a string
+    if (typeof content === 'string') {
+      return content;
     }
+    
+    return content;
+  } catch (error) {
+    console.error("Error converting HTML to formatted text:", error);
+    
+    // Fallback to simple text if conversion fails
+    return stripHtml(html);
   }
-  
-  // Remove any remaining HTML tags except for our marker tags (<b>, <i>, <u>)
-  // We'll preserve these special tags for the PDF renderer to interpret
-  const cleanupRegex = /<(?!\/?(b|i|u)>)[^>]+>/g;
-  processedText = processedText.replace(cleanupRegex, '');
-  
-  // Fix extra line breaks
-  processedText = processedText.replace(/\n\s*\n/g, '\n\n');
-  processedText = processedText.replace(/\n{3,}/g, '\n\n');
-  
-  return processedText.trim();
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {

@@ -1,13 +1,33 @@
 
-import { jsPDF } from "jspdf";
 import { PatientFormData, Medication } from "@/types";
 import { savePDFReference } from "@/services/pdfService";
 import { generatePDF } from "@/lib/pdf/pdfGenerator";
+import { prepareHtmlForPdf } from "@/lib/pdf/richTextUtils";
 
 export const generateAndSavePDF = async (formData: PatientFormData, medications: Medication[], patientId: string): Promise<string> => {
   try {
-    // Step 1: Generate the PDF content
-    const pdfBlob = await generatePDF(formData, medications);
+    // Prepare form data by processing HTML fields
+    const processedFormData = {
+      ...formData,
+      summaryFindings: {
+        glucoseMetabolism: prepareHtmlForPdf(formData.summaryFindings.glucoseMetabolism || ''),
+        proteins: prepareHtmlForPdf(formData.summaryFindings.proteins || ''),
+        lipidProfile: prepareHtmlForPdf(formData.summaryFindings.lipidProfile || ''),
+        inflammation: prepareHtmlForPdf(formData.summaryFindings.inflammation || ''),
+        metabolic: prepareHtmlForPdf(formData.summaryFindings.metabolic || ''),
+        homocysteine: prepareHtmlForPdf(formData.summaryFindings.homocysteine || ''),
+        vitaminsMinerals: prepareHtmlForPdf(formData.summaryFindings.vitaminsMinerals || ''),
+        ironProfile: prepareHtmlForPdf(formData.summaryFindings.ironProfile || ''),
+        sexHormones: prepareHtmlForPdf(formData.summaryFindings.sexHormones || ''),
+        kidneyFunctionElectrolytes: prepareHtmlForPdf(formData.summaryFindings.kidneyFunctionElectrolytes || ''),
+        liverFunctions: prepareHtmlForPdf(formData.summaryFindings.liverFunctions || ''),
+        tumorMarkers: prepareHtmlForPdf(formData.summaryFindings.tumorMarkers || ''),
+        bloodCounts: prepareHtmlForPdf(formData.summaryFindings.bloodCounts || '')
+      }
+    };
+    
+    // Step 1: Generate the PDF content with processed HTML
+    const pdfBlob = await generatePDF(processedFormData, medications);
     
     // Step 2: Create a filename
     const timestamp = new Date().toISOString().replace(/:/g, '-');

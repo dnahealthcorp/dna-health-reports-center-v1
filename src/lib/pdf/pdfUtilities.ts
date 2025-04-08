@@ -103,37 +103,39 @@ export const addLogoToPage = (doc: jsPDF): void => {
   try {
     // Position the logo in the top right corner with proper dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
-    const x = pageWidth - 40; // Position from right
-    const y = 10; // Position from top
     const logoWidth = 30;
-    const logoHeight = 12;
+    const logoHeight = 16;
+    const x = pageWidth - logoWidth - 10; // Position from right with proper margin
+    const y = 10; // Position from top
     
     try {
-      // First try to use the logo as an SVG
-      doc.addSvgAsImage(
-        '/assets/dna-logo.svg', 
-        x, 
-        y, 
-        logoWidth, 
-        logoHeight
-      );
-      console.log("Logo added to PDF successfully using SVG method");
+      // Try using the grey version of the logo which looks better in PDFs
+      doc.addImage("/assets/DNA Logo - Grey.svg", "SVG", x, y, logoWidth, logoHeight);
+      console.log("Grey logo added to PDF successfully");
     } catch (svgError) {
-      console.warn("Could not add SVG logo, trying image method:", svgError);
+      console.warn("Could not add SVG grey logo:", svgError);
       
-      // Fallback to image logo
+      // Try standard logo as SVG
       try {
-        doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
-        console.log("Logo added to PDF successfully using PNG method");
-      } catch (pngError) {
-        console.warn("Could not add PNG logo, using text fallback:", pngError);
+        doc.addSvgAsImage("/assets/dna-logo.svg", x, y, logoWidth, logoHeight);
+        console.log("Standard SVG logo added to PDF successfully");
+      } catch (stdSvgError) {
+        console.warn("Could not add standard SVG logo:", stdSvgError);
         
-        // Final text fallback
-        doc.setFontSize(14);
-        doc.setTextColor(153, 188, 68); // Green color for DNA
-        doc.setFont("helvetica", "bold");
-        doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
-        console.log("Added text fallback for logo");
+        // Fallback to PNG
+        try {
+          doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
+          console.log("PNG logo added to PDF successfully");
+        } catch (pngError) {
+          console.warn("Could not add PNG logo, using text fallback:", pngError);
+          
+          // Final text fallback
+          doc.setFontSize(14);
+          doc.setTextColor(153, 188, 68); // Green color for DNA
+          doc.setFont("helvetica", "bold");
+          doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
+          console.log("Added text fallback for logo");
+        }
       }
     }
   } catch (error) {
