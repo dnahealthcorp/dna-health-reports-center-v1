@@ -71,17 +71,21 @@ export function generateDoctorsRecommendationsSection(
       // Only process cells in the second column (index 1) that contain HTML
       if (data.column.index === 1 && data.cell.raw && typeof data.cell.raw === 'string' && 
           data.cell.raw.includes('<')) {
-        const cellRect = data.cell.rect;
-        // Clear the cell since we'll redraw with our custom renderer
-        const padding = 2; // Match cell padding from styles
+        // Access cell properties correctly
+        const cellX = data.cell.x;
+        const cellY = data.cell.y;
+        const cellWidth = data.cell.width;
+        const cellHeight = data.cell.height;
         
         // Use our rich text renderer within the cell boundaries
+        const padding = 2; // Match cell padding from styles
+        
         renderRichText(
           doc, 
           prepareHtmlForPdf(data.cell.raw), 
-          cellRect.x + padding, 
-          cellRect.y + padding + 2, // Add a bit more vertical padding
-          cellRect.w - (padding * 2)
+          cellX + padding, 
+          cellY + padding + 2, // Add a bit more vertical padding
+          cellWidth - (padding * 2)
         );
       }
     }
