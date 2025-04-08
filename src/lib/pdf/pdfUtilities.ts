@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import { Medication } from "@/types";
 
@@ -102,10 +103,10 @@ export const addLogoToPage = (doc: jsPDF): void => {
   try {
     // Position the logo in the top right corner with better dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
-    const x = pageWidth - 60; // Position from right
-    const y = 15; // Position from top
-    const logoWidth = 40;
-    const logoHeight = 15;
+    const x = pageWidth - 50; // Position from right
+    const y = 10; // Position from top
+    const logoWidth = 30;
+    const logoHeight = 12;
     
     try {
       // Use the PNG logo directly

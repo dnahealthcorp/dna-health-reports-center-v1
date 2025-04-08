@@ -77,7 +77,7 @@ export function generateSummarySection(
     // Enable HTML/rich text parsing in cells
     didParseCell: function(data) {
       // Check for markers in the cell content that indicate formatting
-      if (typeof data.cell.text === 'string') {
+      if (data.cell.text && typeof data.cell.text === 'string') {
         const text = data.cell.text;
         
         // If text contains bold markers <b>...</b>
