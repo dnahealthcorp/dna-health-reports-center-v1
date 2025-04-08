@@ -3,8 +3,8 @@ import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
-import htmlToPdfmake from 'html-to-pdfmake';
 import { JSDOM } from 'jsdom';
+import htmlToPdfmake from 'html-to-pdfmake';
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
@@ -65,47 +65,34 @@ export const stripHtml = (html: string): string => {
 };
 
 /**
- * Converts HTML content to a structure compatible with pdfMake
- * This preserves rich text formatting including bold, italic, lists, etc.
+ * Browser-compatible function to convert HTML to pdfMake format
+ * This preserves rich text formatting without requiring Node.js modules
  */
 export const htmlToFormattedText = (html: string): any => {
-  if (!html) return "";
+  if (!html || html === '') return '';
   
   try {
-    // Create a virtual DOM to parse HTML safely
-    const window = new JSDOM('').window;
-    const document = window.document;
+    // Use browser's built-in DOM parser instead of JSDOM
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
     
-    // Clean and normalize HTML
-    let cleanHtml = html.trim();
-    
-    // Fix common issues with HTML from WYSIWYG editors
-    cleanHtml = cleanHtml
-      .replace(/<p><br><\/p>/gi, '<p>&nbsp;</p>')
-      .replace(/<div><br><\/div>/gi, '<div>&nbsp;</div>');
-    
-    // Use html-to-pdfmake to convert HTML to pdfMake compatible format
-    const content = htmlToPdfmake(cleanHtml, {
-      window,
+    // Use html-to-pdfmake with browser's document
+    const content = htmlToPdfmake(html, {
+      window: window,
       defaultStyles: {
         b: { bold: true },
         strong: { bold: true },
         i: { italics: true },
         em: { italics: true },
-        u: { decoration: 'underline' }
+        u: { decoration: 'underline' },
+        s: { decoration: 'lineThrough' }
       }
     });
-    
-    // If the result is simple text, return it as a string
-    if (typeof content === 'string') {
-      return content;
-    }
     
     return content;
   } catch (error) {
     console.error("Error converting HTML to formatted text:", error);
-    
-    // Fallback to simple text if conversion fails
+    // Fallback to simple text
     return stripHtml(html);
   }
 };

@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
 import { addLogoToPage, addFooter, ensureSpace } from "../pdfUtilities";
-import { htmlToFormattedText } from "@/services/pdfService";
+import { htmlToPdfMakeContent } from "@/lib/pdf/richTextUtils";
 
 /**
  * Section 4: Summary of Findings (striped).
@@ -24,23 +24,23 @@ export function generateSummarySection(
   currentY += 8;
 
   // Create table body with formatted HTML content
+  // Using htmlToPdfMakeContent to preserve formatting
   const tableBody = [
-    ["Glucose Metabolism", htmlToFormattedText(formData.summaryFindings.glucoseMetabolism || '')],
-    ["Proteins", htmlToFormattedText(formData.summaryFindings.proteins || '')],
-    ["Lipid Profile", htmlToFormattedText(formData.summaryFindings.lipidProfile || '')],
-    ["Inflammation", htmlToFormattedText(formData.summaryFindings.inflammation || '')],
-    ["Metabolic", htmlToFormattedText(formData.summaryFindings.metabolic || '')],
-    ["Homocysteine", htmlToFormattedText(formData.summaryFindings.homocysteine || '')],
-    ["Vitamins/Minerals", htmlToFormattedText(formData.summaryFindings.vitaminsMinerals || '')],
-    ["Iron Profile", htmlToFormattedText(formData.summaryFindings.ironProfile || '')],
-    ["Sex Hormones", htmlToFormattedText(formData.summaryFindings.sexHormones || '')],
-    ["Kidney Function and Electrolytes", htmlToFormattedText(formData.summaryFindings.kidneyFunctionElectrolytes || '')],
-    ["Liver Functions", htmlToFormattedText(formData.summaryFindings.liverFunctions || '')],
-    ["Tumor Markers", htmlToFormattedText(formData.summaryFindings.tumorMarkers || '')],
-    ["Blood Counts", htmlToFormattedText(formData.summaryFindings.bloodCounts || '')]
+    ["Glucose Metabolism", htmlToPdfMakeContent(formData.summaryFindings.glucoseMetabolism || '')],
+    ["Proteins", htmlToPdfMakeContent(formData.summaryFindings.proteins || '')],
+    ["Lipid Profile", htmlToPdfMakeContent(formData.summaryFindings.lipidProfile || '')],
+    ["Inflammation", htmlToPdfMakeContent(formData.summaryFindings.inflammation || '')],
+    ["Metabolic", htmlToPdfMakeContent(formData.summaryFindings.metabolic || '')],
+    ["Homocysteine", htmlToPdfMakeContent(formData.summaryFindings.homocysteine || '')],
+    ["Vitamins/Minerals", htmlToPdfMakeContent(formData.summaryFindings.vitaminsMinerals || '')],
+    ["Iron Profile", htmlToPdfMakeContent(formData.summaryFindings.ironProfile || '')],
+    ["Sex Hormones", htmlToPdfMakeContent(formData.summaryFindings.sexHormones || '')],
+    ["Kidney Function and Electrolytes", htmlToPdfMakeContent(formData.summaryFindings.kidneyFunctionElectrolytes || '')],
+    ["Liver Functions", htmlToPdfMakeContent(formData.summaryFindings.liverFunctions || '')],
+    ["Tumor Markers", htmlToPdfMakeContent(formData.summaryFindings.tumorMarkers || '')],
+    ["Blood Counts", htmlToPdfMakeContent(formData.summaryFindings.bloodCounts || '')]
   ];
 
-  // Using the enhanced htmlToFormattedText function
   autoTable(doc, {
     startY: currentY,
     theme: "grid",

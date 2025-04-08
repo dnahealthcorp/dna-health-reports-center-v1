@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import { Medication } from "@/types";
 
@@ -109,48 +108,36 @@ export const addLogoToPage = (doc: jsPDF): void => {
     const y = 10; // Position from top
     
     try {
-      // Try using the grey version of the logo which looks better in PDFs
+      // Try using SVG image first
       doc.addImage("/assets/DNA Logo - Grey.svg", "SVG", x, y, logoWidth, logoHeight);
       console.log("Grey logo added to PDF successfully");
     } catch (svgError) {
-      console.warn("Could not add SVG grey logo:", svgError);
-      
-      // Try standard logo as SVG
+      // Fallback to PNG if SVG fails
+      console.warn("SVG logo failed, trying PNG:", svgError);
       try {
-        doc.addSvgAsImage("/assets/dna-logo.svg", x, y, logoWidth, logoHeight);
-        console.log("Standard SVG logo added to PDF successfully");
-      } catch (stdSvgError) {
-        console.warn("Could not add standard SVG logo:", stdSvgError);
-        
-        // Fallback to PNG
-        try {
-          doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
-          console.log("PNG logo added to PDF successfully");
-        } catch (pngError) {
-          console.warn("Could not add PNG logo, using text fallback:", pngError);
-          
-          // Final text fallback
-          doc.setFontSize(14);
-          doc.setTextColor(153, 188, 68); // Green color for DNA
-          doc.setFont("helvetica", "bold");
-          doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
-          console.log("Added text fallback for logo");
-        }
+        doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
+        console.log("PNG logo added to PDF successfully");
+      } catch (pngError) {
+        // Ultimate fallback - create a text-based label if all image options fail
+        console.warn("Could not add logo images, using text:", pngError);
+        doc.setFontSize(14);
+        doc.setTextColor(153, 188, 68);
+        doc.setFont("helvetica", "bold");
+        doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
       }
     }
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
     
-    // Ultimate fallback - create a text-based label if all else fails
+    // Final fallback - create a text-based label if all other options fail
     try {
       const pageWidth = doc.internal.pageSize.getWidth();
       doc.setFontSize(14);
-      doc.setTextColor(153, 188, 68); // Green color
+      doc.setTextColor(153, 188, 68);
       doc.setFont("helvetica", "bold");
       doc.text("DNA HEALTH", pageWidth - 10, 15, { align: "right" });
-      console.log("Added text fallback for logo due to error");
     } catch (fallbackError) {
-      console.error("Failed to add any logo or text:", fallbackError);
+      console.error("Failed even text fallback:", fallbackError);
     }
   }
 };
