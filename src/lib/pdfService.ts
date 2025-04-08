@@ -36,3 +36,7 @@ export const generateAndSavePDF = async (formData: PatientFormData, medications:
     throw error;
   }
 };
+
+// Re-export the generatePDF function from pdfGenerator
+// This ensures that components importing from pdfService can access this function
+export { generatePDF } from "@/lib/pdf/pdfGenerator";
