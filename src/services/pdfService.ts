@@ -3,8 +3,6 @@ import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
-import { JSDOM } from 'jsdom';
-import htmlToPdfmake from 'html-to-pdfmake';
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
@@ -72,11 +70,12 @@ export const htmlToFormattedText = (html: string): any => {
   if (!html || html === '') return '';
   
   try {
-    // Use browser's built-in DOM parser instead of JSDOM
+    // Use browser's built-in DOM parser
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     
     // Use html-to-pdfmake with browser's document
+    const htmlToPdfmake = require('html-to-pdfmake');
     const content = htmlToPdfmake(html, {
       window: window,
       defaultStyles: {

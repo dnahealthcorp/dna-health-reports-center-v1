@@ -6,23 +6,40 @@ import { prepareHtmlForPdf } from "@/lib/pdf/richTextUtils";
 
 export const generateAndSavePDF = async (formData: PatientFormData, medications: Medication[], patientId: string): Promise<string> => {
   try {
-    // Prepare form data by processing HTML fields
+    // Prepare form data by processing HTML fields for all rich text fields
     const processedFormData = {
       ...formData,
       summaryFindings: {
-        glucoseMetabolism: prepareHtmlForPdf(formData.summaryFindings.glucoseMetabolism || ''),
-        proteins: prepareHtmlForPdf(formData.summaryFindings.proteins || ''),
-        lipidProfile: prepareHtmlForPdf(formData.summaryFindings.lipidProfile || ''),
-        inflammation: prepareHtmlForPdf(formData.summaryFindings.inflammation || ''),
-        metabolic: prepareHtmlForPdf(formData.summaryFindings.metabolic || ''),
-        homocysteine: prepareHtmlForPdf(formData.summaryFindings.homocysteine || ''),
-        vitaminsMinerals: prepareHtmlForPdf(formData.summaryFindings.vitaminsMinerals || ''),
-        ironProfile: prepareHtmlForPdf(formData.summaryFindings.ironProfile || ''),
-        sexHormones: prepareHtmlForPdf(formData.summaryFindings.sexHormones || ''),
-        kidneyFunctionElectrolytes: prepareHtmlForPdf(formData.summaryFindings.kidneyFunctionElectrolytes || ''),
-        liverFunctions: prepareHtmlForPdf(formData.summaryFindings.liverFunctions || ''),
-        tumorMarkers: prepareHtmlForPdf(formData.summaryFindings.tumorMarkers || ''),
-        bloodCounts: prepareHtmlForPdf(formData.summaryFindings.bloodCounts || '')
+        glucoseMetabolism: formData.summaryFindings.glucoseMetabolism || '',
+        proteins: formData.summaryFindings.proteins || '',
+        lipidProfile: formData.summaryFindings.lipidProfile || '',
+        inflammation: formData.summaryFindings.inflammation || '',
+        metabolic: formData.summaryFindings.metabolic || '',
+        homocysteine: formData.summaryFindings.homocysteine || '',
+        vitaminsMinerals: formData.summaryFindings.vitaminsMinerals || '',
+        ironProfile: formData.summaryFindings.ironProfile || '',
+        sexHormones: formData.summaryFindings.sexHormones || '',
+        kidneyFunctionElectrolytes: formData.summaryFindings.kidneyFunctionElectrolytes || '',
+        liverFunctions: formData.summaryFindings.liverFunctions || '',
+        tumorMarkers: formData.summaryFindings.tumorMarkers || '',
+        bloodCounts: formData.summaryFindings.bloodCounts || ''
+      },
+      nutritionRecommendations: {
+        nutritionalStyle: formData.nutritionRecommendations?.nutritionalStyle || '',
+        proteinConsumption: formData.nutritionRecommendations?.proteinConsumption || '',
+        eatingWindow: formData.nutritionRecommendations?.eatingWindow || '',
+        limitations: formData.nutritionRecommendations?.limitations || '',
+        additionalConsiderations: formData.nutritionRecommendations?.additionalConsiderations || ''
+      },
+      exerciseDetail: {
+        focusOn: formData.exerciseDetail?.focusOn || '',
+        walking: formData.exerciseDetail?.walking || '',
+        restRecovery: formData.exerciseDetail?.restRecovery || '',
+        tracking: formData.exerciseDetail?.tracking || ''
+      },
+      sleepStressRecommendations: {
+        sleep: formData.sleepStressRecommendations?.sleep || '',
+        stress: formData.sleepStressRecommendations?.stress || ''
       }
     };
     
@@ -58,5 +75,4 @@ export const generateAndSavePDF = async (formData: PatientFormData, medications:
 };
 
 // Re-export the generatePDF function from pdfGenerator
-// This ensures that components importing from pdfService can access this function
 export { generatePDF } from "@/lib/pdf/pdfGenerator";

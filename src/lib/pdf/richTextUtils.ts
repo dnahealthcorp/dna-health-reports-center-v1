@@ -64,7 +64,7 @@ export const prepareHtmlForPdf = (html: string): string => {
 
 /**
  * Converts HTML to a content structure compatible with pdfMake
- * Uses browser's native DOM instead of JSDOM for browser compatibility
+ * Uses browser's native DOM parser for browser compatibility
  */
 export const htmlToPdfMakeContent = (html: string): any => {
   if (!html || html === '') return '';
@@ -73,8 +73,12 @@ export const htmlToPdfMakeContent = (html: string): any => {
     // Clean and prepare HTML
     const processedHtml = prepareHtmlForPdf(html);
     
-    // Use browser's DOM for parsing
+    // Use the browser's built-in DOMParser instead of JSDOM
     const htmlToPdfmake = require('html-to-pdfmake');
+    
+    // Create a temporary document to hold our HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(processedHtml, 'text/html');
     
     // Convert HTML to pdfMake content
     const content = htmlToPdfmake(processedHtml, {

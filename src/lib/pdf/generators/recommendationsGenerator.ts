@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
 import { addLogoToPage, addFooter, ensureSpace } from "../pdfUtilities";
+import { htmlToPdfMakeContent } from "@/lib/pdf/richTextUtils";
 
 /**
  * Section 6: Doctor's Recommendations (Nutrition), striped.
@@ -32,11 +33,11 @@ export function generateDoctorsRecommendationsSection(
       ]
     ],
     body: [
-      ["Nutritional Style", formData.nutritionRecommendations?.nutritionalStyle || ""],
-      ["Protein Consumption", formData.nutritionRecommendations?.proteinConsumption || ""],
-      ["Eating Window", formData.nutritionRecommendations?.eatingWindow || ""],
-      ["Limitations", formData.nutritionRecommendations?.limitations || ""],
-      ["Additional Considerations", formData.nutritionRecommendations?.additionalConsiderations || ""]
+      ["Nutritional Style", htmlToPdfMakeContent(formData.nutritionRecommendations?.nutritionalStyle || "")],
+      ["Protein Consumption", htmlToPdfMakeContent(formData.nutritionRecommendations?.proteinConsumption || "")],
+      ["Eating Window", htmlToPdfMakeContent(formData.nutritionRecommendations?.eatingWindow || "")],
+      ["Limitations", htmlToPdfMakeContent(formData.nutritionRecommendations?.limitations || "")],
+      ["Additional Considerations", htmlToPdfMakeContent(formData.nutritionRecommendations?.additionalConsiderations || "")]
     ],
     styles: {
       fontSize: 10,

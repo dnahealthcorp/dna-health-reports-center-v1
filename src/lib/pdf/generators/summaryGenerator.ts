@@ -24,7 +24,6 @@ export function generateSummarySection(
   currentY += 8;
 
   // Create table body with formatted HTML content
-  // Using htmlToPdfMakeContent to preserve formatting
   const tableBody = [
     ["Glucose Metabolism", htmlToPdfMakeContent(formData.summaryFindings.glucoseMetabolism || '')],
     ["Proteins", htmlToPdfMakeContent(formData.summaryFindings.proteins || '')],
