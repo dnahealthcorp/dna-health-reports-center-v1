@@ -4,11 +4,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown, ArrowLeft, ArrowLeftCircle } from "lucide-react";
+import { Check, Edit, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import { Button } from "@/components/ui/button";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -75,20 +72,6 @@ const predefinedOptions = {
 
 type SummaryFindingField = keyof typeof predefinedOptions;
 
-// Configure Quill modules/formats
-const quillModules = {
-  toolbar: [
-    ['bold', 'italic', 'underline'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    ['clean'] // remove formatting button
-  ]
-};
-
-const quillFormats = [
-  'bold', 'italic', 'underline',
-  'list', 'bullet'
-];
-
 export const SummaryFindingsTab = ({
   formData,
   handleInputChange,
@@ -111,19 +94,9 @@ export const SummaryFindingsTab = ({
     setEditingFields(prev => ({ ...prev, [field]: false }));
   };
 
-  // Handle rich text editor changes
-  const handleEditorChange = (field: string, content: string) => {
-    handleInputChange("summaryFindings", field, content);
-  };
-
   // Check if a value matches any predefined option
   const isCustomValue = (field: SummaryFindingField, value: string) => {
     return value !== "" && !predefinedOptions[field].includes(value);
-  };
-  
-  // Handle going back to select mode from editor
-  const handleBackToSelect = (field: string) => {
-    setEditingFields(prev => ({ ...prev, [field]: false }));
   };
 
   return <Card>
@@ -163,30 +136,13 @@ export const SummaryFindingsTab = ({
                     </td>
                     <td className="px-4 py-2 border">
                       {isEditing ? (
-                        <div className="quill-wrapper">
-                          {canEditDoctorSection && (
-                            <div className="flex justify-end mb-1">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleBackToSelect(field)}
-                                className="h-8 w-8 rounded-full flex items-center justify-center"
-                                title="Back to predefined options"
-                              >
-                                <ArrowLeftCircle className="h-4 w-4 text-gray-500 hover:text-primary" />
-                              </Button>
-                            </div>
-                          )}
-                          <ReactQuill
-                            theme="snow"
-                            value={value}
-                            onChange={(content) => handleEditorChange(field, content)}
-                            modules={quillModules}
-                            formats={quillFormats}
-                            readOnly={!canEditDoctorSection}
-                            className="min-h-[120px]"
-                          />
-                        </div>
+                        <Textarea 
+                          value={value} 
+                          onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
+                          disabled={!canEditDoctorSection}
+                          className="border-0 p-0 min-h-[60px]" 
+                          placeholder="Enter custom text"
+                        />
                       ) : (
                         <div className="relative">
                           <Select
@@ -210,7 +166,7 @@ export const SummaryFindingsTab = ({
                               <SelectItem value="free-text" className="font-medium text-primary">
                                 <div className="flex items-center">
                                   <Edit className="mr-2 h-4 w-4" />
-                                  [Rich Text Editor]
+                                  [Free Text Option]
                                 </div>
                               </SelectItem>
                             </SelectContent>
@@ -233,27 +189,6 @@ export const SummaryFindingsTab = ({
             </tbody>
           </table>
         </div>
-        <style>
-          {`
-          .quill-wrapper .ql-toolbar.ql-snow {
-            border-top-left-radius: 0.375rem;
-            border-top-right-radius: 0.375rem;
-            border-color: #e2e8f0;
-          }
-          .quill-wrapper .ql-container.ql-snow {
-            border-bottom-left-radius: 0.375rem;
-            border-bottom-right-radius: 0.375rem;
-            border-color: #e2e8f0;
-            min-height: 100px;
-          }
-          .quill-wrapper .ql-editor {
-            min-height: 100px;
-          }
-          .quill-wrapper .ql-editor.ql-blank::before {
-            color: #a0aec0;
-          }
-          `}
-        </style>
       </CardContent>
     </Card>;
 };

@@ -3,7 +3,6 @@ import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
-import { stripHtml } from "@/lib/pdf/richTextRenderer";
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
@@ -53,14 +52,6 @@ export const savePDFReference = async (patientId: string, fileName: string, file
     console.error(`Error saving PDF reference for patient ${patientId} to Supabase:`, error);
     throw error;
   }
-};
-
-/**
- * Browser-compatible function to convert HTML to plain text
- */
-export const htmlToFormattedText = (html: string): string => {
-  if (!html || html === '') return '';
-  return stripHtml(html);
 };
 
 export const getPDFFiles = async (): Promise<PDFFile[]> => {
@@ -131,6 +122,3 @@ export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile
     return [];
   }
 };
-
-// Export generatePDF to prevent import errors
-export { generatePDF } from "@/lib/pdf/pdfGenerator";

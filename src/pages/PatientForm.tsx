@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -22,7 +23,7 @@ import {
   PatientFormData 
 } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { generateAndSavePDF } from "@/lib/pdfService";
+import { generatePDF } from "@/lib/pdfService";
 
 import { PatientHeader } from "@/components/patient-form/PatientHeader";
 import { PatientInfoCard } from "@/components/patient-form/PatientInfoCard";
@@ -176,6 +177,7 @@ const PatientForm = () => {
     
     fetchData();
     
+    // Set up realtime subscriptions for both form data and patient changes
     const formChannel = supabase
       .channel('form-data-changes')
       .on('postgres_changes', { 
@@ -215,6 +217,7 @@ const PatientForm = () => {
         filter: `patient_id=eq.${id}`
       }, (payload) => {
         console.log('PDF files updated in PatientForm:', payload);
+        // No direct action needed here as PatientHeader handles PDF files
       })
       .subscribe((status) => {
         console.log(`PDF files channel status: ${status}`);
@@ -295,7 +298,7 @@ const PatientForm = () => {
       
       setIsExportingPDF(true);
       
-      const fileName = await generateAndSavePDF(formData, medications, patient.id);
+      const fileName = await generatePDF(formData, medications);
       
       const refreshedPatient = await getPatientById(patient.id);
       if (refreshedPatient) {
