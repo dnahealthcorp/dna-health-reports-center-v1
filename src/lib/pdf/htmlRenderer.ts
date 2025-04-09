@@ -65,18 +65,18 @@ export function renderHtmlInPdfCell(
       const tag = element.tagName.toLowerCase();
       
       const prevFont = doc.getFont();
-      const prevFontStyle = doc.getFontSize();
+      const prevFontSize = doc.getFontSize();
       
       // Apply styling based on tags
       switch (tag) {
         case 'strong':
         case 'b':
-          doc.setFont(prevFont as string, 'bold');
+          doc.setFont(prevFont.fontName, 'bold');
           isBold = true;
           break;
         case 'em':
         case 'i':
-          doc.setFont(prevFont as string, 'italic');
+          doc.setFont(prevFont.fontName, 'italic');
           isItalic = true;
           break;
         case 'u':
@@ -123,8 +123,8 @@ export function renderHtmlInPdfCell(
       
       // Reset styling
       const fontStyle = isBold && isItalic ? 'bolditalic' : isBold ? 'bold' : isItalic ? 'italic' : 'normal';
-      doc.setFont(prevFont as string, fontStyle);
-      doc.setFontSize(prevFontStyle);
+      doc.setFont(prevFont.fontName, fontStyle);
+      doc.setFontSize(prevFontSize);
       
       // Update style tracking based on closing tags
       if (tag === 'strong' || tag === 'b') {
