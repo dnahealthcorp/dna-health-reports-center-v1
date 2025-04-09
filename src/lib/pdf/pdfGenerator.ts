@@ -249,13 +249,13 @@ function generateVitalsSection(
  * Updated to use enhanced HTML table renderer
  */
 
-function generateSummarySection(
+export function generateSummarySection(
   doc: jsPDF,
   currentY: number,
   pageWidth: number,
   contentMargin: number,
   contentWidth: number,
-  formData: PatientFormData
+  formData: any
 ): number {
   currentY += 10;
 
@@ -275,15 +275,9 @@ function generateSummarySection(
     { label: "Blood Counts", value: formData.summaryFindings.bloodCounts || "" }
   ];
 
-  const tableBody = summaryFields.map(field => {
-    const cleanValue = field.value.trim();
-    return [
-      field.label,
-      cleanValue ? { content: cleanValue, styles: { cellPadding: 2 } } : ""
-    ];
-  });
+  const tableBody = summaryFields.map(field => [field.label, field.value]);
 
-  autoTable(doc, {
+  (doc as any).autoTable({
     startY: currentY,
     theme: "grid",
     head: [[
@@ -295,31 +289,36 @@ function generateSummarySection(
       fontSize: 10,
       font: "helvetica",
       textColor: [60, 60, 60],
-      halign: "left",
       valign: "top",
       cellPadding: 2
     },
-    bodyStyles: {
-      fillColor: [255, 255, 255]
-    },
     alternateRowStyles: {
       fillColor: [245, 245, 245]
+    },
+    bodyStyles: {
+      fillColor: [255, 255, 255]
     },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: (data) => {
-      addLogoToPage(doc);
-      if (data.pageNumber < doc.getNumberOfPages()) {
-        addFooter(doc, pageWidth);
+    willDrawCell: (data) => {
+      if (data.section === "body" && !data.cell.raw?.toString().trim()) {
+        data.cell.styles.minCellHeight = 8;
       }
     },
-    willDrawCell: (data) => {
-      // Remove excessive height from empty rows
-      if (data.cell.raw === "" && data.section === "body") {
-        data.cell.styles.minCellHeight = 8;
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 1 && typeof data.cell.raw === "string") {
+        if (data.cell.raw.includes("<") && data.cell.raw.includes(">")) {
+          renderHtmlInPdfCell(
+            doc,
+            data.cell.raw,
+            data.cell.x + 2,
+            data.cell.y + 2,
+            data.cell.width - 4
+          );
+        }
       }
     }
   });
