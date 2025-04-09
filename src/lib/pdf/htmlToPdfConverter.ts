@@ -64,7 +64,8 @@ export function htmlToPlainText(html: string): string {
 
 /**
  * Renders HTML content in a PDF cell more effectively by
- * parsing the HTML and applying appropriate formatting
+ * parsing the HTML and applying appropriate formatting,
+ * with improved page break handling for long text
  */
 export function renderHtmlInPdfCell(
   doc: jsPDF,
@@ -84,7 +85,11 @@ export function renderHtmlInPdfCell(
   let currentY = y + 5; // Starting position with additional padding to prevent text overlap
   doc.setFontSize(fontSize);
   
-  // Process text nodes and elements
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentMargin = 20; // Consistent with overall document margin
+  
+  // Process text nodes and elements with improved page break handling
   function processNode(node: Node, styles = { bold: false, italic: false, underline: false }): void {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent?.trim();
@@ -99,20 +104,48 @@ export function renderHtmlInPdfCell(
       doc.setFont('helvetica', fontStyle);
       
       // Handle text that might need to be wrapped
-      const textLines = doc.splitTextToSize(text, cellWidth - 10); // Increased padding from 4 to 10
+      const textLines = doc.splitTextToSize(text, cellWidth - 10); // Increased padding
       
-      textLines.forEach(line => {
-        doc.text(line, x + 5, currentY); // Increased left padding from 2 to 5
+      // Process each line with page break awareness
+      for (let i = 0; i < textLines.length; i++) {
+        const line = textLines[i];
+        
+        // Check if we need a page break before this line
+        if (currentY + lineHeight > pageHeight - 20) { // 20mm margin at bottom
+          // Add footer to current page
+          doc.setFontSize(8);
+          doc.setTextColor("#a5a4a4");
+          doc.setFont("helvetica", "normal");
+          doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" as "right" });
+          
+          // Add a new page
+          doc.addPage();
+          
+          // Add logo to new page
+          try {
+            const { addLogoToPage } = require("./logoRenderer");
+            addLogoToPage(doc);
+          } catch (err) {
+            console.error("Failed to add logo to new page:", err);
+          }
+          
+          // Reset Y position to top of new page with margin
+          currentY = 40; // Top margin for content
+        }
+        
+        doc.text(line, x + 5, currentY); // Draw text
         currentY += lineHeight;
-      });
+      }
       
       // Add underline if needed
       if (styles.underline) {
-        textLines.forEach(line => {
-          const textWidth = doc.getTextWidth(line);
-          const underlineY = currentY - lineHeight + 1;
-          doc.setDrawColor(0);
-          doc.line(x + 5, underlineY, x + 5 + textWidth, underlineY);
+        textLines.forEach((line, i) => {
+          const underlineY = currentY - (textLines.length - i) * lineHeight + 1;
+          if (underlineY >= 40 && underlineY <= pageHeight - 20) { // Only if visible on current page
+            const textWidth = doc.getTextWidth(line);
+            doc.setDrawColor(0);
+            doc.line(x + 5, underlineY, x + 5 + textWidth, underlineY);
+          }
         });
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -128,6 +161,29 @@ export function renderHtmlInPdfCell(
       // Handle paragraph breaks
       if (tag === 'p' && element.previousElementSibling) {
         currentY += lineHeight;
+        
+        // Check if paragraph break needs a page break
+        if (currentY + lineHeight > pageHeight - 20) {
+          // Add footer
+          doc.setFontSize(8);
+          doc.setTextColor("#a5a4a4");
+          doc.setFont("helvetica", "normal");
+          doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" as "right" });
+          
+          // Add new page
+          doc.addPage();
+          
+          // Add logo
+          try {
+            const { addLogoToPage } = require("./logoRenderer");
+            addLogoToPage(doc);
+          } catch (err) {
+            console.error("Failed to add logo to new page:", err);
+          }
+          
+          // Reset Y position
+          currentY = 40;
+        }
       }
       
       // Process child nodes with updated styles
@@ -317,7 +373,7 @@ export function renderHtmlTableSection(
     let contentEndY = valueStartY + rowHeight;
     
     if (!isEmpty) {
-      // Render the HTML content for non-empty cells
+      // Render the HTML content for non-empty cells with improved page break handling
       contentEndY = renderHtmlInPdfCell(
         doc,
         row.value,
@@ -373,4 +429,3 @@ export function renderHtmlTableSection(
   // Return the Y position after the table
   return currentY + 10; // Add some padding after the table
 }
-
