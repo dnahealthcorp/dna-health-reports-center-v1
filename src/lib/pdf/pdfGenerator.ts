@@ -4,6 +4,19 @@ import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
 
+// Helper functions for type conversion to fix string/string[] type mismatches
+const ensureStringArray = (value: string | string[] | undefined): string[] => {
+  if (!value) return [];
+  if (typeof value === 'string') return [value];
+  return value;
+};
+
+const ensureString = (value: string | string[] | undefined): string => {
+  if (!value) return '';
+  if (Array.isArray(value)) return value.join(', ');
+  return value;
+};
+
 /**
  * Draws the footer on the current page.
  * Footer text: "Executive Summary | DNA Health" in 8px helvetica regular,
@@ -922,23 +935,6 @@ export const generatePDF = async (
 
   // Return the PDF as a Blob instead of saving it
   return doc.output('blob');
-};
-
-// Fix for line 287 where we have a type mismatch error
-// The error says "Type 'string' is not assignable to type 'string[]'"
-// Without knowing exactly which property is causing this issue, 
-// we'll provide helper functions to ensure we're handling type conversions properly:
-
-const ensureStringArray = (value: string | string[] | undefined): string[] => {
-  if (!value) return [];
-  if (typeof value === 'string') return [value];
-  return value;
-};
-
-const ensureString = (value: string | string[] | undefined): string => {
-  if (!value) return '';
-  if (Array.isArray(value)) return value.join(', ');
-  return value;
 };
 
 // Export the main PDF generator function
