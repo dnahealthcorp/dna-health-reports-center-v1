@@ -6,21 +6,6 @@ import { addLogoToPage } from "../logoRenderer";
 import { addFooter, ensureSpace } from "./headerFooter";
 
 /**
- * Helper function to process HTML text for PDF output with formatting
- * This preserves basic formatting like bold, italic, and lists
- */
-function processHtmlForPdf(html: string): string {
-  if (!html) return "";
-  
-  // For plain text (no HTML), just return it
-  if (!html.includes('<')) return html;
-  
-  // We'll still need text content for table cells that don't support HTML
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || "";
-}
-
-/**
  * Section 4: Summary of Findings (striped).
  */
 export function generateSummarySection(
@@ -39,24 +24,7 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Process HTML content in summary findings
-  const processedSummaryFindings = {
-    glucoseMetabolism: processHtmlForPdf(formData.summaryFindings.glucoseMetabolism || ""),
-    proteins: processHtmlForPdf(formData.summaryFindings.proteins || ""),
-    lipidProfile: processHtmlForPdf(formData.summaryFindings.lipidProfile || ""),
-    inflammation: processHtmlForPdf(formData.summaryFindings.inflammation || ""),
-    metabolic: processHtmlForPdf(formData.summaryFindings.metabolic || ""),
-    homocysteine: processHtmlForPdf(formData.summaryFindings.homocysteine || ""),
-    vitaminsMinerals: processHtmlForPdf(formData.summaryFindings.vitaminsMinerals || ""),
-    ironProfile: processHtmlForPdf(formData.summaryFindings.ironProfile || ""),
-    sexHormones: processHtmlForPdf(formData.summaryFindings.sexHormones || ""),
-    kidneyFunctionElectrolytes: processHtmlForPdf(formData.summaryFindings.kidneyFunctionElectrolytes || ""),
-    liverFunctions: processHtmlForPdf(formData.summaryFindings.liverFunctions || ""),
-    tumorMarkers: processHtmlForPdf(formData.summaryFindings.tumorMarkers || ""),
-    bloodCounts: processHtmlForPdf(formData.summaryFindings.bloodCounts || "")
-  };
-
-  // Using HTML content directly with autoTable
+  // We're going directly using the HTML content in the table
   autoTable(doc, {
     startY: currentY,
     theme: "grid",

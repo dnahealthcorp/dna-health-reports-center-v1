@@ -1,4 +1,3 @@
-
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,17 +11,18 @@ export const convertHtmlToPdf = async (
   css: string = ""
 ): Promise<Blob> => {
   try {
-    const { data, error } = await supabase.functions.invoke("html-to-pdf", {
+    const response = await supabase.functions.invoke("html-to-pdf", {
       body: { html, fileName, css }
     });
-
-    if (error) {
-      console.error("Error in HTML-to-PDF conversion:", error);
-      throw new Error(`PDF conversion failed: ${error.message}`);
+    
+    if (response.error) {
+      console.error("Error in HTML-to-PDF conversion:", response.error);
+      throw new Error(`PDF conversion failed: ${response.error.message}`);
     }
-
-    // The response should be the PDF blob
-    return data;
+    
+    // Convert the response to a Blob
+    const pdfBlob = await response.data.blob();
+    return pdfBlob;
   } catch (error) {
     console.error("Error converting HTML to PDF:", error);
     throw error;
@@ -38,7 +38,7 @@ export const downloadPdf = (pdfBlob: Blob, fileName: string): void => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 };
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {

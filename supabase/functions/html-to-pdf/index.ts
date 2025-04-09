@@ -71,6 +71,9 @@ serve(async (req) => {
       </html>
     `);
     
+    // Wait for any potential content to render (fonts, images, etc.)
+    await page.waitForTimeout(500);
+    
     // Generate PDF
     console.log("Generating PDF...");
     const pdfBuffer = await page.pdf({
