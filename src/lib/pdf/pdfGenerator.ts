@@ -246,7 +246,7 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
- * Updated to use enhanced HTML table renderer
+ * Updated to use enhanced HTML table renderer with improved page break handling
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -288,7 +288,7 @@ function generateSummarySection(
       value: field.value
     }));
     
-    // Use our enhanced renderer
+    // Use our enhanced renderer with improved page break handling
     currentY = renderHtmlTableSection(
       doc,
       "Summary of findings",
@@ -298,14 +298,6 @@ function generateSummarySection(
       contentMargin,
       contentWidth
     );
-    
-    // Check if we need to add logo and handle page breaks
-    if (currentY > doc.internal.pageSize.getHeight() - 20) {
-      addFooter(doc, pageWidth);
-      doc.addPage();
-      addLogoToPage(doc);
-      currentY = 40;
-    }
     
     return currentY;
   } else {
