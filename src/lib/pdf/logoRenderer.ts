@@ -1,29 +1,32 @@
-
 import { jsPDF } from "jspdf";
 
 /**
  * Adds the DNA Health logo to the top-right corner of the PDF page
- * with PNG as primary, SVG fallback, and final text fallback.
+ * at a smaller size, preserving aspect ratio.
+ *
+ * IMPORTANT: To avoid overlap with page content, ensure your topMargin
+ * (for text, images, etc.) is large enough (e.g., at least 30-40 mm).
  */
 export const addLogoToPage = (doc: jsPDF): void => {
   try {
-    // Determine the right-aligned position for the logo
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoWidth = 40;
-    const logoHeight = 15;
 
-    // 20 mm from right edge, 10 mm from top edge
-    const x = pageWidth - logoWidth - 20;
+    // Original logo aspect ratio ~ 2.74 (236 wide / 86 high)
+    const logoWidth = 30; // reduce width to avoid large overlap
+    const logoHeight = 11; // maintain aspect ratio (about 30/2.74)
+    
+    // Position near top-right: 10 mm from right edge, 10 mm from top edge
+    const x = pageWidth - logoWidth - 10;
     const y = 10;
 
     try {
-      // First attempt to use the PNG logo directly
+      // Try PNG first
       doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
-      console.log("Logo added to PDF successfully using direct PNG method");
-    } catch (directImageError) {
-      console.warn("Could not add logo using PNG, trying SVG method:", directImageError);
+      console.log("Logo added to PDF successfully using PNG");
+    } catch (pngError) {
+      console.warn("Could not add PNG logo, trying SVG fallback:", pngError);
 
-      // Use the SVG logo as a fallback
+      // Fallback to inline SVG
       const svgLogo = `
       <svg xmlns="http://www.w3.org/2000/svg" width="236" height="86" viewBox="0 0 236 86" fill="none">
         <path d="M55.9 69.1C45.2 69.1 34.6 62.6 28.5 52.5C22.2 42.2 21.1 29.7 25.6 18.9C30.1 8 39.4 0.9 51 0.9H87.3V50.1C87.3 60.8 78.5 69.1 67.2 69.1H55.9Z" fill="#A4A5A5"/>
@@ -33,7 +36,7 @@ export const addLogoToPage = (doc: jsPDF): void => {
       </svg>
       `;
       doc.addSvgAsImage(svgLogo, x, y, logoWidth, logoHeight);
-      console.log("Logo added to PDF using SVG fallback method");
+      console.log("Logo added to PDF using SVG fallback");
     }
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
@@ -41,13 +44,25 @@ export const addLogoToPage = (doc: jsPDF): void => {
     // Final fallback: text-based label
     try {
       doc.setFontSize(12);
-      doc.setTextColor(153, 188, 68); // Green color
-      // Right-align the fallback text near the same location
+      doc.setTextColor(153, 188, 68); // green
+      // approximate right-aligned fallback
       const pageWidth = doc.internal.pageSize.getWidth();
-      const fallbackX = pageWidth - 50; // approximate placement
-      doc.text("DNA Health", fallbackX, 15, { align: "right" });
+      doc.text("DNA HEALTH", pageWidth - 50, 15);
+      console.log("Text fallback for logo used");
     } catch (fallbackError) {
-      console.error("Even text fallback failed:", fallbackError);
+      console.error("All logo methods failed:", fallbackError);
     }
+  }
+};
+
+/**
+ * Loads Montserrat fonts or defaults to Helvetica
+ */
+export const loadMontserratFonts = async (doc: jsPDF): Promise<void> => {
+  try {
+    doc.setFont("helvetica");
+    console.log("Using standard helvetica font for PDF");
+  } catch (error) {
+    console.error("Error loading Montserrat fonts:", error);
   }
 };
