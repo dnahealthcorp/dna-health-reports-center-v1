@@ -927,7 +927,7 @@ export const generatePDF = async (
 // Fix for line 287 where we have a type mismatch error
 // The error says "Type 'string' is not assignable to type 'string[]'"
 // Without knowing exactly which property is causing this issue, 
-// we'll provide a helper function to ensure we're handling type conversions properly:
+// we'll provide helper functions to ensure we're handling type conversions properly:
 
 const ensureStringArray = (value: string | string[] | undefined): string[] => {
   if (!value) return [];
@@ -940,3 +940,6 @@ const ensureString = (value: string | string[] | undefined): string => {
   if (Array.isArray(value)) return value.join(', ');
   return value;
 };
+
+// Export the main PDF generator function
+export { generatePDF, ensureStringArray, ensureString };

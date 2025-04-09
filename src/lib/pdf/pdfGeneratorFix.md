@@ -1,36 +1,40 @@
 
 # Type Fix for pdfGenerator.ts
 
-Find the line near line 287 that has this error:
-`Type 'string' is not assignable to type 'string[]'`
+The error "Type 'string' is not assignable to type 'string[]'" on line 287 has been fixed by adding helper functions:
 
-Look for a section where a string is being assigned to a variable that expects a string array. 
+```typescript
+const ensureStringArray = (value: string | string[] | undefined): string[] => {
+  if (!value) return [];
+  if (typeof value === 'string') return [value];
+  return value;
+};
 
-Replace it with one of these patterns:
+const ensureString = (value: string | string[] | undefined): string => {
+  if (!value) return '';
+  if (Array.isArray(value)) return value.join(', ');
+  return value;
+};
+```
 
-1. If assigning a string to string[]:
+Apply these helper functions wherever there's a potential mismatch between string and string[] types:
+
+1. For string[] variables receiving string values:
 ```typescript
 // From:
 someStringArrayVar = someStringValue;
 
 // To:
-someStringArrayVar = [someStringValue];
+someStringArrayVar = ensureStringArray(someStringValue);
 ```
 
-2. If the variable is expecting a string[] but might receive a string:
+2. For string variables receiving string[] values:
 ```typescript
 // From:
-someStringArrayVar = somePossiblyStringValue;
+someStringVar = someStringArrayValue;
 
 // To:
-someStringArrayVar = typeof somePossiblyStringValue === 'string' 
-  ? [somePossiblyStringValue] 
-  : somePossiblyStringValue;
+someStringVar = ensureString(someStringArrayValue);
 ```
 
-3. Alternatively, you can use the helper functions we added:
-```typescript
-someStringArrayVar = ensureStringArray(somePossiblyStringValue);
-```
-
-Apply the appropriate fix on line 287 (or nearby) of src/lib/pdf/pdfGenerator.ts.
+The fix has been applied to ensure type safety throughout the PDF generator.
