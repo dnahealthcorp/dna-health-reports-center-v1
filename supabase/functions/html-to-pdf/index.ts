@@ -85,10 +85,11 @@ serve(async (req) => {
           ${html}
         </body>
       </html>
-    `);
+    `, { waitUntil: 'networkidle0' });
     
-    // Wait for any potential content to render (fonts, images, etc.)
-    await page.waitForTimeout(2000); // Increased timeout for better rendering
+    // Ensure all content is properly rendered by waiting longer
+    console.log("Waiting for content to render...");
+    await page.waitForTimeout(3000);
     
     // Generate PDF
     console.log("Generating PDF...");
@@ -100,7 +101,8 @@ serve(async (req) => {
         right: '20mm',
         bottom: '20mm',
         left: '20mm',
-      }
+      },
+      displayHeaderFooter: false
     });
     
     // Close browser

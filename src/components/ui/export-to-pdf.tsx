@@ -37,7 +37,17 @@ export function ExportToPdf({
 
     setIsExporting(true);
     try {
-      const pdfBlob = await convertHtmlToPdf(html, fileName, css);
+      // Add some custom CSS to enhance rendering of HTML content
+      const enhancedCSS = `
+        ${css}
+        strong, b { font-weight: bold !important; }
+        em, i { font-style: italic !important; }
+        ul, ol { padding-left: 20px !important; margin: 8px 0 !important; }
+        li { margin: 4px 0 !important; }
+        p { margin: 8px 0 !important; }
+      `;
+      
+      const pdfBlob = await convertHtmlToPdf(html, fileName, enhancedCSS);
       downloadPdf(pdfBlob, fileName);
       
       toast({

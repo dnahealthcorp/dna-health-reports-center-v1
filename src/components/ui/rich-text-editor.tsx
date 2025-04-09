@@ -116,6 +116,12 @@ export function RichTextEditor({
               ul, ol {
                 padding-left: 20px;
               }
+              strong, b { 
+                font-weight: bold;
+              }
+              em, i { 
+                font-style: italic;
+              }
             `}
           />
         )}

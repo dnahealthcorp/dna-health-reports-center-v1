@@ -15,6 +15,9 @@ export const convertHtmlToPdf = async (
     // Clear any undefined characters or control codes that might cause issues
     const sanitizedHtml = html.replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]/g, '');
     
+    // Log the size of the HTML being sent
+    console.log(`Converting HTML to PDF. HTML size: ${sanitizedHtml.length} chars`);
+    
     const response = await supabase.functions.invoke("html-to-pdf", {
       body: { html: sanitizedHtml, fileName, css }
     });
@@ -26,6 +29,7 @@ export const convertHtmlToPdf = async (
     
     // Convert the response to a Blob
     const pdfBlob = await response.data.blob();
+    console.log(`PDF generated successfully. Size: ${pdfBlob.size} bytes`);
     return pdfBlob;
   } catch (error) {
     console.error("Error converting HTML to PDF:", error);

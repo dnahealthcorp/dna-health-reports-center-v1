@@ -5,12 +5,6 @@ import { PatientFormData } from "@/types";
 import { addLogoToPage } from "../logoRenderer";
 import { addFooter, ensureSpace } from "./headerFooter";
 
-// Helper function to strip HTML tags for PDF generation
-const stripHtml = (html: string): string => {
-  if (!html) return "";
-  return html.replace(/<[^>]*>?/gm, '');
-};
-
 /**
  * Section 4: Summary of Findings (striped).
  */
@@ -30,24 +24,24 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Strip HTML tags from all summary findings for clean PDF rendering
-  const cleanedFindings = {
-    glucoseMetabolism: stripHtml(formData.summaryFindings.glucoseMetabolism || ""),
-    proteins: stripHtml(formData.summaryFindings.proteins || ""),
-    lipidProfile: stripHtml(formData.summaryFindings.lipidProfile || ""),
-    inflammation: stripHtml(formData.summaryFindings.inflammation || ""),
-    metabolic: stripHtml(formData.summaryFindings.metabolic || ""),
-    homocysteine: stripHtml(formData.summaryFindings.homocysteine || ""),
-    vitaminsMinerals: stripHtml(formData.summaryFindings.vitaminsMinerals || ""),
-    ironProfile: stripHtml(formData.summaryFindings.ironProfile || ""),
-    sexHormones: stripHtml(formData.summaryFindings.sexHormones || ""),
-    kidneyFunctionElectrolytes: stripHtml(formData.summaryFindings.kidneyFunctionElectrolytes || ""),
-    liverFunctions: stripHtml(formData.summaryFindings.liverFunctions || ""),
-    tumorMarkers: stripHtml(formData.summaryFindings.tumorMarkers || ""),
-    bloodCounts: stripHtml(formData.summaryFindings.bloodCounts || "")
+  // Use HTML content directly - do not strip HTML tags
+  const findings = {
+    glucoseMetabolism: formData.summaryFindings.glucoseMetabolism || "",
+    proteins: formData.summaryFindings.proteins || "",
+    lipidProfile: formData.summaryFindings.lipidProfile || "",
+    inflammation: formData.summaryFindings.inflammation || "",
+    metabolic: formData.summaryFindings.metabolic || "",
+    homocysteine: formData.summaryFindings.homocysteine || "",
+    vitaminsMinerals: formData.summaryFindings.vitaminsMinerals || "",
+    ironProfile: formData.summaryFindings.ironProfile || "",
+    sexHormones: formData.summaryFindings.sexHormones || "",
+    kidneyFunctionElectrolytes: formData.summaryFindings.kidneyFunctionElectrolytes || "",
+    liverFunctions: formData.summaryFindings.liverFunctions || "",
+    tumorMarkers: formData.summaryFindings.tumorMarkers || "",
+    bloodCounts: formData.summaryFindings.bloodCounts || ""
   };
 
-  // Generate PDF table with the cleaned text
+  // Generate PDF table with the HTML content
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -58,25 +52,26 @@ export function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", cleanedFindings.glucoseMetabolism],
-      ["Proteins", cleanedFindings.proteins],
-      ["Lipid Profile", cleanedFindings.lipidProfile],
-      ["Inflammation", cleanedFindings.inflammation],
-      ["Metabolic", cleanedFindings.metabolic],
-      ["Homocysteine", cleanedFindings.homocysteine],
-      ["Vitamins/Minerals", cleanedFindings.vitaminsMinerals],
-      ["Iron Profile", cleanedFindings.ironProfile],
-      ["Sex Hormones", cleanedFindings.sexHormones],
-      ["Kidney Function and Electrolytes", cleanedFindings.kidneyFunctionElectrolytes],
-      ["Liver Functions", cleanedFindings.liverFunctions],
-      ["Tumor Markers", cleanedFindings.tumorMarkers],
-      ["Blood Counts", cleanedFindings.bloodCounts]
+      ["Glucose Metabolism", findings.glucoseMetabolism],
+      ["Proteins", findings.proteins],
+      ["Lipid Profile", findings.lipidProfile],
+      ["Inflammation", findings.inflammation],
+      ["Metabolic", findings.metabolic],
+      ["Homocysteine", findings.homocysteine],
+      ["Vitamins/Minerals", findings.vitaminsMinerals],
+      ["Iron Profile", findings.ironProfile],
+      ["Sex Hormones", findings.sexHormones],
+      ["Kidney Function and Electrolytes", findings.kidneyFunctionElectrolytes],
+      ["Liver Functions", findings.liverFunctions],
+      ["Tumor Markers", findings.tumorMarkers],
+      ["Blood Counts", findings.bloodCounts]
     ],
     styles: {
       fontSize: 10,
       cellPadding: 2,
       font: "helvetica",
-      textColor: [60, 60, 60]
+      textColor: [60, 60, 60],
+      overflow: 'linebreak',
     },
     bodyStyles: {
       fillColor: [255, 255, 255]
@@ -96,6 +91,15 @@ export function generateSummarySection(
       // Add footer only on completed pages
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
+      }
+    },
+    // The HTML cell option doesn't allow full control, so we'll use the Edge Function approach instead
+    // But we need to handle basic formatting here for legacy reasons
+    willDrawCell: (data) => {
+      // Apply some basic styling for text appearance
+      if (data.row.section === 'body' && data.column.index === 1) {
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(10);
       }
     }
   });
