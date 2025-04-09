@@ -168,11 +168,7 @@ function generateVitalsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
-  currentY = ensureSpace(doc, currentY, 15, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 15, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
@@ -241,11 +237,7 @@ function generateSummarySection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
-  currentY = ensureSpace(doc, currentY, 60, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
@@ -319,12 +311,8 @@ function generateInsulinCardioSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
   if (formData.showInsulinResistance === true) {
-    currentY = ensureSpace(doc, currentY, 80, sectionTopMargin, pageWidth);
+    currentY = ensureSpace(doc, currentY, 80, 40, pageWidth);
     doc.setFontSize(14);
     doc.setTextColor(153, 188, 68);
     doc.setFont("helvetica", "bold");
@@ -342,9 +330,9 @@ function generateInsulinCardioSection(
     currentY += 10;
   }
 
-  currentY = ensureSpace(doc, currentY, 20, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
-  doc.setTextColor(153,188,68);
+  doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   doc.text("Cardiovascular risk (*Apo B : Apo A1 ratio)", contentMargin, currentY);
   currentY += 5;
@@ -419,11 +407,7 @@ function generateDoctorsRecommendationsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
-  currentY = ensureSpace(doc, currentY, 20, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
@@ -488,11 +472,6 @@ function generateExerciseSleepSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
-  currentY = ensureSpace(doc, currentY, 20, sectionTopMargin, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
@@ -605,12 +584,8 @@ function generateMedicationsSupplementsSection(
   formData: PatientFormData,
   medications: Medication[]
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
   // Medications
-  currentY = ensureSpace(doc, currentY, 20, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
@@ -672,7 +647,7 @@ function generateMedicationsSupplementsSection(
   currentY = (doc as any).lastAutoTable.finalY + 10;
 
   // Supplements
-  currentY = ensureSpace(doc, currentY, 20, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14); // reapply heading style
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
@@ -747,11 +722,7 @@ function generateFollowUpsSection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  // Increase top margin for page 3+ to avoid logo overlap
-  const isFirstPage = doc.getNumberOfPages() <= 2;
-  const sectionTopMargin = isFirstPage ? 40 : 50; // More space on pages 3+
-  
-  currentY = ensureSpace(doc, currentY, 20, sectionTopMargin, pageWidth);
+  currentY = ensureSpace(doc, currentY, 20, 40, pageWidth);
   doc.setFontSize(14);
   doc.setTextColor(153,188,68);
   doc.setFont("helvetica", "bold");
@@ -773,8 +744,8 @@ function generateFollowUpsSection(
     theme: "grid",
     head: [
       [
-        { content: "With Doctor", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
-        { content: "For Reason", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "With", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "For", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
         { content: "Date", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
       ]
     ],
@@ -807,105 +778,108 @@ function generateFollowUpsSection(
       }
     }
   });
-  currentY = (doc as any).lastAutoTable.finalY + 15;
+  currentY = (doc as any).lastAutoTable.finalY + 10;
 
-  // Add web address links
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(153, 188, 68);
-  doc.text("Visit:", contentMargin, currentY);
-  currentY += 5;
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  // Link URLs follow brand appearance guidelines
-  const links = [
-    "www.dnahealth.co.za",
-    "www.functionalmedicineacademy.co.za", 
-    "www.drhamillnutrition.co.za"
+  // === Add the requested links here ===
+  // We'll do them as small link texts. 
+  const guides = [
+    "Guide to Intermittent Fasting",
+    "Guide to Carbohydrates and Protein",
+    "Guide to Meditation",
+    "Guide to Sleep",
+    "Guide to Anti-inflammatory Foods",
+    "Guide to Homocystein"
   ];
-  
-  links.forEach(link => {
-    doc.text(link, contentMargin + 10, currentY);
-    currentY += 5;
-  });
-  
-  // Add doctor's signature/conclusion
-  currentY = ensureSpace(doc, currentY + 10, 30, sectionTopMargin, pageWidth);
+
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(100,100,100);
+  doc.text("Additional Guides:", contentMargin, currentY);
+  currentY += 6;
+
+  // We'll render each as a link to "#"
+  guides.forEach((guide) => {
+    // Use doc.textWithLink for clickable link (all pointing to "#")
+    doc.setTextColor(0, 0, 255); // typical link color
+    doc.textWithLink(guide, contentMargin, currentY, { url: "#" });
+    currentY += 6;
+  });
+
+  currentY += 6; // extra spacing before signature
+
+  // Signature with dynamic doctor name
+  doc.setFontSize(10);
+  doc.setTextColor(100,100,100);
+  doc.setFont("helvetica", "normal");
+  doc.text("Kind Regards,", contentMargin, currentY);
+  currentY += 6;
+  doc.setFont("helvetica", "bold");
   
-  const doctorName = formData.doctorName || "Your Doctor";
-  const signatureText = `Kind Regards,\n\n${doctorName}\nDNA Health`;
-  
-  doc.text(signatureText, contentMargin, currentY);
-  
-  return currentY + 30;
+  // Use the dynamic doctor name from the form or a default if not provided
+  const doctorName = formData.doctorName || "Doctor";
+  doc.text(doctorName, contentMargin, currentY);
+  currentY += 10;
+
+  return currentY;
 }
 
 /**
- * Main function to generate the PDF document
+ * Main PDF Generator.
  */
-export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
-  // Create new PDF document
+export const generatePDF = async (
+  formData: PatientFormData,
+  medications: Medication[]
+): Promise<Blob> => {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
-    format: "a4",
+    format: "a4"
   });
-  
-  try {
-    // Add the Montserrat font
-    doc.addFont("public/fonts/Montserrat-Regular.ttf", "Montserrat", "normal");
-    doc.addFont("public/fonts/Montserrat-Medium.ttf", "Montserrat", "medium");
-    doc.addFont("public/fonts/Montserrat-Bold.ttf", "Montserrat", "bold");
-  } catch (error) {
-    console.error("Error loading fonts:", error);
-  }
+  doc.setFont("helvetica");
 
-  // Page size info
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const contentMargin = 20;  // 20mm margin on each side
-  const contentWidth = pageWidth - (contentMargin * 2);  // Usable width for content
-  
-  let currentY = 30;  // Starting Y position for first content
+  const pageWidth = doc.internal.pageSize.getWidth(); // 210 mm for A4
+  const contentMargin = 20;
+  const contentWidth = pageWidth - contentMargin * 2;
 
-  // Generate PDF sections - these functions modify currentY and return the updated value
-  
-  // First page: Images section - titlepage
+  // Start at 40mm from the top for extra spacing
+  let currentY = 40;
+
+  // 1) First page (cover) with images (and logo), no page number
   currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
-  
-  // Introduction text
+
+  // Force new page after cover
+  addFooter(doc, pageWidth); // Footer on cover
+  doc.addPage();
+  addLogoToPage(doc);
+  currentY = 40; // reset Y
+
+  // 2) Introduction & Greeting
   currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Vital signs table
+
+  // 3) Vital Signs
   currentY = generateVitalsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Summary of findings
+
+  // 4) Summary Findings
   currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Insulin resistance and cardiovascular risk
+
+  // 5) Insulin Resistance & Cardiovascular Risk
   currentY = generateInsulinCardioSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Doctor's recommendations - nutrition
+
+  // 6) Doctor's Recommendations
   currentY = generateDoctorsRecommendationsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Exercise and sleep/stress recommendations
+
+  // 7) Exercise & Sleep/Stress
   currentY = generateExerciseSleepSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Medications and supplements
-  currentY = generateMedicationsSupplementsSection(
-    doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications
-  );
-  
-  // Follow-ups and signature
+
+  // 8) Medications & Supplements
+  currentY = generateMedicationsSupplementsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications);
+
+  // 9) Follow-ups (plus new links, then signature)
   currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
-  
-  // Finally, add footer to the last page
+
+  // Add a final footer if needed
   addFooter(doc, pageWidth);
-  
-  // Save the PDF as a Blob
-  const pdfBlob = doc.output("blob");
-  return pdfBlob;
+
+  // Return the PDF as a Blob instead of saving it
+  return doc.output('blob');
 };
