@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -782,10 +783,11 @@ function generateFollowUpsSection(
   doc.text("Follow-ups and referrals", contentMargin, currentY);
   currentY += 8;
 
+  // Apply the fix for string/string[] conversion here
   const followUpRows = (formData.followUps || []).map(followUp => [
-    followUp.withDoctor || "",
-    followUp.forReason || "",
-    followUp.date || ""
+    ensureString(followUp.withDoctor) || "",
+    ensureString(followUp.forReason) || "",
+    ensureString(followUp.date) || ""
   ]).filter(row => row[0] || row[1] || row[2]);
 
   if (followUpRows.length === 0) {
@@ -878,6 +880,7 @@ function generateFollowUpsSection(
 
 /**
  * Main PDF Generator.
+ * This is the primary export function.
  */
 export const generatePDF = async (
   formData: PatientFormData,
@@ -937,5 +940,6 @@ export const generatePDF = async (
   return doc.output('blob');
 };
 
-// Export the main PDF generator function
-export { generatePDF, ensureStringArray, ensureString };
+// Export the helper functions and main generator function
+// Unified export statement to avoid duplicate exports
+export { ensureStringArray, ensureString };
