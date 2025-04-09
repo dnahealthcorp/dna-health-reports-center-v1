@@ -18,6 +18,7 @@ const predefinedOptions = {
   glucoseMetabolism: [
     "Optimal glucose metabolism.",
     "Elevated HbA1c of [xxx]%, with high fasting glucose, indicates a prediabetic state, accompanied by low QUICKI and dHOMA2-S scores, suggestive of insulin resistance. Contributing Factors: - High intake of refined carbohydrates - Irregular and late meal timing - Elevated cortisol levels",
+    "Disrupted or Sub-optimal Metabolism (Adrenal hormones)\n\nYour Fasting glucose is [ xx mg/dL ] Your Fasting Insulin is [ xx μIU/mL ]\nBased on your history, your test results and following our discussion, we highlighted the following hormone(s) as a potential cause of your increased blood glucose/Insulin.\n\n[CORTISOL The morning (cortisol) awakening response (MAR) -can significantly affect glucose and insulin dynamics:\n\nCortisol levels spike within ~30–45 minutes after waking, increasing hepatic glucose production to prepare the body for daily energy demands. · This raises blood glucose levels, while simultaneously causing temporary insulin resistance, making tissues less responsive to insulin.]"
   ],
   proteins: [
     "All protein markers within optimal range.",
@@ -72,6 +73,21 @@ const predefinedOptions = {
 
 type SummaryFindingField = keyof typeof predefinedOptions;
 
+// Helper function to format hormone sections in the rich text editor
+const formatHormoneText = (text: string): string => {
+  if (!text) return '';
+  
+  // Apply consistent formatting to hormone sections to ensure they render correctly in the PDF
+  let formatted = text;
+  
+  // Format hormone sections with strong tags to ensure proper bolding in PDF
+  formatted = formatted.replace(/\[CORTISOL([^\]]*)\]/g, '<strong>[CORTISOL$1]</strong>');
+  formatted = formatted.replace(/\[ADRENALINE([^\]]*)\]/g, '<strong>[ADRENALINE$1]</strong>');
+  formatted = formatted.replace(/\[GROWTH HORMONE([^\]]*)\]/g, '<strong>[GROWTH HORMONE$1]</strong>');
+  
+  return formatted;
+};
+
 export const SummaryFindingsTab = ({
   formData,
   handleInputChange,
@@ -90,8 +106,16 @@ export const SummaryFindingsTab = ({
     }
     
     // For predefined options, update the form data and exit editing mode
-    handleInputChange("summaryFindings", field, value);
+    // Apply hormone formatting to ensure consistent styling in PDF
+    const formattedValue = formatHormoneText(value);
+    handleInputChange("summaryFindings", field, formattedValue);
     setEditingFields(prev => ({ ...prev, [field]: false }));
+  };
+
+  // Handle rich text editor changes with hormone formatting
+  const handleEditorChange = (field: string, value: string) => {
+    const formattedValue = formatHormoneText(value);
+    handleInputChange("summaryFindings", field, formattedValue);
   };
 
   // Check if a value matches any predefined option
@@ -138,7 +162,7 @@ export const SummaryFindingsTab = ({
                       {isEditing ? (
                         <RichTextEditor 
                           value={value} 
-                          onChange={val => handleInputChange("summaryFindings", field, val)} 
+                          onChange={val => handleEditorChange(field, val)} 
                           disabled={!canEditDoctorSection}
                         />
                       ) : (

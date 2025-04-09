@@ -259,7 +259,7 @@ function formatHormoneSections(html: string): string {
   // Apply bold formatting to hormone sections
   let formatted = html;
   
-  // Match hormone sections and apply formatting
+  // Match hormone sections and apply stronger formatting
   formatted = formatted.replace(/\[CORTISOL([^\]]*)\]/g, '<span class="hormone-section"><strong>[CORTISOL$1]</strong></span>');
   formatted = formatted.replace(/\[ADRENALINE([^\]]*)\]/g, '<span class="hormone-section"><strong>[ADRENALINE$1]</strong></span>');
   formatted = formatted.replace(/\[GROWTH HORMONE([^\]]*)\]/g, '<span class="hormone-section"><strong>[GROWTH HORMONE$1]</strong></span>');
@@ -288,7 +288,7 @@ export function drawCellBorders(
 ): void {
   // Set proper border styling
   doc.setDrawColor(color[0], color[1], color[2]);
-  doc.setLineWidth(0.3); // Increased line width for better visibility
+  doc.setLineWidth(0.5); // Increased line width for better visibility
   
   // Draw rectangle around the cell with stroke only (no fill)
   doc.rect(x, y, width, height, 'S');
@@ -323,7 +323,7 @@ export function renderHtmlTableSection(
   const headerHeight = 10; // Increased from 8
   const paramColWidth = 50;
   const valueColWidth = contentWidth - paramColWidth;
-  const minRowHeight = 20; // Reduced from 30 to make rows less tall
+  const minRowHeight = 20; // Adjusted from 30 to make rows less tall but still readable
   const emptyRowHeight = 8; // Changed from 15 to 8 as requested by user
   
   // Border color to match other tables (#CCCCCC)
@@ -344,7 +344,7 @@ export function renderHtmlTableSection(
   
   // Draw header borders with increased visibility
   doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-  doc.setLineWidth(0.3); // Increased line width for better visibility
+  doc.setLineWidth(0.5); // Increased line width for better visibility
   doc.rect(contentMargin, startY - headerHeight, paramColWidth, headerHeight, 'S');
   doc.rect(contentMargin + paramColWidth, startY - headerHeight, valueColWidth, headerHeight, 'S');
   
@@ -410,7 +410,7 @@ export function renderHtmlTableSection(
       
       // Draw header borders with increased visibility
       doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-      doc.setLineWidth(0.3); // Increased line width for better visibility
+      doc.setLineWidth(0.5); // Increased line width for better visibility
       doc.rect(contentMargin, currentY, paramColWidth, headerHeight, 'S');
       doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight, 'S');
       
@@ -484,11 +484,25 @@ export function renderHtmlTableSection(
       }
     }
     
-    // Draw cell borders with increased visibility
+    // Draw cell borders with increased visibility (especially for the first row)
     doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-    doc.setLineWidth(0.3); // Increased line width for better visibility
-    doc.rect(contentMargin, currentY, paramColWidth, contentEndY - currentY, 'S');
-    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY, 'S');
+    doc.setLineWidth(0.5); // Increased line width for better visibility
+    
+    // Draw individual borders to ensure they're all visible
+    // Top border
+    doc.line(contentMargin, currentY, contentMargin + paramColWidth, currentY);
+    doc.line(contentMargin + paramColWidth, currentY, contentMargin + paramColWidth + valueColWidth, currentY);
+    
+    // Left borders
+    doc.line(contentMargin, currentY, contentMargin, contentEndY);
+    doc.line(contentMargin + paramColWidth, currentY, contentMargin + paramColWidth, contentEndY);
+    
+    // Right border
+    doc.line(contentMargin + paramColWidth + valueColWidth, currentY, contentMargin + paramColWidth + valueColWidth, contentEndY);
+    
+    // Bottom borders
+    doc.line(contentMargin, contentEndY, contentMargin + paramColWidth, contentEndY);
+    doc.line(contentMargin + paramColWidth, contentEndY, contentMargin + paramColWidth + valueColWidth, contentEndY);
     
     // Move to next row
     currentY = contentEndY;
@@ -497,3 +511,4 @@ export function renderHtmlTableSection(
   // Return the Y position after the table
   return currentY + 10; // Add some padding after the table
 }
+
