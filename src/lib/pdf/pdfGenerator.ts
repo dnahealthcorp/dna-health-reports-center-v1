@@ -248,8 +248,6 @@ function generateVitalsSection(
  * Section 4: Summary of Findings (striped).
  * Updated to use enhanced HTML table renderer with improved page break handling
  */
-import { renderHtmlInPdfCell } from "./htmlToPdfConverter";
-
 function generateSummarySection(
   doc: jsPDF,
   currentY: number,
