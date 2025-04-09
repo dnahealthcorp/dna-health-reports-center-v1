@@ -164,7 +164,7 @@ export function drawCellBorders(
   y: number,
   width: number,
   height: number,
-  color: number[] = [0, 0, 0]
+  color: number[] = [204, 204, 204]  // Changed to #CCCCCC to match other tables
 ): void {
   doc.setDrawColor(color[0], color[1], color[2]);
   doc.setLineWidth(0.1);
@@ -202,8 +202,11 @@ export function renderHtmlTableSection(
   const headerHeight = 10; // Increased from 8
   const paramColWidth = 50;
   const valueColWidth = contentWidth - paramColWidth;
-  const minRowHeight = 30;
-  const emptyRowHeight = 15; // Smaller height for empty cells
+  const minRowHeight = 20; // Reduced from 30 to make rows less tall
+  const emptyRowHeight = 8; // Changed from 15 to 8 as requested by user
+  
+  // Border color to match other tables (#CCCCCC)
+  const borderColor = [204, 204, 204];
 
   // Draw header background
   doc.setFillColor(153, 188, 68);
@@ -218,6 +221,11 @@ export function renderHtmlTableSection(
   doc.text(headers[1], contentMargin + paramColWidth + 5, startY + 7); // Adjusted position
   startY += headerHeight;
   
+  // Draw header borders
+  doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+  doc.rect(contentMargin, startY - headerHeight, paramColWidth, headerHeight);
+  doc.rect(contentMargin + paramColWidth, startY - headerHeight, valueColWidth, headerHeight);
+  
   // Draw each row
   let currentY = startY;
   
@@ -230,7 +238,7 @@ export function renderHtmlTableSection(
     
     // Check if we need to add a new page
     const estimatedRowHeight = isEmpty ? emptyRowHeight : Math.max(minRowHeight, 
-        doc.getTextDimensions(row.value).h + 15); // Add padding
+        doc.getTextDimensions(row.value).h + 10); // Reduced padding from 15 to 10
     
     if (currentY + estimatedRowHeight > pageHeight - 20) {
       // Add footer to current page if needed
@@ -272,6 +280,12 @@ export function renderHtmlTableSection(
         doc.setFontSize(10);
         doc.text(headers[0], contentMargin + 5, currentY + 7);
         doc.text(headers[1], contentMargin + paramColWidth + 5, currentY + 7);
+        
+        // Draw header borders
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.rect(contentMargin, currentY, paramColWidth, headerHeight);
+        doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight);
+        
         currentY += headerHeight;
       }
     }
@@ -290,7 +304,10 @@ export function renderHtmlTableSection(
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.text(row.label, contentMargin + 5, currentY + 10);
+    
+    // Center text vertically in smaller empty cells
+    const textY = isEmpty ? currentY + (rowHeight / 2) + 3 : currentY + 10;
+    doc.text(row.label, contentMargin + 5, textY);
     
     // Render HTML content for value cell
     doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
@@ -345,9 +362,9 @@ export function renderHtmlTableSection(
       }
     }
     
-    // Draw cell borders
-    drawCellBorders(doc, contentMargin, currentY, paramColWidth, contentEndY - currentY);
-    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY);
+    // Draw cell borders with updated color
+    drawCellBorders(doc, contentMargin, currentY, paramColWidth, contentEndY - currentY, borderColor);
+    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY, borderColor);
     
     // Move to next row
     currentY = contentEndY;
@@ -356,3 +373,4 @@ export function renderHtmlTableSection(
   // Return the Y position after the table
   return currentY + 10; // Add some padding after the table
 }
+
