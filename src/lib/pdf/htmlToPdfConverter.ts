@@ -78,6 +78,9 @@ export function renderHtmlInPdfCell(
 ): number {
   if (!html) return y;
   
+  // Pre-format special hormone sections before sanitizing
+  html = formatHormoneSections(html);
+  
   const sanitized = sanitizeHtmlForPdf(html);
   const parser = new DOMParser();
   const parsedHtml = parser.parseFromString(sanitized, 'text/html');
@@ -146,7 +149,7 @@ export function renderHtmlInPdfCell(
           doc.setTextColor(60, 60, 60);
         }
         
-        doc.text(line, x + 5, currentY); // Draw text
+        doc.text(line, x + 5, currentY); // Draw text with consistent left margin
         currentY += lineHeight;
       }
       
@@ -171,13 +174,20 @@ export function renderHtmlInPdfCell(
       if (tag === 'em' || tag === 'i') newStyles.italic = true;
       if (tag === 'u') newStyles.underline = true;
       
-      // Handle special formatting for CORTISOL, ADRENALINE, etc.
-      if (tag === 'span' && element.textContent?.includes('[CORTISOL')) {
-        // Apply bold style
+      // Handle hormone sections with special formatting
+      if (tag === 'span' && (
+          element.classList.contains('hormone-section') || 
+          element.textContent?.includes('[CORTISOL') || 
+          element.textContent?.includes('[ADRENALINE') || 
+          element.textContent?.includes('[GROWTH HORMONE')
+      )) {
+        // Apply bold style for hormone sections
         newStyles.bold = true;
-        // Set a slight indent
-        const originalX = x;
-        processNode(document.createTextNode("\n"), newStyles);
+        
+        // Add extra spacing before hormone sections
+        if (currentY > y + 10) { // Only add space if not at the beginning
+          currentY += lineHeight * 0.5;
+        }
       }
       
       // Handle paragraph breaks
@@ -201,6 +211,13 @@ export function renderHtmlInPdfCell(
             addLogoToPage(doc);
           } catch (err) {
             console.error("Failed to add logo to new page:", err);
+            // Try fallback method
+            try {
+              const logoImg = "/assets/DNA Logo - Grey.svg";
+              doc.addImage(logoImg, "SVG", 20, 10, 40, 20);
+            } catch (logoErr) {
+              console.error("Failed to add logo with fallback method:", logoErr);
+            }
           }
           
           // Reset Y position
@@ -234,7 +251,32 @@ export function renderHtmlInPdfCell(
 }
 
 /**
- * Draw table borders for PDF cells
+ * Format special hormone sections with appropriate styling
+ */
+function formatHormoneSections(html: string): string {
+  if (!html) return '';
+  
+  // Apply bold formatting to hormone sections
+  let formatted = html;
+  
+  // Match hormone sections and apply formatting
+  formatted = formatted.replace(/\[CORTISOL([^\]]*)\]/g, '<span class="hormone-section"><strong>[CORTISOL$1]</strong></span>');
+  formatted = formatted.replace(/\[ADRENALINE([^\]]*)\]/g, '<span class="hormone-section"><strong>[ADRENALINE$1]</strong></span>');
+  formatted = formatted.replace(/\[GROWTH HORMONE([^\]]*)\]/g, '<span class="hormone-section"><strong>[GROWTH HORMONE$1]</strong></span>');
+  
+  // Add spacing between paragraphs
+  formatted = formatted.replace(/\n\n/g, '</p><p>');
+  
+  // Wrap in paragraph if not already
+  if (!formatted.startsWith('<p>')) {
+    formatted = `<p>${formatted}</p>`;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Draw table borders for PDF cells with proper visibility
  */
 export function drawCellBorders(
   doc: jsPDF,
@@ -244,11 +286,12 @@ export function drawCellBorders(
   height: number,
   color: number[] = [204, 204, 204]  // #CCCCCC to match other tables
 ): void {
+  // Set proper border styling
   doc.setDrawColor(color[0], color[1], color[2]);
-  doc.setLineWidth(0.1);
+  doc.setLineWidth(0.3); // Increased line width for better visibility
   
-  // Draw rectangle around the cell
-  doc.rect(x, y, width, height);
+  // Draw rectangle around the cell with stroke only (no fill)
+  doc.rect(x, y, width, height, 'S');
 }
 
 /**
@@ -299,10 +342,11 @@ export function renderHtmlTableSection(
   doc.text(headers[1], contentMargin + paramColWidth + 5, startY + 7); // Adjusted position
   startY += headerHeight;
   
-  // Draw header borders
+  // Draw header borders with increased visibility
   doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-  doc.rect(contentMargin, startY - headerHeight, paramColWidth, headerHeight);
-  doc.rect(contentMargin + paramColWidth, startY - headerHeight, valueColWidth, headerHeight);
+  doc.setLineWidth(0.3); // Increased line width for better visibility
+  doc.rect(contentMargin, startY - headerHeight, paramColWidth, headerHeight, 'S');
+  doc.rect(contentMargin + paramColWidth, startY - headerHeight, valueColWidth, headerHeight, 'S');
   
   // Draw each row
   let currentY = startY;
@@ -364,10 +408,11 @@ export function renderHtmlTableSection(
       doc.text(headers[0], contentMargin + 5, currentY + 7);
       doc.text(headers[1], contentMargin + paramColWidth + 5, currentY + 7);
       
-      // Draw header borders
+      // Draw header borders with increased visibility
       doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-      doc.rect(contentMargin, currentY, paramColWidth, headerHeight);
-      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight);
+      doc.setLineWidth(0.3); // Increased line width for better visibility
+      doc.rect(contentMargin, currentY, paramColWidth, headerHeight, 'S');
+      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight, 'S');
       
       currentY += headerHeight;
     }
@@ -403,13 +448,7 @@ export function renderHtmlTableSection(
       const startRenderY = currentY;
       
       // Format specific styled texts like [CORTISOL], [ADRENALINE], [GROWTH HORMONE]
-      let formattedHtml = row.value;
-      if (formattedHtml.includes("[CORTISOL") || formattedHtml.includes("[ADRENALINE") || formattedHtml.includes("[GROWTH HORMONE")) {
-        formattedHtml = formattedHtml.replace(/\[(CORTISOL|ADRENALINE|GROWTH HORMONE)([^\]]*)\]/g, '<strong>[$1$2]</strong>');
-      }
-      
-      // Add spacing between paragraphs
-      formattedHtml = formattedHtml.replace(/\n\n/g, '<p></p>');
+      let formattedHtml = formatHormoneSections(row.value);
       
       // Render the HTML content for non-empty cells with improved page break handling
       contentEndY = renderHtmlInPdfCell(
@@ -441,24 +480,15 @@ export function renderHtmlTableSection(
         doc.setFontSize(10);
         doc.text(row.label, contentMargin + 5, currentY + 10);
         
-        // Re-render HTML content with the formatted text
-        renderHtmlInPdfCell(
-          doc,
-          formattedHtml,
-          contentMargin + paramColWidth,
-          currentY,
-          valueColWidth,
-          10,
-          5
-        );
-        
         contentEndY = valueStartY + actualRowHeight;
       }
     }
     
-    // Draw cell borders with updated color
-    drawCellBorders(doc, contentMargin, currentY, paramColWidth, contentEndY - currentY, borderColor);
-    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY, borderColor);
+    // Draw cell borders with increased visibility
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3); // Increased line width for better visibility
+    doc.rect(contentMargin, currentY, paramColWidth, contentEndY - currentY, 'S');
+    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY, 'S');
     
     // Move to next row
     currentY = contentEndY;
