@@ -1,3 +1,4 @@
+
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,12 +12,16 @@ export const convertHtmlToPdf = async (
   css: string = ""
 ): Promise<Blob> => {
   try {
-    // We don't need to sanitize HTML here as we want to preserve the HTML structure
-    // Let the browser's HTML parser handle it properly
-    console.log(`Converting HTML to PDF. HTML size: ${html.length} chars`);
+    // Clean and prepare the HTML for the Edge Function
+    // We'll make sure HTML is properly formed
+    const cleanHtml = html
+      .replace(/<p><\/p>/g, '<p>&nbsp;</p>')  // Replace empty paragraphs with non-breaking space
+      .replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>');  // Replace paragraphs with only whitespace
+    
+    console.log(`Converting HTML to PDF. HTML size: ${cleanHtml.length} chars`);
     
     const response = await supabase.functions.invoke("html-to-pdf", {
-      body: { html, fileName, css }
+      body: { html: cleanHtml, fileName, css }
     });
     
     if (response.error) {

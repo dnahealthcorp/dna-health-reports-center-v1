@@ -37,10 +37,8 @@ serve(async (req) => {
     console.log("Creating page...");
     const page = await browser.newPage();
     
-    // Set HTML content directly without any escaping or sanitization
-    console.log("Setting content...");
-    
     // Create a full HTML document with proper doctype and charset
+    console.log("Setting content...");
     const fullHtml = `
       <!DOCTYPE html>
       <html>
@@ -58,50 +56,57 @@ serve(async (req) => {
               padding: 20px;
             }
             strong, b {
-              font-weight: bold;
+              font-weight: bold !important;
             }
             em, i {
-              font-style: italic;
+              font-style: italic !important;
             }
             ul, ol {
-              padding-left: 20px;
-              margin: 10px 0;
+              padding-left: 20px !important;
+              margin: 10px 0 !important;
             }
             li {
-              margin: 5px 0;
+              margin: 5px 0 !important;
             }
             p {
-              margin: 10px 0;
+              margin: 10px 0 !important;
+              display: block !important;
             }
             h1, h2, h3, h4, h5, h6 {
-              margin-top: 20px;
-              margin-bottom: 10px;
-              font-weight: bold;
+              margin-top: 20px !important;
+              margin-bottom: 10px !important;
+              font-weight: bold !important;
+              display: block !important;
             }
-            h1 { font-size: 24px; }
-            h2 { font-size: 20px; }
-            h3 { font-size: 16px; }
+            h1 { font-size: 24px !important; }
+            h2 { font-size: 20px !important; }
+            h3 { font-size: 16px !important; }
             hr { 
-              border: none;
-              border-top: 1px solid #ddd;
-              margin: 20px 0;
+              border: none !important;
+              border-top: 1px solid #ddd !important;
+              margin: 20px 0 !important;
             }
             table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 15px 0;
+              width: 100% !important;
+              border-collapse: collapse !important;
+              margin: 15px 0 !important;
             }
             th, td {
-              padding: 8px;
-              border: 1px solid #ddd;
-              text-align: left;
+              padding: 8px !important;
+              border: 1px solid #ddd !important;
+              text-align: left !important;
             }
             th {
-              background-color: #99BC44;
-              color: white;
+              background-color: #99BC44 !important;
+              color: white !important;
             }
             tr:nth-child(even) {
-              background-color: #f5f5f5;
+              background-color: #f5f5f5 !important;
+            }
+            /* Fix for paragraph tags */
+            p:empty {
+              display: block !important;
+              min-height: 1em !important;
             }
             ${css}
           </style>
@@ -112,10 +117,23 @@ serve(async (req) => {
       </html>
     `;
     
-    // Use setContent with the 'networkidle0' wait option for better rendering
+    // Use content with waitUntil for better rendering
     await page.setContent(fullHtml, { 
       waitUntil: 'networkidle0',
       timeout: 30000 // Extended timeout for complex content
+    });
+    
+    // Add specific evaluations to ensure HTML tags are rendered properly
+    await page.evaluate(() => {
+      // Force browser to process all HTML elements
+      document.body.innerHTML = document.body.innerHTML;
+      
+      // Fix common issues with paragraph rendering
+      document.querySelectorAll('p').forEach(p => {
+        if (p.innerHTML.trim() === '') {
+          p.style.minHeight = '1em';
+        }
+      });
     });
     
     // Ensure all content is properly rendered with a generous waiting time

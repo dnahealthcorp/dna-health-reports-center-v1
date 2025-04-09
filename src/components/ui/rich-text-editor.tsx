@@ -32,7 +32,9 @@ export function RichTextEditor({
     content: value,
     editable: !disabled,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      // Ensure proper HTML is generated with non-empty paragraphs
+      const html = editor.getHTML().replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>');
+      onChange(html);
     },
     editorProps: {
       attributes: {
@@ -46,6 +48,16 @@ export function RichTextEditor({
       editor.commands.setContent(value);
     }
   }, [value, editor]);
+
+  const handleExportToPdf = () => {
+    // Wrap the HTML content in a proper structure for better PDF rendering
+    const wrappedHtml = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        ${value}
+      </div>
+    `;
+    return wrappedHtml;
+  };
 
   return (
     <div className={`border rounded-md overflow-hidden ${className}`}>
@@ -100,9 +112,9 @@ export function RichTextEditor({
           </Button>
         </div>
         
-        {showExportToPdf && (
+        {showExportToPdf && value && (
           <ExportToPdf 
-            html={value} 
+            html={handleExportToPdf()}
             fileName={pdfFileName}
             buttonText="Export"
             css={`
@@ -112,15 +124,20 @@ export function RichTextEditor({
               }
               h1, h2, h3 {
                 color: #333;
+                font-weight: bold !important;
               }
               ul, ol {
-                padding-left: 20px;
+                padding-left: 20px !important;
               }
               strong, b { 
-                font-weight: bold;
+                font-weight: bold !important;
               }
               em, i { 
-                font-style: italic;
+                font-style: italic !important;
+              }
+              p {
+                margin: 8px 0 !important;
+                display: block !important;
               }
             `}
           />

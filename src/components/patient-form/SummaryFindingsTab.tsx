@@ -106,36 +106,19 @@ export const SummaryFindingsTab = ({
   };
 
   const exportAllFindings = () => {
-    const allHtml = Object.entries(formData.summaryFindings || {})
-      .filter(([_, value]) => value)
-      .map(([field, value]) => {
-        const displayName = field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
-                          field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
-                          field === 'ironProfile' ? 'Iron Profile' : 
-                          field === 'sexHormones' ? 'Sex Hormones' : 
-                          field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
-                          field === 'liverFunctions' ? 'Liver Functions' : 
-                          field === 'tumorMarkers' ? 'Tumor Markers' : 
-                          field === 'bloodCounts' ? 'Blood Counts' : 
-                          field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-        
-        return `<h2>${displayName}</h2>${value}`;
-      })
-      .join('<hr />');
-    
     return `
-      <h1>Summary of Findings</h1>
-      <table width="100%" border="1" cellspacing="0" cellpadding="8">
+      <h1 style="color: #333; margin-bottom: 20px; text-align: center; font-size: 24px !important; font-weight: bold !important;">Summary of Findings</h1>
+      <table width="100%" border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin: 15px 0;">
         <thead>
           <tr style="background-color: #99BC44; color: white;">
-            <th>Parameter</th>
-            <th>Key findings and next steps</th>
+            <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Parameter</th>
+            <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Key findings and next steps</th>
           </tr>
         </thead>
         <tbody>
           ${Object.entries(formData.summaryFindings || {})
             .filter(([_, value]) => value)
-            .map(([field, value]) => {
+            .map(([field, value], index) => {
               const displayName = field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
                               field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
                               field === 'ironProfile' ? 'Iron Profile' : 
@@ -147,9 +130,9 @@ export const SummaryFindingsTab = ({
                               field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
               
               return `
-                <tr>
-                  <td style="background-color: #f5f5f5; width: 150px;">${displayName}</td>
-                  <td>${value}</td>
+                <tr style="${index % 2 === 0 ? 'background-color: #f5f5f5;' : 'background-color: #ffffff;'}">
+                  <td style="background-color: #f0f6e6; width: 150px; padding: 8px; border: 1px solid #ddd;">${displayName}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${value}</td>
                 </tr>
               `;
             }).join('')
@@ -179,27 +162,25 @@ export const SummaryFindingsTab = ({
               color: #99BC44;
               text-align: center;
               margin-bottom: 20px;
-            }
-            h2 {
-              color: #333;
-              background: #f5f5f5;
-              padding: 5px 10px;
-              border-left: 4px solid #99BC44;
-            }
-            hr {
-              margin: 20px 0;
-              border: none;
-              border-top: 1px dashed #ccc;
+              font-size: 24px !important;
+              font-weight: bold !important;
             }
             table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 15px 0;
+              width: 100% !important;
+              border-collapse: collapse !important;
+              margin: 15px 0 !important;
             }
             th, td {
-              padding: 8px;
-              border: 1px solid #ddd;
-              text-align: left;
+              padding: 8px !important;
+              border: 1px solid #ddd !important;
+              text-align: left !important;
+            }
+            th {
+              background-color: #99BC44 !important;
+              color: white !important;
+            }
+            tr:nth-child(even) {
+              background-color: #f5f5f5 !important;
             }
           `}
           buttonText="Export All Findings"

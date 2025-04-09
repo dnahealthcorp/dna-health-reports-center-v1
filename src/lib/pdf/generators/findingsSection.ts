@@ -94,14 +94,6 @@ export function generateSummarySection(
       if (data.pageNumber < doc.getNumberOfPages()) {
         addFooter(doc, pageWidth);
       }
-    },
-    // Process HTML content directly - this will be mainly handled by the Edge Function now
-    willDrawCell: (data) => {
-      // Apply some basic styling for text appearance
-      if (data.row.section === 'body' && data.column.index === 1) {
-        doc.setTextColor(60, 60, 60);
-        doc.setFontSize(10);
-      }
     }
   });
   currentY = (doc as any).lastAutoTable.finalY + 10;

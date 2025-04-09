@@ -37,8 +37,10 @@ export function ExportToPdf({
 
     setIsExporting(true);
     try {
-      // No need to sanitize HTML here as we want to preserve the HTML structure
-      // Send the HTML as-is to the backend for proper rendering
+      // Prepare the HTML content for better rendering
+      const preparedHtml = html
+        .replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>')  // Replace empty paragraphs
+        .replace(/<p><br\s*\/?><\/p>/g, '<p>&nbsp;</p>'); // Replace paragraphs with just line breaks
       
       // Add some custom CSS to enhance rendering of HTML content
       const enhancedCSS = `
@@ -55,7 +57,7 @@ export function ExportToPdf({
         em, i { font-style: italic !important; }
         ul, ol { padding-left: 20px !important; margin: 8px 0 !important; }
         li { margin: 4px 0 !important; }
-        p { margin: 8px 0 !important; }
+        p { margin: 8px 0 !important; display: block !important; }
         h1, h2, h3, h4, h5, h6 {
           margin-top: 16px !important;
           margin-bottom: 8px !important;
@@ -67,9 +69,13 @@ export function ExportToPdf({
         table { width: 100% !important; border-collapse: collapse !important; }
         th, td { padding: 8px !important; border: 1px solid #ddd !important; }
         th { background-color: #99BC44 !important; color: white !important; }
+        /* Make sure no raw HTML tags are displayed */
+        .html-content * {
+          display: revert !important;
+        }
       `;
       
-      const pdfBlob = await convertHtmlToPdf(html, fileName, enhancedCSS);
+      const pdfBlob = await convertHtmlToPdf(preparedHtml, fileName, enhancedCSS);
       downloadPdf(pdfBlob, fileName);
       
       toast({
