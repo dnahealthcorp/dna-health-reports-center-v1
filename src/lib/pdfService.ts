@@ -3,7 +3,7 @@
 import { PatientFormData, Medication } from "@/types";
 import { generatePDF as generatePDFImpl } from "./pdf/pdfGenerator";
 import { getPatientById, getCurrentUser, updatePatient } from "@/services/databaseService";
-import { savePDFReference } from "@/services/pdfService";
+import { savePDFReference, ensureString } from "@/services/pdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -160,7 +160,7 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       status: patient?.status,
       fileName: fileName,
       uniqueID: uniqueID,
-      doctorName: formData.doctorName || "Not specified"
+      doctorName: ensureString(formData.doctorName) || "Not specified"
     });
     
     return fileName;

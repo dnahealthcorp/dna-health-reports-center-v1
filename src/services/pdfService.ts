@@ -1,8 +1,18 @@
+
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
+
+/**
+ * Ensures that the input is a string
+ * If a number is provided, it will be converted to a string
+ */
+export const ensureString = (value: string | number | undefined): string => {
+  if (value === undefined) return "";
+  return String(value);
+};
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {

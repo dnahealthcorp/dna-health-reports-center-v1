@@ -1,8 +1,10 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
+import { ensureString } from "@/services/pdfService";
 
 /**
  * Draws the footer on the current page.
@@ -244,19 +246,19 @@ function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
+      ["Glucose Metabolism", ensureString(formData.summaryFindings.glucoseMetabolism) || ""],
+      ["Proteins", ensureString(formData.summaryFindings.proteins) || ""],
+      ["Lipid Profile", ensureString(formData.summaryFindings.lipidProfile) || ""],
+      ["Inflammation", ensureString(formData.summaryFindings.inflammation) || ""],
+      ["Metabolic", ensureString(formData.summaryFindings.metabolic) || ""],
+      ["Homocysteine", ensureString(formData.summaryFindings.homocysteine) || ""],
+      ["Vitamins/Minerals", ensureString(formData.summaryFindings.vitaminsMinerals) || ""],
+      ["Iron Profile", ensureString(formData.summaryFindings.ironProfile) || ""],
+      ["Sex Hormones", ensureString(formData.summaryFindings.sexHormones) || ""],
+      ["Kidney Function and Electrolytes", ensureString(formData.summaryFindings.kidneyFunctionElectrolytes) || ""],
+      ["Liver Functions", ensureString(formData.summaryFindings.liverFunctions) || ""],
+      ["Tumor Markers", ensureString(formData.summaryFindings.tumorMarkers) || ""],
+      ["Blood Counts", ensureString(formData.summaryFindings.bloodCounts) || ""]
     ],
     styles: {
       fontSize: 10,
