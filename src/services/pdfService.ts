@@ -1,43 +1,8 @@
-
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
-
-// Function to convert HTML to PDF using the Edge Function
-export const convertHtmlToPdf = async (
-  html: string, 
-  fileName: string = "document.pdf",
-  css: string = ""
-): Promise<Blob> => {
-  try {
-    // Clean and prepare the HTML for the Edge Function
-    // We'll make sure HTML is properly formed
-    const cleanHtml = html
-      .replace(/<p><\/p>/g, '<p>&nbsp;</p>')  // Replace empty paragraphs with non-breaking space
-      .replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>');  // Replace paragraphs with only whitespace
-    
-    console.log(`Converting HTML to PDF. HTML size: ${cleanHtml.length} chars`);
-    
-    const response = await supabase.functions.invoke("html-to-pdf", {
-      body: { html: cleanHtml, fileName, css }
-    });
-    
-    if (response.error) {
-      console.error("Error in HTML-to-PDF conversion:", response.error);
-      throw new Error(`PDF conversion failed: ${response.error.message}`);
-    }
-    
-    // Convert the response to a Blob
-    const pdfBlob = await response.data.blob();
-    console.log(`PDF generated successfully. Size: ${pdfBlob.size} bytes`);
-    return pdfBlob;
-  } catch (error) {
-    console.error("Error converting HTML to PDF:", error);
-    throw error;
-  }
-};
 
 // Function to download a PDF from a blob
 export const downloadPdf = (pdfBlob: Blob, fileName: string): void => {

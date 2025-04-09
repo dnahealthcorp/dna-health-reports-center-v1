@@ -1,9 +1,12 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { convertHtmlToPdf, downloadPdf } from "@/services/pdfService";
+import { downloadPdf } from "@/services/pdfService";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Loader2 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { renderHtmlInPdfCell } from "@/lib/pdf/htmlRenderer";
 
 interface ExportToPdfProps {
   html: string;
@@ -37,46 +40,131 @@ export function ExportToPdf({
 
     setIsExporting(true);
     try {
-      // Prepare the HTML content for better rendering
-      const preparedHtml = html
-        .replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>')  // Replace empty paragraphs
-        .replace(/<p><br\s*\/?><\/p>/g, '<p>&nbsp;</p>'); // Replace paragraphs with just line breaks
+      // Create a new PDF document
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
       
-      // Add some custom CSS to enhance rendering of HTML content
-      const enhancedCSS = `
-        ${css}
-        body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
-        }
-        strong, b { font-weight: bold !important; }
-        em, i { font-style: italic !important; }
-        ul, ol { padding-left: 20px !important; margin: 8px 0 !important; }
-        li { margin: 4px 0 !important; }
-        p { margin: 8px 0 !important; display: block !important; }
-        h1, h2, h3, h4, h5, h6 {
-          margin-top: 16px !important;
-          margin-bottom: 8px !important;
-          font-weight: bold !important;
-        }
-        h1 { font-size: 24px !important; }
-        h2 { font-size: 20px !important; }
-        h3 { font-size: 16px !important; }
-        table { width: 100% !important; border-collapse: collapse !important; }
-        th, td { padding: 8px !important; border: 1px solid #ddd !important; }
-        th { background-color: #99BC44 !important; color: white !important; }
-        /* Make sure no raw HTML tags are displayed */
-        .html-content * {
-          display: revert !important;
-        }
-      `;
+      // Add logo if available
+      try {
+        const logo = new Image();
+        logo.src = '/assets/DNA Logo - Grey.svg';
+        doc.addImage(logo, 'SVG', 10, 10, 60, 20);
+      } catch (e) {
+        console.warn('Could not add logo to PDF:', e);
+      }
       
-      const pdfBlob = await convertHtmlToPdf(preparedHtml, fileName, enhancedCSS);
-      downloadPdf(pdfBlob, fileName);
+      // Define page dimensions
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      
+      // Add title if the content appears to be a table
+      if (html.includes('<table')) {
+        const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        if (titleMatch && titleMatch[1]) {
+          const title = titleMatch[1].replace(/<[^>]+>/g, ''); // Strip HTML from title
+          doc.setFontSize(18);
+          doc.setTextColor(153, 188, 68); // Primary green color
+          doc.setFont('helvetica', 'bold');
+          doc.text(title, pageWidth/2, margin + 10, { align: 'center' });
+        }
+      }
+      
+      // First, check if the HTML contains a table structure
+      if (html.includes('<table')) {
+        // Extract table data from HTML
+        const parser = new DOMParser();
+        const parsed = parser.parseFromString(html, 'text/html');
+        const table = parsed.querySelector('table');
+        
+        if (table) {
+          const rows = table.querySelectorAll('tr');
+          
+          // Extract header data
+          const headers: string[] = [];
+          const headerRow = table.querySelector('thead tr');
+          if (headerRow) {
+            headerRow.querySelectorAll('th').forEach(th => {
+              headers.push(th.textContent || '');
+            });
+          }
+          
+          // Extract body data
+          const body: string[][] = [];
+          table.querySelectorAll('tbody tr').forEach(tr => {
+            const row: string[] = [];
+            tr.querySelectorAll('td').forEach(td => {
+              // Preserve the full HTML content
+              row.push(td.innerHTML);
+            });
+            body.push(row);
+          });
+          
+          // Draw table with autoTable
+          autoTable(doc, {
+            startY: margin + 25, // Positioning after title and logo
+            head: headers.length ? [headers] : undefined,
+            body: body,
+            theme: 'grid',
+            styles: {
+              fontSize: 10,
+              cellPadding: 5,
+              overflow: 'linebreak',
+              font: 'helvetica',
+            },
+            headStyles: {
+              fillColor: [153, 188, 68],
+              textColor: [255, 255, 255],
+              fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+              fillColor: [245, 245, 245]
+            },
+            didDrawCell: (data) => {
+              // Process cells in the body section
+              if (data.section === 'body') {
+                const cellContent = data.cell.raw;
+                
+                // Check if content is HTML
+                if (typeof cellContent === 'string' && cellContent.includes('<')) {
+                  // Clear cell content - we'll draw it ourselves
+                  data.cell.styles.halign = 'left';
+                  data.cell.styles.valign = 'top';
+                  
+                  // Use our custom HTML renderer
+                  renderHtmlInPdfCell(
+                    doc,
+                    cellContent,
+                    data.cell.x,
+                    data.cell.y,
+                    data.cell.width
+                  );
+                }
+              }
+            }
+          });
+        }
+      } else {
+        // For regular HTML content (non-table)
+        const contentX = margin;
+        const contentY = margin + 30; // Allow space for title/logo
+        const contentWidth = pageWidth - margin * 2;
+        
+        // Use our custom HTML renderer for the entire content
+        renderHtmlInPdfCell(
+          doc,
+          html,
+          contentX,
+          contentY,
+          contentWidth
+        );
+      }
+
+      // Download the PDF file
+      doc.save(fileName);
       
       toast({
         title: "PDF exported successfully",

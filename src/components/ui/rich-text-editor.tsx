@@ -117,29 +117,6 @@ export function RichTextEditor({
             html={handleExportToPdf()}
             fileName={pdfFileName}
             buttonText="Export"
-            css={`
-              body {
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-              }
-              h1, h2, h3 {
-                color: #333;
-                font-weight: bold !important;
-              }
-              ul, ol {
-                padding-left: 20px !important;
-              }
-              strong, b { 
-                font-weight: bold !important;
-              }
-              em, i { 
-                font-style: italic !important;
-              }
-              p {
-                margin: 8px 0 !important;
-                display: block !important;
-              }
-            `}
           />
         )}
       </div>

@@ -1,0 +1,144 @@
+
+import { jsPDF } from "jspdf";
+
+/**
+ * Renders HTML content within a PDF cell by parsing and applying styling
+ */
+export function renderHtmlInPdfCell(
+  doc: jsPDF,
+  html: string,
+  x: number,
+  y: number,
+  maxWidth: number
+): void {
+  if (!html || typeof html !== "string") return;
+  
+  // Clean HTML by replacing empty paragraphs
+  const cleanHtml = html
+    .replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>')
+    .replace(/<p><br\s*\/?><\/p>/g, '<p>&nbsp;</p>');
+
+  // Create parser in browser environment
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(cleanHtml, "text/html");
+  
+  // Starting position
+  let currentY = y + 3; // Add some padding from top
+  let currentX = x + 2; // Add some padding from left
+  const initialX = currentX;
+  const lineHeight = 4.5;
+  const paragraphSpacing = 2;
+  
+  // Track the current style state
+  let isBold = false;
+  let isItalic = false;
+  
+  function getNodeText(node: Node): string {
+    return node.textContent?.trim() || "";
+  }
+  
+  function resetPosition() {
+    currentX = initialX;
+    currentY += lineHeight;
+  }
+  
+  // Process the DOM tree recursively
+  function processNode(node: Node, parentX: number = initialX) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // Handle text node
+      const text = node.textContent || "";
+      if (text.trim()) {
+        // Split text to fit within cell width
+        const textLines = doc.splitTextToSize(text, maxWidth - 4);
+        textLines.forEach((line: string, index: number) => {
+          doc.text(line, currentX, currentY);
+          if (index < textLines.length - 1) {
+            resetPosition();
+          } else {
+            currentX += doc.getTextWidth(line);
+          }
+        });
+      }
+    } 
+    else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+      const tag = element.tagName.toLowerCase();
+      
+      const prevFont = doc.getFont();
+      const prevFontStyle = doc.getFontSize();
+      
+      // Apply styling based on tags
+      switch (tag) {
+        case 'strong':
+        case 'b':
+          doc.setFont(prevFont, 'bold');
+          isBold = true;
+          break;
+        case 'em':
+        case 'i':
+          doc.setFont(prevFont, 'italic');
+          isItalic = true;
+          break;
+        case 'u':
+          // Underline not directly supported by jsPDF text
+          break;
+        case 'p':
+          if (currentX !== initialX) {
+            resetPosition();
+          }
+          break;
+        case 'br':
+          resetPosition();
+          break;
+        case 'ul':
+        case 'ol':
+          resetPosition();
+          currentY += 1; // Extra space before list
+          break;
+        case 'li':
+          currentX = initialX + 5; // Indent list items
+          doc.text("•", initialX, currentY); // Add bullet point
+          break;
+      }
+      
+      // Process child nodes
+      let startX = currentX;
+      for (let i = 0; i < element.childNodes.length; i++) {
+        processNode(element.childNodes[i], startX);
+      }
+      
+      // Handle post-processing for specific tags
+      switch (tag) {
+        case 'p':
+        case 'div':
+          if (element.nextElementSibling) {
+            resetPosition();
+            currentY += paragraphSpacing;
+          }
+          break;
+        case 'li':
+          resetPosition();
+          break;
+      }
+      
+      // Reset styling
+      doc.setFont(prevFont, isBold && isItalic ? 'bolditalic' : isBold ? 'bold' : isItalic ? 'italic' : 'normal');
+      doc.setFontSize(prevFontStyle);
+      
+      // Update style tracking based on closing tags
+      if (tag === 'strong' || tag === 'b') {
+        isBold = false;
+      } else if (tag === 'em' || tag === 'i') {
+        isItalic = false;
+      }
+    }
+  }
+
+  try {
+    // Start processing from body
+    const bodyNode = parsed.body;
+    processNode(bodyNode);
+  } catch (error) {
+    console.error("Error rendering HTML in PDF:", error);
+  }
+}

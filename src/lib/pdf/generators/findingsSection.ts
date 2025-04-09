@@ -4,11 +4,11 @@ import autoTable from "jspdf-autotable";
 import { PatientFormData } from "@/types";
 import { addLogoToPage } from "../logoRenderer";
 import { addFooter, ensureSpace } from "./headerFooter";
+import { renderHtmlInPdfCell } from "../htmlRenderer";
 
 /**
  * Section 4: Summary of Findings (striped).
- * Note: Since HTML content is now handled directly by the HTML-to-PDF Edge Function,
- * this generator function is kept for backward compatibility.
+ * Uses custom HTML rendering for rich content.
  */
 export function generateSummarySection(
   doc: jsPDF,
@@ -26,7 +26,7 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Use HTML content directly - do not strip HTML tags
+  // Get findings content
   const findings = {
     glucoseMetabolism: formData.summaryFindings.glucoseMetabolism || "",
     proteins: formData.summaryFindings.proteins || "",
@@ -43,7 +43,7 @@ export function generateSummarySection(
     bloodCounts: formData.summaryFindings.bloodCounts || ""
   };
 
-  // Generate PDF table with the HTML content
+  // Generate PDF table with the HTML content rendering
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -86,6 +86,28 @@ export function generateSummarySection(
       1: { cellWidth: contentWidth - 50 }
     },
     margin: { left: contentMargin, right: contentMargin },
+    didDrawCell: (data) => {
+      // Only process the findings cells, which are in column 1 (index 1)
+      if (data.section === 'body' && data.column.index === 1) {
+        const cellContent = data.cell.raw as string;
+        
+        // Check if content is HTML
+        if (typeof cellContent === 'string' && cellContent.includes('<')) {
+          // Clear cell content - we'll draw it ourselves
+          data.cell.styles.halign = 'left';
+          data.cell.styles.valign = 'top';
+          
+          // We'll manually render HTML in this cell
+          renderHtmlInPdfCell(
+            doc,
+            cellContent,
+            data.cell.x,
+            data.cell.y,
+            data.cell.width
+          );
+        }
+      }
+    },
     didDrawPage: (data) => {
       // Add logo and footer to each page
       addLogoToPage(doc);
@@ -96,6 +118,7 @@ export function generateSummarySection(
       }
     }
   });
+  
   currentY = (doc as any).lastAutoTable.finalY + 10;
   return currentY;
 }
