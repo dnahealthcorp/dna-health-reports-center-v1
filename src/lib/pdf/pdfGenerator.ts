@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
+import { renderHtmlInPdfCell, sanitizeHtmlForPdf, htmlToPlainText } from "./htmlToPdfConverter";
 
 // Helper functions for type conversion to fix string/string[] type mismatches
 const ensureStringArray = (value: string | string[] | undefined): string[] => {
@@ -256,99 +257,171 @@ function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  autoTable(doc, {
-    startY: currentY,
-    theme: "grid",
-    head: [[
-      { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-      { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
-    ]],
-    body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
-    ],
-    styles: {
-      fontSize: 10,
-      cellPadding: 2,
-      font: "helvetica",
-      textColor: [60, 60, 60]
-    },
-    columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 50 }
-    },
-    didDrawCell: (data) => {
-      if (
-        data.column.index === 1 &&
-        typeof data.cell.raw === 'string' &&
-        data.cell.raw.includes('<')
-      ) {
-        // Clear the default rendering
-        data.cell.text = '';
+  // Define summary fields in a structured way for consistent rendering
+  const summaryFields = [
+    { label: "Glucose Metabolism", value: formData.summaryFindings.glucoseMetabolism || "" },
+    { label: "Proteins", value: formData.summaryFindings.proteins || "" },
+    { label: "Lipid Profile", value: formData.summaryFindings.lipidProfile || "" },
+    { label: "Inflammation", value: formData.summaryFindings.inflammation || "" },
+    { label: "Metabolic", value: formData.summaryFindings.metabolic || "" },
+    { label: "Homocysteine", value: formData.summaryFindings.homocysteine || "" },
+    { label: "Vitamins/Minerals", value: formData.summaryFindings.vitaminsMinerals || "" },
+    { label: "Iron Profile", value: formData.summaryFindings.ironProfile || "" },
+    { label: "Sex Hormones", value: formData.summaryFindings.sexHormones || "" },
+    { label: "Kidney Function and Electrolytes", value: formData.summaryFindings.kidneyFunctionElectrolytes || "" },
+    { label: "Liver Functions", value: formData.summaryFindings.liverFunctions || "" },
+    { label: "Tumor Markers", value: formData.summaryFindings.tumorMarkers || "" },
+    { label: "Blood Counts", value: formData.summaryFindings.bloodCounts || "" }
+  ];
 
-        const cellX = data.cell.x;
-        const cellY = data.cell.y;
-        const cellWidth = data.cell.width;
-        const padding = 2;
+  // Calculate whether content has HTML
+  const hasHtmlContent = summaryFields.some(field => 
+    field.value.includes('<') && field.value.includes('>')
+  );
 
-        const html = data.cell.raw;
-        const parser = new DOMParser();
-        const parsed = parser.parseFromString(html, 'text/html');
-        const body = parsed.body;
-
-        let cursorY = cellY + padding + 2;
-
-        function renderNode(node: Node, style = { bold: false, italic: false }) {
-          if (node.nodeType === Node.TEXT_NODE) {
-            const text = node.textContent?.trim();
-            if (!text) return;
-
-            let fontStyle = 'normal';
-            if (style.bold && style.italic) fontStyle = 'bolditalic';
-            else if (style.bold) fontStyle = 'bold';
-            else if (style.italic) fontStyle = 'italic';
-
-            doc.setFont('helvetica', fontStyle);
-            doc.setFontSize(10);
-            doc.text(text, cellX + padding, cursorY, { maxWidth: cellWidth - padding * 2 });
-            cursorY += 5;
-          }
-
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as HTMLElement;
-            const tag = element.tagName.toLowerCase();
-            const newStyle = { ...style };
-
-            if (tag === 'strong' || tag === 'b') newStyle.bold = true;
-            if (tag === 'em' || tag === 'i') newStyle.italic = true;
-            if (tag === 'br') {
-              cursorY += 5;
-              return;
-            }
-
-            element.childNodes.forEach((child) => renderNode(child, newStyle));
-
-            if (tag === 'p' || tag === 'li') cursorY += 2;
-          }
-        }
-
-        body.childNodes.forEach((child) => renderNode(child));
+  // If we have HTML content, use our custom rendering approach
+  if (hasHtmlContent) {
+    // Draw the table header manually
+    const headerHeight = 8;
+    const rowHeight = 30; // Default row height, will adjust based on content
+    const maxRowsPerPage = Math.floor((doc.internal.pageSize.getHeight() - currentY - 20) / rowHeight);
+    
+    // Draw table header
+    doc.setFillColor(153, 188, 68);
+    doc.setTextColor(255, 255, 255);
+    doc.rect(contentMargin, currentY, 50, headerHeight, 'F');
+    doc.rect(contentMargin + 50, currentY, contentWidth - 50, headerHeight, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Parameter", contentMargin + 2, currentY + 5);
+    doc.text("Key findings and next steps", contentMargin + 52, currentY + 5);
+    
+    currentY += headerHeight;
+    
+    let rowCount = 0;
+    // Process each field
+    for (let i = 0; i < summaryFields.length; i++) {
+      const field = summaryFields[i];
+      
+      // Check if we need a new page
+      if (rowCount >= maxRowsPerPage) {
+        addFooter(doc, pageWidth);
+        doc.addPage();
+        addLogoToPage(doc);
+        currentY = 40; // reset Y position
+        
+        // Redraw headers on new page
+        doc.setFillColor(153, 188, 68);
+        doc.setTextColor(255, 255, 255);
+        doc.rect(contentMargin, currentY, 50, headerHeight, 'F');
+        doc.rect(contentMargin + 50, currentY, contentWidth - 50, headerHeight, 'F');
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text("Parameter", contentMargin + 2, currentY + 5);
+        doc.text("Key findings and next steps", contentMargin + 52, currentY + 5);
+        
+        currentY += headerHeight;
+        rowCount = 0;
       }
+      
+      // Calculate row background color (alternating)
+      const rowBgColor = i % 2 === 0 ? [255, 255, 255] : [245, 245, 245];
+      const paramBgColor = [240, 250, 230]; // Light green for parameter column
+      
+      // Draw parameter cell background
+      doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
+      doc.rect(contentMargin, currentY, 50, rowHeight, 'F');
+      
+      // Draw value cell background
+      doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
+      doc.rect(contentMargin + 50, currentY, contentWidth - 50, rowHeight, 'F');
+      
+      // Draw parameter text
+      doc.setTextColor(60, 60, 60);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(field.label, contentMargin + 2, currentY + 5);
+      
+      // Render HTML content in the value cell
+      const startY = currentY;
+      const endY = renderHtmlInPdfCell(
+        doc, 
+        field.value, 
+        contentMargin + 50, 
+        currentY, 
+        contentWidth - 50
+      );
+      
+      // Adjust row height based on content
+      const actualRowHeight = Math.max(rowHeight, endY - startY);
+      
+      // If the content was taller than default row height, adjust the row
+      if (actualRowHeight > rowHeight) {
+        // Redraw backgrounds with proper height
+        doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
+        doc.rect(contentMargin, startY, 50, actualRowHeight, 'F');
+        
+        doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
+        doc.rect(contentMargin + 50, startY, contentWidth - 50, actualRowHeight, 'F');
+        
+        // Redraw parameter text
+        doc.setTextColor(60, 60, 60);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(field.label, contentMargin + 2, startY + 5);
+        
+        // Re-render HTML content
+        renderHtmlInPdfCell(
+          doc, 
+          field.value, 
+          contentMargin + 50, 
+          startY, 
+          contentWidth - 50
+        );
+      }
+      
+      currentY += actualRowHeight;
+      rowCount++;
     }
-  });
-
-  return (doc as any).lastAutoTable.finalY + 10;
+    
+    return currentY + 10;
+  } else {
+    // Use autotable for non-HTML content
+    const tableBody = summaryFields.map(field => [field.label, field.value]);
+    
+    autoTable(doc, {
+      startY: currentY,
+      theme: "grid",
+      head: [[
+        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+      ]],
+      body: tableBody,
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        font: "helvetica",
+        textColor: [60, 60, 60]
+      },
+      columnStyles: {
+        0: { cellWidth: 50, fillColor: [240, 250, 230] },
+        1: { cellWidth: contentWidth - 50 }
+      },
+      didDrawPage: (data) => {
+        // Add logo and footer to each page
+        addLogoToPage(doc);
+        
+        // Add footer only on completed pages
+        if (data.pageNumber < doc.getNumberOfPages()) {
+          addFooter(doc, pageWidth);
+        }
+      }
+    });
+    
+    return (doc as any).lastAutoTable.finalY + 10;
+  }
 }
 
 /**
