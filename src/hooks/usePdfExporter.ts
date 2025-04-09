@@ -80,7 +80,7 @@ export const usePdfExporter = (
       
       toast({
         title: "PDF Generated",
-        description: `"${fileName}" has been generated and patient status updated to completed`,
+        description: `"${fileName}" has been downloaded and patient status updated to completed`,
       });
     } catch (error) {
       console.error("Error generating PDF:", error);

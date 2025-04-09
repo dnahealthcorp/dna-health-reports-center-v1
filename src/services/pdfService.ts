@@ -1,3 +1,4 @@
+
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +12,11 @@ export const convertHtmlToPdf = async (
   css: string = ""
 ): Promise<Blob> => {
   try {
+    // Clear any undefined characters or control codes that might cause issues
+    const sanitizedHtml = html.replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]/g, '');
+    
     const response = await supabase.functions.invoke("html-to-pdf", {
-      body: { html, fileName, css }
+      body: { html: sanitizedHtml, fileName, css }
     });
     
     if (response.error) {

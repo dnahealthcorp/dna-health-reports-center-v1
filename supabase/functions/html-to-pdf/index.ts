@@ -88,7 +88,7 @@ serve(async (req) => {
     `);
     
     // Wait for any potential content to render (fonts, images, etc.)
-    await page.waitForTimeout(1000); // Increased timeout for better rendering
+    await page.waitForTimeout(2000); // Increased timeout for better rendering
     
     // Generate PDF
     console.log("Generating PDF...");

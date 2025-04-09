@@ -30,7 +30,7 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
-  // Strip HTML tags from all summary findings
+  // Strip HTML tags from all summary findings for clean PDF rendering
   const cleanedFindings = {
     glucoseMetabolism: stripHtml(formData.summaryFindings.glucoseMetabolism || ""),
     proteins: stripHtml(formData.summaryFindings.proteins || ""),
