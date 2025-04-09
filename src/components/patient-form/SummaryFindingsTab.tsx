@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PatientFormData } from "@/types";
 import { cn } from "@/lib/utils";
 import { Edit, List } from "lucide-react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor as createEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
 interface SummaryFindingsTabProps {
@@ -41,12 +42,12 @@ export const SummaryFindingsTab = ({
   handleInputChange,
   canEditDoctorSection
 }: SummaryFindingsTabProps) => {
-  const [useEditor, setUseEditor] = useState<Record<SummaryFindingField, boolean>>(
+  const [useEditorMode, setUseEditorMode] = useState<Record<SummaryFindingField, boolean>>(
     Object.keys(predefinedOptions).reduce((acc, key) => ({ ...acc, [key]: false }), {} as Record<SummaryFindingField, boolean>)
   );
 
   const toggleEditor = (field: SummaryFindingField) => {
-    setUseEditor(prev => ({ ...prev, [field]: !prev[field] }));
+    setUseEditorMode(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
   const handleEditorChange = (field: SummaryFindingField, html: string) => {
@@ -73,7 +74,7 @@ export const SummaryFindingsTab = ({
                 const fieldKey = field as SummaryFindingField;
                 const value = formData.summaryFindings?.[fieldKey] || "";
 
-                const editor = useEditor({
+                const editor = createEditor({
                   content: value,
                   extensions: [StarterKit],
                   onUpdate: ({ editor }) => {
@@ -93,13 +94,13 @@ export const SummaryFindingsTab = ({
                           onClick={() => toggleEditor(fieldKey)}
                           type="button"
                         >
-                          {useEditor[fieldKey] ? <List className="mr-1 w-4 h-4" /> : <Edit className="mr-1 w-4 h-4" />}
-                          {useEditor[fieldKey] ? "Select" : "Edit"}
+                          {useEditorMode[fieldKey] ? <List className="mr-1 w-4 h-4" /> : <Edit className="mr-1 w-4 h-4" />}
+                          {useEditorMode[fieldKey] ? "Select" : "Edit"}
                         </Button>
                       </div>
                     </td>
                     <td className="px-4 py-2 border align-top">
-                      {useEditor[fieldKey] ? (
+                      {useEditorMode[fieldKey] ? (
                         <div className="border rounded p-2">
                           {editor && <EditorContent editor={editor} />}
                         </div>
