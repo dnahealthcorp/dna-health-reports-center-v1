@@ -6,6 +6,14 @@ import { addLogoToPage } from "../logoRenderer";
 import { addFooter, ensureSpace } from "./headerFooter";
 
 /**
+ * Helper function to strip HTML tags from text for PDF output
+ */
+function stripHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || "";
+}
+
+/**
  * Section 4: Summary of Findings (striped).
  */
 export function generateSummarySection(
@@ -24,6 +32,23 @@ export function generateSummarySection(
   doc.text("Summary of findings", contentMargin, currentY);
   currentY += 8;
 
+  // Process HTML content in summary findings
+  const processedSummaryFindings = {
+    glucoseMetabolism: stripHtml(formData.summaryFindings.glucoseMetabolism || ""),
+    proteins: stripHtml(formData.summaryFindings.proteins || ""),
+    lipidProfile: stripHtml(formData.summaryFindings.lipidProfile || ""),
+    inflammation: stripHtml(formData.summaryFindings.inflammation || ""),
+    metabolic: stripHtml(formData.summaryFindings.metabolic || ""),
+    homocysteine: stripHtml(formData.summaryFindings.homocysteine || ""),
+    vitaminsMinerals: stripHtml(formData.summaryFindings.vitaminsMinerals || ""),
+    ironProfile: stripHtml(formData.summaryFindings.ironProfile || ""),
+    sexHormones: stripHtml(formData.summaryFindings.sexHormones || ""),
+    kidneyFunctionElectrolytes: stripHtml(formData.summaryFindings.kidneyFunctionElectrolytes || ""),
+    liverFunctions: stripHtml(formData.summaryFindings.liverFunctions || ""),
+    tumorMarkers: stripHtml(formData.summaryFindings.tumorMarkers || ""),
+    bloodCounts: stripHtml(formData.summaryFindings.bloodCounts || "")
+  };
+
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -34,19 +59,19 @@ export function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
-      ["Proteins", formData.summaryFindings.proteins || ""],
-      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
-      ["Inflammation", formData.summaryFindings.inflammation || ""],
-      ["Metabolic", formData.summaryFindings.metabolic || ""],
-      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
-      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
-      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
-      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
-      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
-      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
-      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
-      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
+      ["Glucose Metabolism", processedSummaryFindings.glucoseMetabolism],
+      ["Proteins", processedSummaryFindings.proteins],
+      ["Lipid Profile", processedSummaryFindings.lipidProfile],
+      ["Inflammation", processedSummaryFindings.inflammation],
+      ["Metabolic", processedSummaryFindings.metabolic],
+      ["Homocysteine", processedSummaryFindings.homocysteine],
+      ["Vitamins/Minerals", processedSummaryFindings.vitaminsMinerals],
+      ["Iron Profile", processedSummaryFindings.ironProfile],
+      ["Sex Hormones", processedSummaryFindings.sexHormones],
+      ["Kidney Function and Electrolytes", processedSummaryFindings.kidneyFunctionElectrolytes],
+      ["Liver Functions", processedSummaryFindings.liverFunctions],
+      ["Tumor Markers", processedSummaryFindings.tumorMarkers],
+      ["Blood Counts", processedSummaryFindings.bloodCounts]
     ],
     styles: {
       fontSize: 10,

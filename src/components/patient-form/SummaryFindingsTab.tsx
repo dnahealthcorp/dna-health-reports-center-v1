@@ -4,8 +4,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown } from "lucide-react";
+import { Check, Edit, ChevronDown, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Button } from "@/components/ui/button";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -79,6 +81,9 @@ export const SummaryFindingsTab = ({
 }: SummaryFindingsTabProps) => {
   // State to track which fields are in editing mode after selecting [Free Text Option]
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
+  
+  // New state to track which fields are in rich text editing mode
+  const [richTextFields, setRichTextFields] = useState<Record<string, boolean>>({});
 
   // Handle select change with special handling for free text option
   const handleSelectChange = (field: string, value: string) => {
@@ -92,11 +97,23 @@ export const SummaryFindingsTab = ({
     // For predefined options, update the form data and exit editing mode
     handleInputChange("summaryFindings", field, value);
     setEditingFields(prev => ({ ...prev, [field]: false }));
+    setRichTextFields(prev => ({ ...prev, [field]: false }));
   };
 
   // Check if a value matches any predefined option
   const isCustomValue = (field: SummaryFindingField, value: string) => {
     return value !== "" && !predefinedOptions[field].includes(value);
+  };
+
+  // Toggle between rich text and plain text editing
+  const toggleRichText = (field: string) => {
+    setRichTextFields(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  // Return to select options from free text editing
+  const returnToSelect = (field: string) => {
+    setEditingFields(prev => ({ ...prev, [field]: false }));
+    setRichTextFields(prev => ({ ...prev, [field]: false }));
   };
 
   return <Card>
@@ -120,6 +137,7 @@ export const SummaryFindingsTab = ({
                 const value = formData.summaryFindings?.[field as SummaryFindingField] || '';
                 const isCustom = isCustomValue(field as SummaryFindingField, value);
                 const isEditing = editingFields[field] || isCustom;
+                const isRichText = richTextFields[field];
                 
                 return (
                   <tr key={field}>
@@ -136,13 +154,46 @@ export const SummaryFindingsTab = ({
                     </td>
                     <td className="px-4 py-2 border">
                       {isEditing ? (
-                        <Textarea 
-                          value={value} 
-                          onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
-                          disabled={!canEditDoctorSection}
-                          className="border-0 p-0 min-h-[60px]" 
-                          placeholder="Enter custom text"
-                        />
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center mb-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => returnToSelect(field)}
+                              disabled={!canEditDoctorSection}
+                              className="flex items-center gap-1 text-xs"
+                            >
+                              <ArrowLeft className="h-3.5 w-3.5" /> Back to options
+                            </Button>
+                            
+                            <Button
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => toggleRichText(field)}
+                              disabled={!canEditDoctorSection}
+                              className="text-xs"
+                            >
+                              {isRichText ? "Simple Editor" : "Rich Text Editor"}
+                            </Button>
+                          </div>
+                          
+                          {isRichText ? (
+                            <RichTextEditor
+                              value={value}
+                              onChange={(newValue) => handleInputChange("summaryFindings", field, newValue)}
+                              disabled={!canEditDoctorSection}
+                              className="min-h-[100px]"
+                            />
+                          ) : (
+                            <Textarea 
+                              value={value} 
+                              onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
+                              disabled={!canEditDoctorSection}
+                              className="border-0 p-0 min-h-[60px]" 
+                              placeholder="Enter custom text"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <div className="relative">
                           <Select
