@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
@@ -16,7 +15,6 @@ interface SummaryFindingsTabProps {
   canEditDoctorSection: boolean;
 }
 
-// Predefined options for each summary finding field
 const predefinedOptions = {
   glucoseMetabolism: [
     "Optimal glucose metabolism.",
@@ -80,44 +78,33 @@ export const SummaryFindingsTab = ({
   handleInputChange,
   canEditDoctorSection
 }: SummaryFindingsTabProps) => {
-  // State to track which fields are in editing mode after selecting [Free Text Option]
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
-  
-  // New state to track which fields are in rich text editing mode
   const [richTextFields, setRichTextFields] = useState<Record<string, boolean>>({});
 
-  // Handle select change with special handling for free text option
   const handleSelectChange = (field: string, value: string) => {
     if (value === "free-text") {
-      // Enable editing mode for this field
       setEditingFields(prev => ({ ...prev, [field]: true }));
-      // Default to current value or empty string when selecting free text option
       return;
     }
     
-    // For predefined options, update the form data and exit editing mode
     handleInputChange("summaryFindings", field, value);
     setEditingFields(prev => ({ ...prev, [field]: false }));
     setRichTextFields(prev => ({ ...prev, [field]: false }));
   };
 
-  // Check if a value matches any predefined option
   const isCustomValue = (field: SummaryFindingField, value: string) => {
     return value !== "" && !predefinedOptions[field].includes(value);
   };
 
-  // Toggle between rich text and plain text editing
   const toggleRichText = (field: string) => {
     setRichTextFields(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  // Return to select options from free text editing
   const returnToSelect = (field: string) => {
     setEditingFields(prev => ({ ...prev, [field]: false }));
     setRichTextFields(prev => ({ ...prev, [field]: false }));
   };
 
-  // Export all findings to a single PDF
   const exportAllFindings = () => {
     const allHtml = Object.entries(formData.summaryFindings || {})
       .filter(([_, value]) => value)
@@ -289,7 +276,6 @@ export const SummaryFindingsTab = ({
                           </Select>
                           {canEditDoctorSection && value && !isEditing && (
                             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                              {/* Export single finding */}
                               {value && (
                                 <ExportToPdf 
                                   html={value} 

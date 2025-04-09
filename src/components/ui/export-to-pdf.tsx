@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { convertHtmlToPdf, downloadPdf } from "@/services/pdfService";
 import { useToast } from "@/hooks/use-toast";
-import { FilePdf, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 
 interface ExportToPdfProps {
   html: string;
@@ -11,6 +11,7 @@ interface ExportToPdfProps {
   css?: string;
   className?: string;
   buttonText?: string;
+  children?: React.ReactNode;
 }
 
 export function ExportToPdf({
@@ -18,7 +19,8 @@ export function ExportToPdf({
   fileName = "document.pdf",
   css = "",
   className = "",
-  buttonText = "Export to PDF"
+  buttonText = "Export to PDF",
+  children
 }: ExportToPdfProps) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -66,9 +68,11 @@ export function ExportToPdf({
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Exporting...
         </>
+      ) : children ? (
+        children
       ) : (
         <>
-          <FilePdf className="mr-2 h-4 w-4" />
+          <FileText className="mr-2 h-4 w-4" />
           {buttonText}
         </>
       )}
