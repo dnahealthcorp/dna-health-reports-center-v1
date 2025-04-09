@@ -73,7 +73,7 @@ export function generateSummarySection(
     body: tableBody,
     styles: {
       fontSize: 10,
-      cellPadding: 2,
+      cellPadding: 5, // Increased padding to give more space for text
       font: "helvetica",
       textColor: [60, 60, 60],
       overflow: 'linebreak',

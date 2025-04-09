@@ -65,18 +65,20 @@ export function renderHtmlInPdfCell(
       const tag = element.tagName.toLowerCase();
       
       const prevFont = doc.getFont();
-      const prevFontSize = doc.getFontSize();
+      let fontStyle = 'normal';
       
       // Apply styling based on tags
       switch (tag) {
         case 'strong':
         case 'b':
-          doc.setFont(prevFont.fontName, 'bold');
+          fontStyle = isBold ? (isItalic ? 'bolditalic' : 'bold') : 'bold';
+          doc.setFont(prevFont.fontName, fontStyle);
           isBold = true;
           break;
         case 'em':
         case 'i':
-          doc.setFont(prevFont.fontName, 'italic');
+          fontStyle = isItalic ? (isBold ? 'bolditalic' : 'italic') : 'italic';
+          doc.setFont(prevFont.fontName, fontStyle);
           isItalic = true;
           break;
         case 'u':
@@ -122,16 +124,16 @@ export function renderHtmlInPdfCell(
       }
       
       // Reset styling
-      const fontStyle = isBold && isItalic ? 'bolditalic' : isBold ? 'bold' : isItalic ? 'italic' : 'normal';
-      doc.setFont(prevFont.fontName, fontStyle);
-      doc.setFontSize(prevFontSize);
-      
-      // Update style tracking based on closing tags
       if (tag === 'strong' || tag === 'b') {
         isBold = false;
+        fontStyle = isItalic ? 'italic' : 'normal';
       } else if (tag === 'em' || tag === 'i') {
         isItalic = false;
+        fontStyle = isBold ? 'bold' : 'normal';
       }
+      
+      doc.setFont(prevFont.fontName, fontStyle);
+      doc.setFontSize(prevFont.fontSize);
     }
   }
 
