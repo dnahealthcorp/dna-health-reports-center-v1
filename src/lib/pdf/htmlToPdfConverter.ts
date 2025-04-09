@@ -102,6 +102,7 @@ export function renderHtmlInPdfCell(
       else if (styles.italic) fontStyle = 'italic';
       
       doc.setFont('helvetica', fontStyle);
+      doc.setTextColor(60, 60, 60); // Ensure text color is consistent after page break
       
       // Handle text that might need to be wrapped
       const textLines = doc.splitTextToSize(text, cellWidth - 10); // Increased padding
@@ -308,42 +309,47 @@ export function renderHtmlTableSection(
       
       // Add logo to new page
       try {
-        const logoImg = "/assets/DNA Logo - Grey.svg";
-        doc.addImage(logoImg, "SVG", 20, 10, 40, 20);
+        const { addLogoToPage } = require("./logoRenderer");
+        addLogoToPage(doc);
       } catch (err) {
         console.error("Failed to add logo to new page:", err);
+        // If logo loading fails, try fallback method
+        try {
+          const logoImg = "/assets/DNA Logo - Grey.svg";
+          doc.addImage(logoImg, "SVG", 20, 10, 40, 20);
+        } catch (logoErr) {
+          console.error("Failed to add logo with fallback method:", logoErr);
+        }
       }
       
       // Reset current Y position to top of new page with margin
       currentY = 40;
       
-      // Redraw header if this is the first row of a new page
-      if (i === 0 || true) { // Always redraw headers on new pages
-        // Draw section title on new page
-        doc.setFontSize(14);
-        doc.setTextColor(153, 188, 68);
-        doc.setFont("helvetica", "bold");
-        doc.text(title + " (continued)", contentMargin, currentY);
-        currentY += 10;
-        
-        // Draw header background
-        doc.setFillColor(153, 188, 68);
-        doc.rect(contentMargin, currentY, paramColWidth, headerHeight, 'F');
-        doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight, 'F');
-        
-        // Draw header text
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-        doc.text(headers[0], contentMargin + 5, currentY + 7);
-        doc.text(headers[1], contentMargin + paramColWidth + 5, currentY + 7);
-        
-        // Draw header borders
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.rect(contentMargin, currentY, paramColWidth, headerHeight);
-        doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight);
-        
-        currentY += headerHeight;
-      }
+      // Redraw header if this is the first row of a new page or continue a table
+      // Draw section title on new page (with "continued" indication)
+      doc.setFontSize(14);
+      doc.setTextColor(153, 188, 68);
+      doc.setFont("helvetica", "bold");
+      doc.text(title + " (continued)", contentMargin, currentY);
+      currentY += 10;
+      
+      // Draw header background
+      doc.setFillColor(153, 188, 68);
+      doc.rect(contentMargin, currentY, paramColWidth, headerHeight, 'F');
+      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight, 'F');
+      
+      // Draw header text
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text(headers[0], contentMargin + 5, currentY + 7);
+      doc.text(headers[1], contentMargin + paramColWidth + 5, currentY + 7);
+      
+      // Draw header borders
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      doc.rect(contentMargin, currentY, paramColWidth, headerHeight);
+      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight);
+      
+      currentY += headerHeight;
     }
     
     // Alternate row background colors
@@ -373,6 +379,9 @@ export function renderHtmlTableSection(
     let contentEndY = valueStartY + rowHeight;
     
     if (!isEmpty) {
+      // Save original content height for potential adjustment
+      const startRenderY = currentY;
+      
       // Render the HTML content for non-empty cells with improved page break handling
       contentEndY = renderHtmlInPdfCell(
         doc,
@@ -429,3 +438,4 @@ export function renderHtmlTableSection(
   // Return the Y position after the table
   return currentY + 10; // Add some padding after the table
 }
+
