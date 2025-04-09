@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 
 /**
@@ -44,4 +45,9 @@ export const addLogoToPage = (doc: jsPDF): void => {
       // Right-align the fallback text near the same location
       const pageWidth = doc.internal.pageSize.getWidth();
       const fallbackX = pageWidth - 50; // approximate placement
-      doc
+      doc.text("DNA Health", fallbackX, 15, { align: "right" });
+    } catch (fallbackError) {
+      console.error("Even text fallback failed:", fallbackError);
+    }
+  }
+};
