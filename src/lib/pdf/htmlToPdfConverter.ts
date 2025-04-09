@@ -203,6 +203,7 @@ export function renderHtmlTableSection(
   const paramColWidth = 50;
   const valueColWidth = contentWidth - paramColWidth;
   const minRowHeight = 30;
+  const emptyRowHeight = 15; // Smaller height for empty cells
 
   // Draw header background
   doc.setFillColor(153, 188, 68);
@@ -223,8 +224,12 @@ export function renderHtmlTableSection(
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     
+    // Check if row is empty or has minimal content
+    const isEmpty = !row.value || row.value.trim() === '';
+    const rowHeight = isEmpty ? emptyRowHeight : minRowHeight;
+    
     // Check if we need to add a new page
-    const estimatedRowHeight = Math.max(minRowHeight, 
+    const estimatedRowHeight = isEmpty ? emptyRowHeight : Math.max(minRowHeight, 
         doc.getTextDimensions(row.value).h + 15); // Add padding
     
     if (currentY + estimatedRowHeight > pageHeight - 20) {
@@ -280,7 +285,7 @@ export function renderHtmlTableSection(
     
     // Draw parameter cell background and text first
     doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
-    doc.rect(contentMargin, currentY, paramColWidth, minRowHeight, 'F');
+    doc.rect(contentMargin, currentY, paramColWidth, rowHeight, 'F');
     
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "normal");
@@ -289,56 +294,63 @@ export function renderHtmlTableSection(
     
     // Render HTML content for value cell
     doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
-    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, minRowHeight, 'F');
+    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, rowHeight, 'F');
     
-    // Render the HTML content
-    const contentEndY = renderHtmlInPdfCell(
-      doc,
-      row.value,
-      contentMargin + paramColWidth,
-      currentY,
-      valueColWidth,
-      10, // font size
-      5   // line height
-    );
+    // For empty cells, we don't need to render content
+    let contentEndY = valueStartY + rowHeight;
     
-    // Calculate actual row height based on content
-    const actualRowHeight = Math.max(minRowHeight, contentEndY - valueStartY);
-    
-    // If content height is more than minimum, redraw cells with correct height
-    if (actualRowHeight > minRowHeight) {
-      // Redraw parameter cell with correct height
-      doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
-      doc.rect(contentMargin, currentY, paramColWidth, actualRowHeight, 'F');
-      
-      // Redraw value cell with correct height
-      doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
-      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight, 'F');
-      
-      // Redraw parameter text
-      doc.setTextColor(60, 60, 60);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(row.label, contentMargin + 5, currentY + 10);
-      
-      // Re-render HTML content
-      renderHtmlInPdfCell(
+    if (!isEmpty) {
+      // Render the HTML content for non-empty cells
+      contentEndY = renderHtmlInPdfCell(
         doc,
         row.value,
         contentMargin + paramColWidth,
         currentY,
         valueColWidth,
-        10,
-        5
+        10, // font size
+        5   // line height
       );
+      
+      // Calculate actual row height based on content
+      const actualRowHeight = Math.max(rowHeight, contentEndY - valueStartY);
+      
+      // If content height is more than minimum, redraw cells with correct height
+      if (actualRowHeight > rowHeight) {
+        // Redraw parameter cell with correct height
+        doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
+        doc.rect(contentMargin, currentY, paramColWidth, actualRowHeight, 'F');
+        
+        // Redraw value cell with correct height
+        doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
+        doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight, 'F');
+        
+        // Redraw parameter text
+        doc.setTextColor(60, 60, 60);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.text(row.label, contentMargin + 5, currentY + 10);
+        
+        // Re-render HTML content
+        renderHtmlInPdfCell(
+          doc,
+          row.value,
+          contentMargin + paramColWidth,
+          currentY,
+          valueColWidth,
+          10,
+          5
+        );
+        
+        contentEndY = valueStartY + actualRowHeight;
+      }
     }
     
     // Draw cell borders
-    drawCellBorders(doc, contentMargin, currentY, paramColWidth, actualRowHeight);
-    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight);
+    drawCellBorders(doc, contentMargin, currentY, paramColWidth, contentEndY - currentY);
+    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY);
     
     // Move to next row
-    currentY += actualRowHeight;
+    currentY = contentEndY;
   }
   
   // Return the Y position after the table
