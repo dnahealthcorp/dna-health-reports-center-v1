@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 
 /**
@@ -9,13 +10,13 @@ export const addLogoToPage = (doc: jsPDF): void => {
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // We set only the desiredWidth; setting height = 0 preserves aspect ratio in jsPDF
-    const desiredWidth = 30; 
-    const marginRight = 10;
+    const desiredWidth = 25; // Reduced from 30 to make it smaller
+    const marginRight = 15; // Increased from 10 to give more space from the right edge
+    const marginTop = 5;   // Reduced from 10 to move it higher up
 
     // Compute x so that the image is right-aligned
-    // The final scaled height is unknown until rendered, but typically small
     const x = pageWidth - desiredWidth - marginRight;
-    const y = 10; // 10 mm from the top
+    const y = marginTop;
     
     try {
       // Try PNG first: pass height as 0 to keep aspect ratio

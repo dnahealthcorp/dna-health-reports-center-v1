@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Save, Loader2 } from "lucide-react";
 import { Patient } from "@/types";
-import { useState } from "react";
 
 interface PatientHeaderProps {
   patient: Patient;
