@@ -48,7 +48,7 @@ export function renderHtmlInPdfCell(
       // Handle text node
       const text = node.textContent || "";
       if (text.trim()) {
-        // Split text to fit within cell width
+        // Split text to fit within cell width using splitTextToSize
         const textLines = doc.splitTextToSize(text, maxWidth - 4);
         textLines.forEach((line: string, index: number) => {
           doc.text(line, currentX, currentY);
