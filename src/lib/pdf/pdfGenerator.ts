@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -772,3 +773,139 @@ function generateFollowUpsSection(
     theme: "grid",
     head: [
       [
+        { content: "With Doctor", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "For Reason", styles: { fillColor: [153,188,68], textColor: [255,255,255] } },
+        { content: "Date", styles: { fillColor: [153,188,68], textColor: [255,255,255] } }
+      ]
+    ],
+    body: followUpRows,
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+      font: "helvetica",
+      textColor: [60,60,60]
+    },
+    bodyStyles: {
+      fillColor: [255,255,255]
+    },
+    alternateRowStyles: {
+      fillColor: [245,245,245]
+    },
+    columnStyles: {
+      0: { cellWidth: 50, fillColor: [240,250,230] },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 30 }
+    },
+    margin: { left: contentMargin, right: contentMargin },
+    didDrawPage: (data) => {
+      // Add logo and footer to each page
+      addLogoToPage(doc);
+      
+      // Add footer only on completed pages
+      if (data.pageNumber < doc.getNumberOfPages()) {
+        addFooter(doc, pageWidth);
+      }
+    }
+  });
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+
+  // Add web address links
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(153, 188, 68);
+  doc.text("Visit:", contentMargin, currentY);
+  currentY += 5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  // Link URLs follow brand appearance guidelines
+  const links = [
+    "www.dnahealth.co.za",
+    "www.functionalmedicineacademy.co.za", 
+    "www.drhamillnutrition.co.za"
+  ];
+  
+  links.forEach(link => {
+    doc.text(link, contentMargin + 10, currentY);
+    currentY += 5;
+  });
+  
+  // Add doctor's signature/conclusion
+  currentY = ensureSpace(doc, currentY + 10, 30, sectionTopMargin, pageWidth);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  
+  const doctorName = formData.doctorName || "Your Doctor";
+  const signatureText = `Kind Regards,\n\n${doctorName}\nDNA Health`;
+  
+  doc.text(signatureText, contentMargin, currentY);
+  
+  return currentY + 30;
+}
+
+/**
+ * Main function to generate the PDF document
+ */
+export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<Blob> => {
+  // Create new PDF document
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+  
+  try {
+    // Add the Montserrat font
+    doc.addFont("public/fonts/Montserrat-Regular.ttf", "Montserrat", "normal");
+    doc.addFont("public/fonts/Montserrat-Medium.ttf", "Montserrat", "medium");
+    doc.addFont("public/fonts/Montserrat-Bold.ttf", "Montserrat", "bold");
+  } catch (error) {
+    console.error("Error loading fonts:", error);
+  }
+
+  // Page size info
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentMargin = 20;  // 20mm margin on each side
+  const contentWidth = pageWidth - (contentMargin * 2);  // Usable width for content
+  
+  let currentY = 30;  // Starting Y position for first content
+
+  // Generate PDF sections - these functions modify currentY and return the updated value
+  
+  // First page: Images section - titlepage
+  currentY = generateImagesSection(doc, currentY, pageWidth, contentMargin, contentWidth);
+  
+  // Introduction text
+  currentY = generateIntroductionSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Vital signs table
+  currentY = generateVitalsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Summary of findings
+  currentY = generateSummarySection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Insulin resistance and cardiovascular risk
+  currentY = generateInsulinCardioSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Doctor's recommendations - nutrition
+  currentY = generateDoctorsRecommendationsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Exercise and sleep/stress recommendations
+  currentY = generateExerciseSleepSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Medications and supplements
+  currentY = generateMedicationsSupplementsSection(
+    doc, currentY, pageWidth, contentMargin, contentWidth, formData, medications
+  );
+  
+  // Follow-ups and signature
+  currentY = generateFollowUpsSection(doc, currentY, pageWidth, contentMargin, contentWidth, formData);
+  
+  // Finally, add footer to the last page
+  addFooter(doc, pageWidth);
+  
+  // Save the PDF as a Blob
+  const pdfBlob = doc.output("blob");
+  return pdfBlob;
+};
