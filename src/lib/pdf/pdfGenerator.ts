@@ -277,47 +277,65 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    didDrawCell: (data) => {
-      if (data.column.index === 1 && typeof data.cell.raw === "string" && data.cell.raw.includes("<")) {
-        const { x, y, width } = data.cell;
-        const padding = 2;
-        const html = data.cell.raw;
-        const parser = new DOMParser();
-        const docHtml = parser.parseFromString(html, "text/html");
+   didDrawCell: (data) => {
+  if (
+    data.column.index === 1 &&
+    typeof data.cell.raw === 'string' &&
+    data.cell.raw.includes('<')
+  ) {
+    // Clear the default rendering
+    data.cell.text = '';
 
-        let cursorY = y + padding + 2;
+    const cellX = data.cell.x;
+    const cellY = data.cell.y;
+    const cellWidth = data.cell.width;
+    const padding = 2;
 
-        function renderNode(node, style = { bold: false, italic: false }) {
-          if (node.nodeType === Node.TEXT_NODE) {
-            const text = node.textContent?.trim();
-            if (!text) return;
-            let fontStyle = "normal";
-            if (style.bold && style.italic) fontStyle = "bolditalic";
-            else if (style.bold) fontStyle = "bold";
-            else if (style.italic) fontStyle = "italic";
-            doc.setFont("helvetica", fontStyle);
-            doc.setFontSize(10);
-            doc.text(text, x + padding, cursorY, { maxWidth: width - padding * 2 });
-            cursorY += 5;
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const tag = node.nodeName.toLowerCase();
-            const newStyle = { ...style };
-            if (["b", "strong"].includes(tag)) newStyle.bold = true;
-            if (["i", "em"].includes(tag)) newStyle.italic = true;
-            if (tag === "br") {
-              cursorY += 5;
-              return;
-            }
-            if (tag === "p") {
-              cursorY += 2;
-            }
-            node.childNodes.forEach(child => renderNode(child, newStyle));
-          }
+    const html = data.cell.raw;
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(html, 'text/html');
+    const body = parsed.body;
+
+    let cursorY = cellY + padding + 2;
+
+    function renderNode(node: Node, style = { bold: false, italic: false }) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (!text) return;
+
+        let fontStyle = 'normal';
+        if (style.bold && style.italic) fontStyle = 'bolditalic';
+        else if (style.bold) fontStyle = 'bold';
+        else if (style.italic) fontStyle = 'italic';
+
+        doc.setFont('helvetica', fontStyle);
+        doc.setFontSize(10);
+        doc.text(text, cellX + padding, cursorY, { maxWidth: cellWidth - padding * 2 });
+        cursorY += 5;
+      }
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        const tag = element.tagName.toLowerCase();
+        const newStyle = { ...style };
+
+        if (tag === 'strong' || tag === 'b') newStyle.bold = true;
+        if (tag === 'em' || tag === 'i') newStyle.italic = true;
+        if (tag === 'br') {
+          cursorY += 5;
+          return;
         }
 
-        docHtml.body.childNodes.forEach(child => renderNode(child));
+        element.childNodes.forEach((child) => renderNode(child, newStyle));
+
+        if (tag === 'p' || tag === 'li') cursorY += 2;
       }
     }
+
+    body.childNodes.forEach((child) => renderNode(child));
+  }
+}
+
   });
 
   return (doc as any).lastAutoTable.finalY + 10;
