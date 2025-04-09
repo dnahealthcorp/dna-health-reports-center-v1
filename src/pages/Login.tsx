@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +23,7 @@ const Login = () => {
   const { user, login, loginWithGoogle, isLoading: authLoading } = useAuth();
   
   useEffect(() => {
-    // If already logged in, redirect to home
     if (user) {
-      console.log("User already logged in, redirecting to home");
       navigate('/');
     }
   }, [user, navigate]);
@@ -48,22 +46,13 @@ const Login = () => {
     try {
       const result = await login(email, password);
       
-      if (result.error) {
-        throw result.error;
-      }
-      
-      if (result.session === null && result.error === null) {
+      if (result?.session === null && result?.error === null) {
         setRequiresMFA(true);
         setIsLoading(false);
         return;
       }
       
-      if (result.user) {
-        console.log("Login successful, redirecting to home");
-        navigate("/");
-      } else {
-        setError("Invalid email or password");
-      }
+      navigate("/");
     } catch (error: any) {
       console.error("Login error:", error);
       setError(error.message || "Invalid email or password");

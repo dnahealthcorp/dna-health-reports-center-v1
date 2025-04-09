@@ -29,15 +29,8 @@ export const getUsers = async (): Promise<User[]> => {
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     // Get authentication state
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error("Error getting session:", sessionError);
-      return null;
-    }
-    
-    if (!sessionData.session) {
-      console.log("No active session found");
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session) {
       return null;
     }
     
@@ -45,28 +38,22 @@ export const getCurrentUser = async (): Promise<User | null> => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', sessionData.session.user.id)
+      .eq('id', authData.session.user.id)
       .single();
     
     if (error) {
-      console.error("Error fetching user data:", error);
-      return null;
+      throw error;
     }
     
-    if (!data) {
-      console.log("User data not found for ID:", sessionData.session.user.id);
-      return null;
-    }
-    
-    return {
+    return data ? {
       id: data.id,
       name: data.name,
       email: data.email,
       role: data.role as 'nurse' | 'doctor' | 'admin'
-    };
+    } : null;
   } catch (error) {
     console.error("Error getting current user from Supabase:", error);
-    return null; // Return null instead of throwing to prevent uncaught promise rejections
+    throw error;
   }
 };
 

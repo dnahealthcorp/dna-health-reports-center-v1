@@ -1,13 +1,11 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { PatientFormData } from "@/types";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Edit, ChevronDown, ArrowLeft, FileDown } from "lucide-react";
+import { Check, Edit, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { Button } from "@/components/ui/button";
-import { ExportToPdf } from "@/components/ui/export-to-pdf";
 
 interface SummaryFindingsTabProps {
   formData: PatientFormData;
@@ -15,6 +13,7 @@ interface SummaryFindingsTabProps {
   canEditDoctorSection: boolean;
 }
 
+// Predefined options for each summary finding field
 const predefinedOptions = {
   glucoseMetabolism: [
     "Optimal glucose metabolism.",
@@ -78,113 +77,34 @@ export const SummaryFindingsTab = ({
   handleInputChange,
   canEditDoctorSection
 }: SummaryFindingsTabProps) => {
+  // State to track which fields are in editing mode after selecting [Free Text Option]
   const [editingFields, setEditingFields] = useState<Record<string, boolean>>({});
-  const [richTextFields, setRichTextFields] = useState<Record<string, boolean>>({});
 
+  // Handle select change with special handling for free text option
   const handleSelectChange = (field: string, value: string) => {
     if (value === "free-text") {
+      // Enable editing mode for this field
       setEditingFields(prev => ({ ...prev, [field]: true }));
+      // Default to current value or empty string when selecting free text option
       return;
     }
     
+    // For predefined options, update the form data and exit editing mode
     handleInputChange("summaryFindings", field, value);
     setEditingFields(prev => ({ ...prev, [field]: false }));
-    setRichTextFields(prev => ({ ...prev, [field]: false }));
   };
 
+  // Check if a value matches any predefined option
   const isCustomValue = (field: SummaryFindingField, value: string) => {
     return value !== "" && !predefinedOptions[field].includes(value);
   };
 
-  const toggleRichText = (field: string) => {
-    setRichTextFields(prev => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const returnToSelect = (field: string) => {
-    setEditingFields(prev => ({ ...prev, [field]: false }));
-    setRichTextFields(prev => ({ ...prev, [field]: false }));
-  };
-
-  const exportAllFindings = () => {
-    return `
-      <h1 style="color: #333; margin-bottom: 20px; text-align: center; font-size: 24px !important; font-weight: bold !important;">Summary of Findings</h1>
-      <table width="100%" border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin: 15px 0;">
-        <thead>
-          <tr style="background-color: #99BC44; color: white;">
-            <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Parameter</th>
-            <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Key findings and next steps</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${Object.entries(formData.summaryFindings || {})
-            .filter(([_, value]) => value)
-            .map(([field, value], index) => {
-              const displayName = field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
-                              field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
-                              field === 'ironProfile' ? 'Iron Profile' : 
-                              field === 'sexHormones' ? 'Sex Hormones' : 
-                              field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
-                              field === 'liverFunctions' ? 'Liver Functions' : 
-                              field === 'tumorMarkers' ? 'Tumor Markers' : 
-                              field === 'bloodCounts' ? 'Blood Counts' : 
-                              field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              
-              return `
-                <tr style="${index % 2 === 0 ? 'background-color: #f5f5f5;' : 'background-color: #ffffff;'}">
-                  <td style="background-color: #f0f6e6; width: 150px; padding: 8px; border: 1px solid #ddd;">${displayName}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd;">${value}</td>
-                </tr>
-              `;
-            }).join('')
-          }
-        </tbody>
-      </table>
-    `;
-  };
-
   return <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Summary of Findings</CardTitle>
-          <CardDescription>
-            Record patient's health parameters and findings
-          </CardDescription>
-        </div>
-        <ExportToPdf
-          html={exportAllFindings()}
-          fileName="summary-findings.pdf"
-          css={`
-            body {
-              font-family: Arial, sans-serif;
-              line-height: 1.6;
-            }
-            h1 {
-              color: #99BC44;
-              text-align: center;
-              margin-bottom: 20px;
-              font-size: 24px !important;
-              font-weight: bold !important;
-            }
-            table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              margin: 15px 0 !important;
-            }
-            th, td {
-              padding: 8px !important;
-              border: 1px solid #ddd !important;
-              text-align: left !important;
-            }
-            th {
-              background-color: #99BC44 !important;
-              color: white !important;
-            }
-            tr:nth-child(even) {
-              background-color: #f5f5f5 !important;
-            }
-          `}
-          buttonText="Export All Findings"
-        />
+      <CardHeader>
+        <CardTitle>Summary of Findings</CardTitle>
+        <CardDescription>
+          Record patient's health parameters and findings
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -200,7 +120,6 @@ export const SummaryFindingsTab = ({
                 const value = formData.summaryFindings?.[field as SummaryFindingField] || '';
                 const isCustom = isCustomValue(field as SummaryFindingField, value);
                 const isEditing = editingFields[field] || isCustom;
-                const isRichText = richTextFields[field];
                 
                 return (
                   <tr key={field}>
@@ -217,59 +136,13 @@ export const SummaryFindingsTab = ({
                     </td>
                     <td className="px-4 py-2 border">
                       {isEditing ? (
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center mb-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => returnToSelect(field)}
-                              disabled={!canEditDoctorSection}
-                              className="flex items-center gap-1 text-xs"
-                            >
-                              <ArrowLeft className="h-3.5 w-3.5" /> Back to options
-                            </Button>
-                            
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => toggleRichText(field)}
-                                disabled={!canEditDoctorSection}
-                                className="text-xs"
-                              >
-                                {isRichText ? "Simple Editor" : "Rich Text Editor"}
-                              </Button>
-                              
-                              {isRichText && value && (
-                                <ExportToPdf 
-                                  html={value} 
-                                  fileName={`${field}.pdf`} 
-                                  buttonText="PDF"
-                                  className="text-xs"
-                                />
-                              )}
-                            </div>
-                          </div>
-                          
-                          {isRichText ? (
-                            <RichTextEditor
-                              value={value}
-                              onChange={(newValue) => handleInputChange("summaryFindings", field, newValue)}
-                              disabled={!canEditDoctorSection}
-                              className="min-h-[100px]"
-                              showExportToPdf={true}
-                              pdfFileName={`${field}.pdf`}
-                            />
-                          ) : (
-                            <Textarea 
-                              value={value} 
-                              onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
-                              disabled={!canEditDoctorSection}
-                              className="border-0 p-0 min-h-[60px]" 
-                              placeholder="Enter custom text"
-                            />
-                          )}
-                        </div>
+                        <Textarea 
+                          value={value} 
+                          onChange={e => handleInputChange("summaryFindings", field, e.target.value)} 
+                          disabled={!canEditDoctorSection}
+                          className="border-0 p-0 min-h-[60px]" 
+                          placeholder="Enter custom text"
+                        />
                       ) : (
                         <div className="relative">
                           <Select
@@ -299,25 +172,13 @@ export const SummaryFindingsTab = ({
                             </SelectContent>
                           </Select>
                           {canEditDoctorSection && value && !isEditing && (
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                              {value && (
-                                <ExportToPdf 
-                                  html={value} 
-                                  fileName={`${field}.pdf`} 
-                                  className="p-1 rounded-full hover:bg-gray-100"
-                                  buttonText=""
-                                >
-                                  <FileDown className="h-4 w-4 text-gray-500" />
-                                </ExportToPdf>
-                              )}
-                              <button 
-                                className="p-1 rounded-full hover:bg-gray-100"
-                                onClick={() => setEditingFields(prev => ({ ...prev, [field]: true }))}
-                                type="button"
-                              >
-                                <Edit className="h-4 w-4 text-gray-500" />
-                              </button>
-                            </div>
+                            <button 
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100"
+                              onClick={() => setEditingFields(prev => ({ ...prev, [field]: true }))}
+                              type="button"
+                            >
+                              <Edit className="h-4 w-4 text-gray-500" />
+                            </button>
                           )}
                         </div>
                       )}

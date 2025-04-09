@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
     
-    // Set up auth state listener first
+    // Set up auth state listener first (important for initialization order)
     const setupAuthListener = () => {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
@@ -61,7 +61,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   
                 if (error) {
                   console.error("Error fetching user data:", error);
-                  setIsLoading(false);
                   return;
                 }
                 
@@ -88,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return data.subscription;
     };
 
-    // Check for existing session
+    // Check for existing session after setting up listener
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -121,8 +120,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             email: data.email, 
             role: data.role as 'nurse' | 'doctor' | 'admin'
           });
-        } else {
-          console.log("No user data found for ID:", session.user.id);
         }
         
         setIsLoading(false);
@@ -142,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         subscription.unsubscribe();
       }
     };
-  }, []);
+  }, []);  // Removed toast dependency to avoid re-running this effect
 
   const login = async (email: string, password: string) => {
     try {
@@ -159,34 +156,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { session: null, user: null, error: null };
       }
       
-      if (!data.user) {
-        return { session: data.session, user: null, error: null };
-      }
-      
-      // Fetch user data after login
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      if (data.user) {
+        // Fetch user data after login
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (userError) throw userError;
         
-      if (userError) {
-        console.error("Error fetching user data after login:", userError);
-        throw userError;
+        if (userData) {
+          const user = {
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role as 'nurse' | 'doctor' | 'admin'
+          };
+          
+          setUser(user);
+          return { session: data.session, user, error: null };
+        }
       }
-      
-      if (userData) {
-        const user = {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role as 'nurse' | 'doctor' | 'admin'
-        };
-        
-        setUser(user);
-        return { session: data.session, user, error: null };
-      }
-      
       return { session: data.session, user: null, error: null };
     } catch (error) {
       console.error("Login error:", error);

@@ -4,19 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
 
-// Function to download a PDF from a blob
-export const downloadPdf = (pdfBlob: Blob, fileName: string): void => {
-  const url = URL.createObjectURL(pdfBlob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 100);
-};
-
-// Function to save PDF reference in the database
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
     // Generate a proper UUID using uuidv4 instead of a timestamp string
@@ -67,7 +54,6 @@ export const savePDFReference = async (patientId: string, fileName: string, file
   }
 };
 
-// Function to get all PDF files
 export const getPDFFiles = async (): Promise<PDFFile[]> => {
   try {
     const { data, error } = await supabase
@@ -102,7 +88,6 @@ export const getPDFFiles = async (): Promise<PDFFile[]> => {
   }
 };
 
-// Function to get PDF files for a specific patient
 export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile[]> => {
   try {
     const { data, error } = await supabase
