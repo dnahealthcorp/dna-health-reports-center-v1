@@ -2,31 +2,29 @@ import { jsPDF } from "jspdf";
 
 /**
  * Adds the DNA Health logo to the top-right corner of the PDF page
- * at a smaller size, preserving aspect ratio.
- *
- * IMPORTANT: To avoid overlap with page content, ensure your topMargin
- * (for text, images, etc.) is large enough (e.g., at least 30-40 mm).
+ * without stretching (aspect ratio preserved).
  */
 export const addLogoToPage = (doc: jsPDF): void => {
   try {
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Original logo aspect ratio ~ 2.74 (236 wide / 86 high)
-    const logoWidth = 30; // reduce width to avoid large overlap
-    const logoHeight = 11; // maintain aspect ratio (about 30/2.74)
-    
-    // Position near top-right: 10 mm from right edge, 10 mm from top edge
-    const x = pageWidth - logoWidth - 10;
-    const y = 10;
+    // We set only the desiredWidth; setting height = 0 preserves aspect ratio in jsPDF
+    const desiredWidth = 30; 
+    const marginRight = 10;
 
+    // Compute x so that the image is right-aligned
+    // The final scaled height is unknown until rendered, but typically small
+    const x = pageWidth - desiredWidth - marginRight;
+    const y = 10; // 10 mm from the top
+    
     try {
-      // Try PNG first
-      doc.addImage("/assets/dna-logo.png", "PNG", x, y, logoWidth, logoHeight);
-      console.log("Logo added to PDF successfully using PNG");
+      // Try PNG first: pass height as 0 to keep aspect ratio
+      doc.addImage("/assets/dna-logo.png", "PNG", x, y, desiredWidth, 0);
+      console.log("Logo added to PDF using PNG with preserved ratio");
     } catch (pngError) {
       console.warn("Could not add PNG logo, trying SVG fallback:", pngError);
-
-      // Fallback to inline SVG
+      
+      // Use an inline SVG fallback
       const svgLogo = `
       <svg xmlns="http://www.w3.org/2000/svg" width="236" height="86" viewBox="0 0 236 86" fill="none">
         <path d="M55.9 69.1C45.2 69.1 34.6 62.6 28.5 52.5C22.2 42.2 21.1 29.7 25.6 18.9C30.1 8 39.4 0.9 51 0.9H87.3V50.1C87.3 60.8 78.5 69.1 67.2 69.1H55.9Z" fill="#A4A5A5"/>
@@ -35,19 +33,18 @@ export const addLogoToPage = (doc: jsPDF): void => {
         <path d="M140.1 18.5C135.9 16.7 130.9 16.9 126.9 18.9C123.1 20.9 120.2 24.4 118 28.4C113.7 36.2 113.9 47 119.3 55.1C119.4 55.3 119.6 55.5 119.7 55.6C120.4 54.7 121 53.7 121.6 52.7C126.8 44.6 132 36.5 137.2 28.4C138.5 26.4 139.2 24.1 140.1 18.5Z" fill="#99BC44"/>
       </svg>
       `;
-      doc.addSvgAsImage(svgLogo, x, y, logoWidth, logoHeight);
-      console.log("Logo added to PDF using SVG fallback");
+      // Again, pass 0 as height to preserve aspect ratio
+      doc.addSvgAsImage(svgLogo, x, y, desiredWidth, 0);
+      console.log("Logo added to PDF using SVG fallback (ratio preserved)");
     }
   } catch (error) {
     console.error("Error adding logo to PDF:", error);
 
-    // Final fallback: text-based label
+    // Final fallback: text-based label, also right-aligned
     try {
       doc.setFontSize(12);
-      doc.setTextColor(153, 188, 68); // green
-      // approximate right-aligned fallback
-      const pageWidth = doc.internal.pageSize.getWidth();
-      doc.text("DNA HEALTH", pageWidth - 50, 15);
+      doc.setTextColor(153, 188, 68); // DNA green
+      doc.text("DNA HEALTH", doc.internal.pageSize.getWidth() - 50, 15);
       console.log("Text fallback for logo used");
     } catch (fallbackError) {
       console.error("All logo methods failed:", fallbackError);
