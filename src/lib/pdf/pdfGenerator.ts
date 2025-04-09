@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -242,7 +241,6 @@ function generateVitalsSection(
 /**
  * Section 4: Summary of Findings (striped).
  */
-
 function generateSummarySection(
   doc: jsPDF,
   currentY: number,
@@ -940,6 +938,5 @@ export const generatePDF = async (
   return doc.output('blob');
 };
 
-// Export the helper functions and main generator function
-// Unified export statement to avoid duplicate exports
+// Export the helper functions only - generatePDF is already exported above
 export { ensureStringArray, ensureString };

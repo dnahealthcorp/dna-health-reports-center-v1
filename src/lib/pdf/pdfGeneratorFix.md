@@ -1,7 +1,7 @@
 
 # Type Fix for pdfGenerator.ts
 
-The error "Type 'string' is not assignable to type 'string[]'" on line 287 has been fixed by adding helper functions:
+The error "Type 'string' is not assignable to type 'string[]'" has been fixed by adding helper functions:
 
 ```typescript
 const ensureStringArray = (value: string | string[] | undefined): string[] => {
@@ -17,7 +17,11 @@ const ensureString = (value: string | string[] | undefined): string => {
 };
 ```
 
-Apply these helper functions wherever there's a potential mismatch between string and string[] types:
+These helper functions have been applied in the `generateFollowUpsSection` function to handle potential string/string[] type mismatches.
+
+The duplicate export of `generatePDF` has also been fixed by ensuring there's only one export statement for this function, with helper functions exported separately.
+
+## Usage examples:
 
 1. For string[] variables receiving string values:
 ```typescript
