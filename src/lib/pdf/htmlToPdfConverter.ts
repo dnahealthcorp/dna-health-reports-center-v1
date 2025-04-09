@@ -128,10 +128,22 @@ export function renderHtmlInPdfCell(
             addLogoToPage(doc);
           } catch (err) {
             console.error("Failed to add logo to new page:", err);
+            // If logo loading fails, try fallback method
+            try {
+              const logoImg = "/assets/DNA Logo - Grey.svg";
+              doc.addImage(logoImg, "SVG", 20, 10, 40, 20);
+            } catch (logoErr) {
+              console.error("Failed to add logo with fallback method:", logoErr);
+            }
           }
           
           // Reset Y position to top of new page with margin
           currentY = 40; // Top margin for content
+          
+          // Reset text styles for continued content
+          doc.setFontSize(fontSize);
+          doc.setFont('helvetica', fontStyle);
+          doc.setTextColor(60, 60, 60);
         }
         
         doc.text(line, x + 5, currentY); // Draw text
@@ -158,6 +170,15 @@ export function renderHtmlInPdfCell(
       if (tag === 'strong' || tag === 'b') newStyles.bold = true;
       if (tag === 'em' || tag === 'i') newStyles.italic = true;
       if (tag === 'u') newStyles.underline = true;
+      
+      // Handle special formatting for CORTISOL, ADRENALINE, etc.
+      if (tag === 'span' && element.textContent?.includes('[CORTISOL')) {
+        // Apply bold style
+        newStyles.bold = true;
+        // Set a slight indent
+        const originalX = x;
+        processNode(document.createTextNode("\n"), newStyles);
+      }
       
       // Handle paragraph breaks
       if (tag === 'p' && element.previousElementSibling) {
@@ -221,7 +242,7 @@ export function drawCellBorders(
   y: number,
   width: number,
   height: number,
-  color: number[] = [204, 204, 204]  // Changed to #CCCCCC to match other tables
+  color: number[] = [204, 204, 204]  // #CCCCCC to match other tables
 ): void {
   doc.setDrawColor(color[0], color[1], color[2]);
   doc.setLineWidth(0.1);
@@ -325,7 +346,6 @@ export function renderHtmlTableSection(
       // Reset current Y position to top of new page with margin
       currentY = 40;
       
-      // Redraw header if this is the first row of a new page or continue a table
       // Draw section title on new page (with "continued" indication)
       doc.setFontSize(14);
       doc.setTextColor(153, 188, 68);
@@ -382,10 +402,19 @@ export function renderHtmlTableSection(
       // Save original content height for potential adjustment
       const startRenderY = currentY;
       
+      // Format specific styled texts like [CORTISOL], [ADRENALINE], [GROWTH HORMONE]
+      let formattedHtml = row.value;
+      if (formattedHtml.includes("[CORTISOL") || formattedHtml.includes("[ADRENALINE") || formattedHtml.includes("[GROWTH HORMONE")) {
+        formattedHtml = formattedHtml.replace(/\[(CORTISOL|ADRENALINE|GROWTH HORMONE)([^\]]*)\]/g, '<strong>[$1$2]</strong>');
+      }
+      
+      // Add spacing between paragraphs
+      formattedHtml = formattedHtml.replace(/\n\n/g, '<p></p>');
+      
       // Render the HTML content for non-empty cells with improved page break handling
       contentEndY = renderHtmlInPdfCell(
         doc,
-        row.value,
+        formattedHtml,
         contentMargin + paramColWidth,
         currentY,
         valueColWidth,
@@ -412,10 +441,10 @@ export function renderHtmlTableSection(
         doc.setFontSize(10);
         doc.text(row.label, contentMargin + 5, currentY + 10);
         
-        // Re-render HTML content
+        // Re-render HTML content with the formatted text
         renderHtmlInPdfCell(
           doc,
-          row.value,
+          formattedHtml,
           contentMargin + paramColWidth,
           currentY,
           valueColWidth,
@@ -438,4 +467,3 @@ export function renderHtmlTableSection(
   // Return the Y position after the table
   return currentY + 10; // Add some padding after the table
 }
-
