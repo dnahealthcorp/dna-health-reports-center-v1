@@ -122,8 +122,7 @@ export function generateSummarySection(
             doc.setFillColor(data.row.index % 2 === 0 ? 255 : 245);
             doc.rect(rect.x, rect.y, rect.w, rect.h, 'F');
             
-            // We'll manually render HTML in this cell
-            // Fixed: Removed the unnecessary numeric result which was causing TS error
+            // Fixed: Using renderHtmlInPdfCell with the correct parameter types
             renderHtmlInPdfCell(
               doc,
               rawHtml,
