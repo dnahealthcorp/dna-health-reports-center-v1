@@ -65,6 +65,8 @@ export function renderHtmlInPdfCell(
       const tag = element.tagName.toLowerCase();
       
       const prevFont = doc.getFont();
+      // Store the current font size separately since it's not part of the Font object
+      const prevFontSize = doc.getFontSize(); 
       let fontStyle = 'normal';
       
       // Apply styling based on tags
@@ -133,7 +135,7 @@ export function renderHtmlInPdfCell(
       }
       
       doc.setFont(prevFont.fontName, fontStyle);
-      doc.setFontSize(prevFont.fontSize);
+      doc.setFontSize(prevFontSize); // Use the separately stored fontSize
     }
   }
 
