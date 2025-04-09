@@ -6,9 +6,19 @@ import { getPatientById, getCurrentUser, updatePatient } from "@/services/databa
 import { savePDFReference } from "@/services/pdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
+import { PdfExportStatus } from "@/hooks/usePdfExporter";
 
-export const generatePDF = async (formData: PatientFormData, medications: Medication[]): Promise<string> => {
+export const generatePDF = async (
+  formData: PatientFormData, 
+  medications: Medication[],
+  onStatusUpdate?: (status: PdfExportStatus) => void
+): Promise<string> => {
   try {
+    // Update status if callback provided
+    const updateStatus = (status: PdfExportStatus) => {
+      if (onStatusUpdate) onStatusUpdate(status);
+    };
+    
     // Get patient and user information for the PDF
     const patient = await getPatientById(formData.patientInfo.medicalRecordNumber);
     const currentUser = await getCurrentUser();
@@ -32,8 +42,22 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
       fileName = `${patientName}${apostrophe} Health Screening - ${currentDate}.pdf`;
       
       try {
+        // Update status to processing
+        updateStatus({
+          stage: "processing",
+          progress: 50,
+          message: "Processing document content..."
+        });
+        
         // Generate the PDF with the correct filename format
         const pdfBlob = await generatePDFImpl(formData, medications);
+        
+        // Update status to uploading
+        updateStatus({
+          stage: "uploading",
+          progress: 70,
+          message: "Uploading PDF to storage..."
+        });
         
         // Upload the PDF to Supabase Storage with a unique path to prevent caching
         const pdfPath = `${patient.id}/${fileName.split('.')[0]}_${uniqueID}.pdf`;
@@ -91,6 +115,12 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         if (storageError) {
           console.error("Error uploading PDF to storage after multiple attempts:", storageError);
           
+          updateStatus({
+            stage: "downloading",
+            progress: 85,
+            message: "Direct download starting..."
+          });
+          
           // Even if upload failed, we can still download the PDF locally
           const downloadFileName = `${fileName.split('.')[0]}_${uniqueID}.pdf`;
           await downloadPDF(pdfBlob, downloadFileName);
@@ -111,6 +141,13 @@ export const generatePDF = async (formData: PatientFormData, medications: Medica
         
         // Add a timestamp to the URL to prevent caching
         const publicUrl = publicUrlData.publicUrl + `?t=${uniqueID}`;
+        
+        // Update status to finalizing
+        updateStatus({
+          stage: "downloading",
+          progress: 90,
+          message: "Saving references and downloading..."
+        });
         
         // Now save the reference with the unique filename and URL to the database
         // IMPORTANT: Always create a new PDF reference, never update existing ones

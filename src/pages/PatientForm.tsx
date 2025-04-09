@@ -43,7 +43,7 @@ const PatientForm = () => {
   const { handleAddFollowUp, handleRemoveFollowUp, handleFollowUpChange } = 
     useFollowUpsManager(formData, setFormData);
     
-  const { isExportingPDF, handleExportPDF } = 
+  const { isExportingPDF, exportStatus, handleExportPDF } = 
     usePdfExporter(id, patient, setPatient, formData, saveForm);
   
   useEffect(() => {
@@ -106,6 +106,7 @@ const PatientForm = () => {
           handleSave={saveForm}
           isSaving={isSaving}
           isExportingPDF={isExportingPDF}
+          exportStatus={exportStatus}
         />
 
         <PatientInfoCard 

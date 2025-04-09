@@ -62,6 +62,22 @@ serve(async (req) => {
             ul, ol {
               padding-left: 20px;
             }
+            p {
+              margin: 8px 0;
+            }
+            h1, h2, h3, h4, h5, h6 {
+              margin-top: 16px;
+              margin-bottom: 8px;
+              font-weight: bold;
+            }
+            h1 { font-size: 24px; color: #375F1B; }
+            h2 { font-size: 20px; color: #4D8026; }
+            h3 { font-size: 16px; color: #649631; }
+            hr { 
+              border: none;
+              border-top: 1px solid #ddd;
+              margin: 20px 0;
+            }
             ${css}
           </style>
         </head>
@@ -72,7 +88,7 @@ serve(async (req) => {
     `);
     
     // Wait for any potential content to render (fonts, images, etc.)
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000); // Increased timeout for better rendering
     
     // Generate PDF
     console.log("Generating PDF...");
