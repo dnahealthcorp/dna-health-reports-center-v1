@@ -64,8 +64,7 @@ export function htmlToPlainText(html: string): string {
 
 /**
  * Renders HTML content in a PDF cell more effectively by
- * parsing the HTML and applying appropriate formatting,
- * with improved page break handling for long text
+ * parsing the HTML and applying appropriate formatting
  */
 export function renderHtmlInPdfCell(
   doc: jsPDF,
@@ -82,14 +81,10 @@ export function renderHtmlInPdfCell(
   const parser = new DOMParser();
   const parsedHtml = parser.parseFromString(sanitized, 'text/html');
   
-  let currentY = y + 5; // Starting position with additional padding to prevent text overlap
+  let currentY = y + 2; // Starting position with some padding
   doc.setFontSize(fontSize);
   
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const contentMargin = 20; // Consistent with overall document margin
-  
-  // Process text nodes and elements with improved page break handling
+  // Process text nodes and elements
   function processNode(node: Node, styles = { bold: false, italic: false, underline: false }): void {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent?.trim();
@@ -102,63 +97,22 @@ export function renderHtmlInPdfCell(
       else if (styles.italic) fontStyle = 'italic';
       
       doc.setFont('helvetica', fontStyle);
-      doc.setTextColor(60, 60, 60); // Ensure text color is consistent after page break
       
       // Handle text that might need to be wrapped
-      const textLines = doc.splitTextToSize(text, cellWidth - 10); // Increased padding
+      const textLines = doc.splitTextToSize(text, cellWidth - 10); // Increased padding from 4 to 10
       
-      // Process each line with page break awareness
-      for (let i = 0; i < textLines.length; i++) {
-        const line = textLines[i];
-        
-        // Check if we need a page break before this line
-        if (currentY + lineHeight > pageHeight - 20) { // 20mm margin at bottom
-          // Add footer to current page
-          doc.setFontSize(8);
-          doc.setTextColor("#a5a4a4");
-          doc.setFont("helvetica", "normal");
-          doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" as "right" });
-          
-          // Add a new page
-          doc.addPage();
-          
-          // Add logo to new page
-          try {
-            const { addLogoToPage } = require("./logoRenderer");
-            addLogoToPage(doc);
-          } catch (err) {
-            console.error("Failed to add logo to new page:", err);
-            // If logo loading fails, try fallback method
-            try {
-              const logoImg = "/assets/DNA Logo - Grey.svg";
-              doc.addImage(logoImg, "SVG", 20, 10, 40, 20);
-            } catch (logoErr) {
-              console.error("Failed to add logo with fallback method:", logoErr);
-            }
-          }
-          
-          // Reset Y position to top of new page with margin
-          currentY = 40; // Top margin for content
-          
-          // Reset text styles for continued content
-          doc.setFontSize(fontSize);
-          doc.setFont('helvetica', fontStyle);
-          doc.setTextColor(60, 60, 60);
-        }
-        
-        doc.text(line, x + 5, currentY); // Draw text
+      textLines.forEach(line => {
+        doc.text(line, x + 5, currentY); // Increased left padding from 2 to 5
         currentY += lineHeight;
-      }
+      });
       
       // Add underline if needed
       if (styles.underline) {
-        textLines.forEach((line, i) => {
-          const underlineY = currentY - (textLines.length - i) * lineHeight + 1;
-          if (underlineY >= 40 && underlineY <= pageHeight - 20) { // Only if visible on current page
-            const textWidth = doc.getTextWidth(line);
-            doc.setDrawColor(0);
-            doc.line(x + 5, underlineY, x + 5 + textWidth, underlineY);
-          }
+        textLines.forEach(line => {
+          const textWidth = doc.getTextWidth(line);
+          const underlineY = currentY - lineHeight + 1;
+          doc.setDrawColor(0);
+          doc.line(x + 5, underlineY, x + 5 + textWidth, underlineY);
         });
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -171,41 +125,9 @@ export function renderHtmlInPdfCell(
       if (tag === 'em' || tag === 'i') newStyles.italic = true;
       if (tag === 'u') newStyles.underline = true;
       
-      // Handle special formatting for CORTISOL, ADRENALINE, etc.
-      if (tag === 'span' && element.textContent?.includes('[CORTISOL')) {
-        // Apply bold style
-        newStyles.bold = true;
-        // Set a slight indent
-        const originalX = x;
-        processNode(document.createTextNode("\n"), newStyles);
-      }
-      
       // Handle paragraph breaks
       if (tag === 'p' && element.previousElementSibling) {
         currentY += lineHeight;
-        
-        // Check if paragraph break needs a page break
-        if (currentY + lineHeight > pageHeight - 20) {
-          // Add footer
-          doc.setFontSize(8);
-          doc.setTextColor("#a5a4a4");
-          doc.setFont("helvetica", "normal");
-          doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" as "right" });
-          
-          // Add new page
-          doc.addPage();
-          
-          // Add logo
-          try {
-            const { addLogoToPage } = require("./logoRenderer");
-            addLogoToPage(doc);
-          } catch (err) {
-            console.error("Failed to add logo to new page:", err);
-          }
-          
-          // Reset Y position
-          currentY = 40;
-        }
       }
       
       // Process child nodes with updated styles
@@ -242,7 +164,7 @@ export function drawCellBorders(
   y: number,
   width: number,
   height: number,
-  color: number[] = [204, 204, 204]  // #CCCCCC to match other tables
+  color: number[] = [0, 0, 0]
 ): void {
   doc.setDrawColor(color[0], color[1], color[2]);
   doc.setLineWidth(0.1);
@@ -254,7 +176,6 @@ export function drawCellBorders(
 /**
  * Enhanced HTML table renderer for PDF
  * Handles rendering of a complete section with headers and rows
- * with improved handling of page breaks and cell sizing
  */
 export function renderHtmlTableSection(
   doc: jsPDF,
@@ -265,26 +186,18 @@ export function renderHtmlTableSection(
   contentMargin: number,
   contentWidth: number
 ): number {
-  // Get page dimensions
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  
   // Draw section title
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
   doc.text(title, contentMargin, startY);
-  startY += 10; // Increased spacing after title to prevent overlap
+  startY += 8;
   
   // Table dimensions
-  const headerHeight = 10; // Increased from 8
+  const headerHeight = 8;
   const paramColWidth = 50;
   const valueColWidth = contentWidth - paramColWidth;
-  const minRowHeight = 20; // Reduced from 30 to make rows less tall
-  const emptyRowHeight = 8; // Changed from 15 to 8 as requested by user
-  
-  // Border color to match other tables (#CCCCCC)
-  const borderColor = [204, 204, 204];
+  const minRowHeight = 30;
 
   // Draw header background
   doc.setFillColor(153, 188, 68);
@@ -294,83 +207,15 @@ export function renderHtmlTableSection(
   // Draw header text
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text(headers[0], contentMargin + 5, startY + 7); // Adjusted position
-  doc.text(headers[1], contentMargin + paramColWidth + 5, startY + 7); // Adjusted position
+  doc.text(headers[0], contentMargin + 5, startY + 5);
+  doc.text(headers[1], contentMargin + paramColWidth + 5, startY + 5);
   startY += headerHeight;
-  
-  // Draw header borders
-  doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-  doc.rect(contentMargin, startY - headerHeight, paramColWidth, headerHeight);
-  doc.rect(contentMargin + paramColWidth, startY - headerHeight, valueColWidth, headerHeight);
   
   // Draw each row
   let currentY = startY;
   
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    
-    // Check if row is empty or has minimal content
-    const isEmpty = !row.value || row.value.trim() === '';
-    const rowHeight = isEmpty ? emptyRowHeight : minRowHeight;
-    
-    // Check if we need to add a new page
-    const estimatedRowHeight = isEmpty ? emptyRowHeight : Math.max(minRowHeight, 
-        doc.getTextDimensions(row.value).h + 10); // Reduced padding from 15 to 10
-    
-    if (currentY + estimatedRowHeight > pageHeight - 20) {
-      // Add footer to current page if needed
-      doc.setFontSize(8);
-      doc.setTextColor("#a5a4a4");
-      doc.setFont("helvetica", "normal");
-      doc.text("Executive Summary | DNA Health", pageWidth - 10, pageHeight - 10, { align: "right" as "right" });
-      
-      // Add a new page
-      doc.addPage();
-      
-      // Add logo to new page
-      try {
-        const { addLogoToPage } = require("./logoRenderer");
-        addLogoToPage(doc);
-      } catch (err) {
-        console.error("Failed to add logo to new page:", err);
-        // If logo loading fails, try fallback method
-        try {
-          const logoImg = "/assets/DNA Logo - Grey.svg";
-          doc.addImage(logoImg, "SVG", 20, 10, 40, 20);
-        } catch (logoErr) {
-          console.error("Failed to add logo with fallback method:", logoErr);
-        }
-      }
-      
-      // Reset current Y position to top of new page with margin
-      currentY = 40;
-      
-      // Draw section title on new page (with "continued" indication)
-      doc.setFontSize(14);
-      doc.setTextColor(153, 188, 68);
-      doc.setFont("helvetica", "bold");
-      doc.text(title + " (continued)", contentMargin, currentY);
-      currentY += 10;
-      
-      // Draw header background
-      doc.setFillColor(153, 188, 68);
-      doc.rect(contentMargin, currentY, paramColWidth, headerHeight, 'F');
-      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight, 'F');
-      
-      // Draw header text
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.text(headers[0], contentMargin + 5, currentY + 7);
-      doc.text(headers[1], contentMargin + paramColWidth + 5, currentY + 7);
-      
-      // Draw header borders
-      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-      doc.rect(contentMargin, currentY, paramColWidth, headerHeight);
-      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, headerHeight);
-      
-      currentY += headerHeight;
-    }
     
     // Alternate row background colors
     const rowBgColor = i % 2 === 0 ? [255, 255, 255] : [245, 245, 245];
@@ -381,87 +226,65 @@ export function renderHtmlTableSection(
     
     // Draw parameter cell background and text first
     doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
-    doc.rect(contentMargin, currentY, paramColWidth, rowHeight, 'F');
+    doc.rect(contentMargin, currentY, paramColWidth, minRowHeight, 'F');
     
     doc.setTextColor(60, 60, 60);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    
-    // Center text vertically in smaller empty cells
-    const textY = isEmpty ? currentY + (rowHeight / 2) + 3 : currentY + 10;
-    doc.text(row.label, contentMargin + 5, textY);
+    doc.text(row.label, contentMargin + 5, currentY + 10);
     
     // Render HTML content for value cell
     doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
-    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, rowHeight, 'F');
+    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, minRowHeight, 'F');
     
-    // For empty cells, we don't need to render content
-    let contentEndY = valueStartY + rowHeight;
+    // Render the HTML content
+    const contentEndY = renderHtmlInPdfCell(
+      doc,
+      row.value,
+      contentMargin + paramColWidth,
+      currentY,
+      valueColWidth,
+      10, // font size
+      5   // line height
+    );
     
-    if (!isEmpty) {
-      // Save original content height for potential adjustment
-      const startRenderY = currentY;
+    // Calculate actual row height based on content
+    const actualRowHeight = Math.max(minRowHeight, contentEndY - valueStartY);
+    
+    // If content height is more than minimum, redraw cells with correct height
+    if (actualRowHeight > minRowHeight) {
+      // Redraw parameter cell with correct height
+      doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
+      doc.rect(contentMargin, currentY, paramColWidth, actualRowHeight, 'F');
       
-      // Format specific styled texts like [CORTISOL], [ADRENALINE], [GROWTH HORMONE]
-      let formattedHtml = row.value;
-      if (formattedHtml.includes("[CORTISOL") || formattedHtml.includes("[ADRENALINE") || formattedHtml.includes("[GROWTH HORMONE")) {
-        formattedHtml = formattedHtml.replace(/\[(CORTISOL|ADRENALINE|GROWTH HORMONE)([^\]]*)\]/g, '<strong>[$1$2]</strong>');
-      }
+      // Redraw value cell with correct height
+      doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
+      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight, 'F');
       
-      // Add spacing between paragraphs
-      formattedHtml = formattedHtml.replace(/\n\n/g, '<p></p>');
+      // Redraw parameter text
+      doc.setTextColor(60, 60, 60);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(row.label, contentMargin + 5, currentY + 10);
       
-      // Render the HTML content for non-empty cells with improved page break handling
-      contentEndY = renderHtmlInPdfCell(
+      // Re-render HTML content
+      renderHtmlInPdfCell(
         doc,
-        formattedHtml,
+        row.value,
         contentMargin + paramColWidth,
         currentY,
         valueColWidth,
-        10, // font size
-        5   // line height
+        10,
+        5
       );
-      
-      // Calculate actual row height based on content
-      const actualRowHeight = Math.max(rowHeight, contentEndY - valueStartY);
-      
-      // If content height is more than minimum, redraw cells with correct height
-      if (actualRowHeight > rowHeight) {
-        // Redraw parameter cell with correct height
-        doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
-        doc.rect(contentMargin, currentY, paramColWidth, actualRowHeight, 'F');
-        
-        // Redraw value cell with correct height
-        doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
-        doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight, 'F');
-        
-        // Redraw parameter text
-        doc.setTextColor(60, 60, 60);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text(row.label, contentMargin + 5, currentY + 10);
-        
-        // Re-render HTML content with the formatted text
-        renderHtmlInPdfCell(
-          doc,
-          formattedHtml,
-          contentMargin + paramColWidth,
-          currentY,
-          valueColWidth,
-          10,
-          5
-        );
-        
-        contentEndY = valueStartY + actualRowHeight;
-      }
     }
     
-    // Draw cell borders with updated color
-    drawCellBorders(doc, contentMargin, currentY, paramColWidth, contentEndY - currentY, borderColor);
-    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, contentEndY - currentY, borderColor);
+    // Draw cell borders
+    drawCellBorders(doc, contentMargin, currentY, paramColWidth, actualRowHeight);
+    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight);
     
     // Move to next row
-    currentY = contentEndY;
+    currentY += actualRowHeight;
   }
   
   // Return the Y position after the table
