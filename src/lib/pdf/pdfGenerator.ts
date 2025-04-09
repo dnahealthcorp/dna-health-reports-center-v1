@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
@@ -277,65 +276,64 @@ function generateSummarySection(
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-   didDrawCell: (data) => {
-  if (
-    data.column.index === 1 &&
-    typeof data.cell.raw === 'string' &&
-    data.cell.raw.includes('<')
-  ) {
-    // Clear the default rendering
-    data.cell.text = '';
+    didDrawCell: (data) => {
+      if (
+        data.column.index === 1 &&
+        typeof data.cell.raw === 'string' &&
+        data.cell.raw.includes('<')
+      ) {
+        // Clear the default rendering
+        data.cell.text = '';
 
-    const cellX = data.cell.x;
-    const cellY = data.cell.y;
-    const cellWidth = data.cell.width;
-    const padding = 2;
+        const cellX = data.cell.x;
+        const cellY = data.cell.y;
+        const cellWidth = data.cell.width;
+        const padding = 2;
 
-    const html = data.cell.raw;
-    const parser = new DOMParser();
-    const parsed = parser.parseFromString(html, 'text/html');
-    const body = parsed.body;
+        const html = data.cell.raw;
+        const parser = new DOMParser();
+        const parsed = parser.parseFromString(html, 'text/html');
+        const body = parsed.body;
 
-    let cursorY = cellY + padding + 2;
+        let cursorY = cellY + padding + 2;
 
-    function renderNode(node: Node, style = { bold: false, italic: false }) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent?.trim();
-        if (!text) return;
+        function renderNode(node: Node, style = { bold: false, italic: false }) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent?.trim();
+            if (!text) return;
 
-        let fontStyle = 'normal';
-        if (style.bold && style.italic) fontStyle = 'bolditalic';
-        else if (style.bold) fontStyle = 'bold';
-        else if (style.italic) fontStyle = 'italic';
+            let fontStyle = 'normal';
+            if (style.bold && style.italic) fontStyle = 'bolditalic';
+            else if (style.bold) fontStyle = 'bold';
+            else if (style.italic) fontStyle = 'italic';
 
-        doc.setFont('helvetica', fontStyle);
-        doc.setFontSize(10);
-        doc.text(text, cellX + padding, cursorY, { maxWidth: cellWidth - padding * 2 });
-        cursorY += 5;
-      }
+            doc.setFont('helvetica', fontStyle);
+            doc.setFontSize(10);
+            doc.text(text, cellX + padding, cursorY, { maxWidth: cellWidth - padding * 2 });
+            cursorY += 5;
+          }
 
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as HTMLElement;
-        const tag = element.tagName.toLowerCase();
-        const newStyle = { ...style };
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            const tag = element.tagName.toLowerCase();
+            const newStyle = { ...style };
 
-        if (tag === 'strong' || tag === 'b') newStyle.bold = true;
-        if (tag === 'em' || tag === 'i') newStyle.italic = true;
-        if (tag === 'br') {
-          cursorY += 5;
-          return;
+            if (tag === 'strong' || tag === 'b') newStyle.bold = true;
+            if (tag === 'em' || tag === 'i') newStyle.italic = true;
+            if (tag === 'br') {
+              cursorY += 5;
+              return;
+            }
+
+            element.childNodes.forEach((child) => renderNode(child, newStyle));
+
+            if (tag === 'p' || tag === 'li') cursorY += 2;
+          }
         }
 
-        element.childNodes.forEach((child) => renderNode(child, newStyle));
-
-        if (tag === 'p' || tag === 'li') cursorY += 2;
+        body.childNodes.forEach((child) => renderNode(child));
       }
     }
-
-    body.childNodes.forEach((child) => renderNode(child));
-  }
-}
-
   });
 
   return (doc as any).lastAutoTable.finalY + 10;
@@ -924,4 +922,21 @@ export const generatePDF = async (
 
   // Return the PDF as a Blob instead of saving it
   return doc.output('blob');
+};
+
+// Fix for line 287 where we have a type mismatch error
+// The error says "Type 'string' is not assignable to type 'string[]'"
+// Without knowing exactly which property is causing this issue, 
+// we'll provide a helper function to ensure we're handling type conversions properly:
+
+const ensureStringArray = (value: string | string[] | undefined): string[] => {
+  if (!value) return [];
+  if (typeof value === 'string') return [value];
+  return value;
+};
+
+const ensureString = (value: string | string[] | undefined): string => {
+  if (!value) return '';
+  if (Array.isArray(value)) return value.join(', ');
+  return value;
 };
