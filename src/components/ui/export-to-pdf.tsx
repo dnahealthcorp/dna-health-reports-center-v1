@@ -37,8 +37,8 @@ export function ExportToPdf({
 
     setIsExporting(true);
     try {
-      // Sanitize HTML to remove problematic characters
-      const sanitizedHtml = html.replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]/g, '');
+      // No need to sanitize HTML here as we want to preserve the HTML structure
+      // Send the HTML as-is to the backend for proper rendering
       
       // Add some custom CSS to enhance rendering of HTML content
       const enhancedCSS = `
@@ -64,9 +64,12 @@ export function ExportToPdf({
         h1 { font-size: 24px !important; }
         h2 { font-size: 20px !important; }
         h3 { font-size: 16px !important; }
+        table { width: 100% !important; border-collapse: collapse !important; }
+        th, td { padding: 8px !important; border: 1px solid #ddd !important; }
+        th { background-color: #99BC44 !important; color: white !important; }
       `;
       
-      const pdfBlob = await convertHtmlToPdf(sanitizedHtml, fileName, enhancedCSS);
+      const pdfBlob = await convertHtmlToPdf(html, fileName, enhancedCSS);
       downloadPdf(pdfBlob, fileName);
       
       toast({

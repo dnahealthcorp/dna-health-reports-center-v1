@@ -110,20 +110,53 @@ export const SummaryFindingsTab = ({
       .filter(([_, value]) => value)
       .map(([field, value]) => {
         const displayName = field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
-                           field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
-                           field === 'ironProfile' ? 'Iron Profile' : 
-                           field === 'sexHormones' ? 'Sex Hormones' : 
-                           field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
-                           field === 'liverFunctions' ? 'Liver Functions' : 
-                           field === 'tumorMarkers' ? 'Tumor Markers' : 
-                           field === 'bloodCounts' ? 'Blood Counts' : 
-                           field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                          field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
+                          field === 'ironProfile' ? 'Iron Profile' : 
+                          field === 'sexHormones' ? 'Sex Hormones' : 
+                          field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
+                          field === 'liverFunctions' ? 'Liver Functions' : 
+                          field === 'tumorMarkers' ? 'Tumor Markers' : 
+                          field === 'bloodCounts' ? 'Blood Counts' : 
+                          field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
         
         return `<h2>${displayName}</h2>${value}`;
       })
       .join('<hr />');
     
-    return `<h1>Summary of Findings</h1>${allHtml}`;
+    return `
+      <h1>Summary of Findings</h1>
+      <table width="100%" border="1" cellspacing="0" cellpadding="8">
+        <thead>
+          <tr style="background-color: #99BC44; color: white;">
+            <th>Parameter</th>
+            <th>Key findings and next steps</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(formData.summaryFindings || {})
+            .filter(([_, value]) => value)
+            .map(([field, value]) => {
+              const displayName = field === 'glucoseMetabolism' ? 'Glucose Metabolism' : 
+                              field === 'vitaminsMinerals' ? 'Vitamins/Minerals' : 
+                              field === 'ironProfile' ? 'Iron Profile' : 
+                              field === 'sexHormones' ? 'Sex Hormones' : 
+                              field === 'kidneyFunctionElectrolytes' ? 'Kidney Function and Electrolytes' : 
+                              field === 'liverFunctions' ? 'Liver Functions' : 
+                              field === 'tumorMarkers' ? 'Tumor Markers' : 
+                              field === 'bloodCounts' ? 'Blood Counts' : 
+                              field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+              
+              return `
+                <tr>
+                  <td style="background-color: #f5f5f5; width: 150px;">${displayName}</td>
+                  <td>${value}</td>
+                </tr>
+              `;
+            }).join('')
+          }
+        </tbody>
+      </table>
+    `;
   };
 
   return <Card>
@@ -157,6 +190,16 @@ export const SummaryFindingsTab = ({
               margin: 20px 0;
               border: none;
               border-top: 1px dashed #ccc;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            th, td {
+              padding: 8px;
+              border: 1px solid #ddd;
+              text-align: left;
             }
           `}
           buttonText="Export All Findings"

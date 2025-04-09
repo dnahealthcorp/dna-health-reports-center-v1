@@ -7,6 +7,8 @@ import { addFooter, ensureSpace } from "./headerFooter";
 
 /**
  * Section 4: Summary of Findings (striped).
+ * Note: Since HTML content is now handled directly by the HTML-to-PDF Edge Function,
+ * this generator function is kept for backward compatibility.
  */
 export function generateSummarySection(
   doc: jsPDF,
@@ -93,8 +95,7 @@ export function generateSummarySection(
         addFooter(doc, pageWidth);
       }
     },
-    // The HTML cell option doesn't allow full control, so we'll use the Edge Function approach instead
-    // But we need to handle basic formatting here for legacy reasons
+    // Process HTML content directly - this will be mainly handled by the Edge Function now
     willDrawCell: (data) => {
       // Apply some basic styling for text appearance
       if (data.row.section === 'body' && data.column.index === 1) {

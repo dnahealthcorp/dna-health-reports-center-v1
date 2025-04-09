@@ -37,13 +37,17 @@ serve(async (req) => {
     console.log("Creating page...");
     const page = await browser.newPage();
     
-    // Set content with HTML and optional CSS
+    // Set HTML content directly without any escaping or sanitization
     console.log("Setting content...");
-    await page.setContent(`
+    
+    // Create a full HTML document with proper doctype and charset
+    const fullHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${fileName}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -82,6 +86,23 @@ serve(async (req) => {
               border-top: 1px solid #ddd;
               margin: 20px 0;
             }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            th, td {
+              padding: 8px;
+              border: 1px solid #ddd;
+              text-align: left;
+            }
+            th {
+              background-color: #99BC44;
+              color: white;
+            }
+            tr:nth-child(even) {
+              background-color: #f5f5f5;
+            }
             ${css}
           </style>
         </head>
@@ -89,13 +110,19 @@ serve(async (req) => {
           ${html}
         </body>
       </html>
-    `, { waitUntil: 'networkidle0' });
+    `;
     
-    // Ensure all content is properly rendered by waiting longer
+    // Use setContent with the 'networkidle0' wait option for better rendering
+    await page.setContent(fullHtml, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000 // Extended timeout for complex content
+    });
+    
+    // Ensure all content is properly rendered with a generous waiting time
     console.log("Waiting for content to render...");
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     
-    // Generate PDF
+    // Generate PDF with improved settings for better quality
     console.log("Generating PDF...");
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -106,7 +133,8 @@ serve(async (req) => {
         bottom: '20mm',
         left: '20mm',
       },
-      displayHeaderFooter: false
+      displayHeaderFooter: false,
+      preferCSSPageSize: true
     });
     
     // Close browser
