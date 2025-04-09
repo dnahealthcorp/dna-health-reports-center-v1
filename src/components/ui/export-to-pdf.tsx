@@ -93,12 +93,20 @@ export function ExportToPdf({
           }
           
           // Extract body data
-          const body: string[][] = [];
+          const body: Array<Array<string | {content: string, rawHtml: string}>> = [];
           table.querySelectorAll('tbody tr').forEach(tr => {
-            const row: string[] = [];
-            tr.querySelectorAll('td').forEach(td => {
-              // Preserve the full HTML content
-              row.push(td.innerHTML);
+            const row: Array<string | {content: string, rawHtml: string}> = [];
+            tr.querySelectorAll('td').forEach((td, index) => {
+              // For first column (parameter labels), use the text content
+              if (index === 0) {
+                row.push(td.textContent || '');
+              } else {
+                // For value columns, use the rawHtml approach
+                row.push({
+                  content: "", // Empty string so autoTable doesn't print anything
+                  rawHtml: td.innerHTML || ""
+                });
+              }
             });
             body.push(row);
           });
@@ -124,24 +132,24 @@ export function ExportToPdf({
               fillColor: [245, 245, 245]
             },
             didDrawCell: (data) => {
-              // Process cells in the body section
-              if (data.section === 'body') {
-                const cellContent = data.cell.raw;
+              // Process cells in the body section that have raw HTML
+              if (data.section === 'body' && data.column.index > 0) {
+                const cell = data.cell;
                 
-                // Check if content is HTML
-                if (typeof cellContent === 'string' && cellContent.includes('<')) {
-                  // Clear cell content - we'll draw it ourselves
-                  data.cell.styles.halign = 'left';
-                  data.cell.styles.valign = 'top';
+                // Check if cell has rawHtml property
+                if (cell && cell.raw && typeof cell.raw === 'object' && 'rawHtml' in cell.raw) {
+                  const rawHtml = (cell.raw as {rawHtml: string}).rawHtml;
                   
-                  // Use our custom HTML renderer
-                  renderHtmlInPdfCell(
-                    doc,
-                    cellContent,
-                    data.cell.x,
-                    data.cell.y,
-                    data.cell.width
-                  );
+                  if (rawHtml && rawHtml.trim() !== '') {
+                    // Use our custom HTML renderer
+                    renderHtmlInPdfCell(
+                      doc,
+                      rawHtml,
+                      data.cell.x,
+                      data.cell.y,
+                      data.cell.width
+                    );
+                  }
                 }
               }
             }

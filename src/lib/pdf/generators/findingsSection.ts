@@ -43,6 +43,23 @@ export function generateSummarySection(
     bloodCounts: formData.summaryFindings.bloodCounts || ""
   };
 
+  // Prepare the table body with proper content and rawHtml properties
+  const tableBody = [
+    ["Glucose Metabolism", { content: "", rawHtml: findings.glucoseMetabolism }],
+    ["Proteins", { content: "", rawHtml: findings.proteins }],
+    ["Lipid Profile", { content: "", rawHtml: findings.lipidProfile }],
+    ["Inflammation", { content: "", rawHtml: findings.inflammation }],
+    ["Metabolic", { content: "", rawHtml: findings.metabolic }],
+    ["Homocysteine", { content: "", rawHtml: findings.homocysteine }],
+    ["Vitamins/Minerals", { content: "", rawHtml: findings.vitaminsMinerals }],
+    ["Iron Profile", { content: "", rawHtml: findings.ironProfile }],
+    ["Sex Hormones", { content: "", rawHtml: findings.sexHormones }],
+    ["Kidney Function and Electrolytes", { content: "", rawHtml: findings.kidneyFunctionElectrolytes }],
+    ["Liver Functions", { content: "", rawHtml: findings.liverFunctions }],
+    ["Tumor Markers", { content: "", rawHtml: findings.tumorMarkers }],
+    ["Blood Counts", { content: "", rawHtml: findings.bloodCounts }]
+  ];
+
   // Generate PDF table with the HTML content rendering
   autoTable(doc, {
     startY: currentY,
@@ -53,21 +70,7 @@ export function generateSummarySection(
         { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
       ]
     ],
-    body: [
-      ["Glucose Metabolism", findings.glucoseMetabolism],
-      ["Proteins", findings.proteins],
-      ["Lipid Profile", findings.lipidProfile],
-      ["Inflammation", findings.inflammation],
-      ["Metabolic", findings.metabolic],
-      ["Homocysteine", findings.homocysteine],
-      ["Vitamins/Minerals", findings.vitaminsMinerals],
-      ["Iron Profile", findings.ironProfile],
-      ["Sex Hormones", findings.sexHormones],
-      ["Kidney Function and Electrolytes", findings.kidneyFunctionElectrolytes],
-      ["Liver Functions", findings.liverFunctions],
-      ["Tumor Markers", findings.tumorMarkers],
-      ["Blood Counts", findings.bloodCounts]
-    ],
+    body: tableBody,
     styles: {
       fontSize: 10,
       cellPadding: 2,
@@ -89,22 +92,22 @@ export function generateSummarySection(
     didDrawCell: (data) => {
       // Only process the findings cells, which are in column 1 (index 1)
       if (data.section === 'body' && data.column.index === 1) {
-        const cellContent = data.cell.raw as string;
+        const cell = data.cell;
         
-        // Check if content is HTML
-        if (typeof cellContent === 'string' && cellContent.includes('<')) {
-          // Clear cell content - we'll draw it ourselves
-          data.cell.styles.halign = 'left';
-          data.cell.styles.valign = 'top';
+        // Check if cell has rawHtml property
+        if (cell && cell.raw && typeof cell.raw === 'object' && 'rawHtml' in cell.raw) {
+          const rawHtml = (cell.raw as {rawHtml: string}).rawHtml;
           
-          // We'll manually render HTML in this cell
-          renderHtmlInPdfCell(
-            doc,
-            cellContent,
-            data.cell.x,
-            data.cell.y,
-            data.cell.width
-          );
+          if (rawHtml && rawHtml.trim() !== '') {
+            // We'll manually render HTML in this cell
+            renderHtmlInPdfCell(
+              doc,
+              rawHtml,
+              data.cell.x,
+              data.cell.y,
+              data.cell.width
+            );
+          }
         }
       }
     },
