@@ -44,6 +44,11 @@ export function RichTextEditor({
     <div className={`border rounded-md overflow-hidden ${className}`}>
       <div className="bg-white px-3 py-2 min-h-[150px]">
         <EditorContent editor={editor} className="outline-none" />
+        {!value && !editor?.isFocused && (
+          <div className="absolute top-2 left-3 text-gray-400 pointer-events-none">
+            {placeholder}
+          </div>
+        )}
       </div>
       <div className="flex items-center px-3 py-1.5 bg-gray-50 border-t">
         <div className="flex gap-2">
@@ -54,6 +59,7 @@ export function RichTextEditor({
             className={`p-1 rounded hover:bg-gray-200 ${
               editor?.isActive('bold') ? 'bg-gray-200' : ''
             }`}
+            title="Bold"
           >
             <span className="font-bold">B</span>
           </button>
@@ -64,6 +70,7 @@ export function RichTextEditor({
             className={`p-1 rounded hover:bg-gray-200 ${
               editor?.isActive('italic') ? 'bg-gray-200' : ''
             }`}
+            title="Italic"
           >
             <span className="italic">I</span>
           </button>
@@ -74,6 +81,7 @@ export function RichTextEditor({
             className={`p-1 rounded hover:bg-gray-200 ${
               editor?.isActive('bulletList') ? 'bg-gray-200' : ''
             }`}
+            title="Bullet List"
           >
             • List
           </button>
