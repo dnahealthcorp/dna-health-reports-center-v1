@@ -257,7 +257,8 @@ function generateSummarySection(
   formData: PatientFormData
 ): number {
   currentY += 10;
-
+  
+  // Define summary fields in a structured way for consistent rendering
   const summaryFields = [
     { label: "Glucose Metabolism", value: formData.summaryFindings.glucoseMetabolism || "" },
     { label: "Proteins", value: formData.summaryFindings.proteins || "" },
@@ -274,55 +275,66 @@ function generateSummarySection(
     { label: "Blood Counts", value: formData.summaryFindings.bloodCounts || "" }
   ];
 
-  const tableBody = summaryFields.map(field => [field.label, field.value]);
+  // Calculate whether content has HTML
+  const hasHtmlContent = summaryFields.some(field => 
+    field.value.includes('<') && field.value.includes('>')
+  );
 
-  (doc as any).autoTable({
-    startY: currentY,
-    theme: "grid",
-    head: [[
-      { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
-      { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
-    ]],
-    body: tableBody,
-    styles: {
-      fontSize: 10,
-      font: "helvetica",
-      textColor: [60, 60, 60],
-      valign: "top",
-      cellPadding: 2
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245]
-    },
-    bodyStyles: {
-      fillColor: [255, 255, 255]
-    },
-    columnStyles: {
-      0: { cellWidth: 50, fillColor: [240, 250, 230] },
-      1: { cellWidth: contentWidth - 50 }
-    },
-    margin: { left: contentMargin, right: contentMargin },
-    willDrawCell: (data) => {
-      if (data.section === "body" && !data.cell.raw?.toString().trim()) {
-        data.cell.styles.minCellHeight = 8;
-      }
-    },
-    didDrawCell: (data) => {
-      if (data.section === "body" && data.column.index === 1 && typeof data.cell.raw === "string") {
-        if (data.cell.raw.includes("<") && data.cell.raw.includes(">")) {
-          renderHtmlInPdfCell(
-            doc,
-            data.cell.raw,
-            data.cell.x + 2,
-            data.cell.y + 2,
-            data.cell.width - 4
-          );
+  // If we have HTML content, use our enhanced rendering approach
+  if (hasHtmlContent) {
+    // Prepare data structure for the renderer
+    const rows = summaryFields.map(field => ({
+      label: field.label,
+      value: field.value
+    }));
+    
+    // Use our enhanced renderer with improved page break handling
+    currentY = renderHtmlTableSection(
+      doc,
+      "Summary of findings",
+      ["Parameter", "Key findings and next steps"],
+      rows,
+      currentY,
+      contentMargin,
+      contentWidth
+    );
+    
+    return currentY;
+  } else {
+    // For non-HTML content, use the existing autoTable approach
+    const tableBody = summaryFields.map(field => [field.label, field.value]);
+    
+    autoTable(doc, {
+      startY: currentY,
+      theme: "grid",
+      head: [[
+        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
+        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+      ]],
+      body: tableBody,
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        font: "helvetica",
+        textColor: [60, 60, 60]
+      },
+      columnStyles: {
+        0: { cellWidth: 50, fillColor: [240, 250, 230] },
+        1: { cellWidth: contentWidth - 50 }
+      },
+      didDrawPage: (data) => {
+        // Add logo and footer to each page
+        addLogoToPage(doc);
+        
+        // Add footer only on completed pages
+        if (data.pageNumber < doc.getNumberOfPages()) {
+          addFooter(doc, pageWidth);
         }
       }
-    }
-  });
-
-  return (doc as any).lastAutoTable.finalY + 10;
+    });
+    
+    return (doc as any).lastAutoTable.finalY + 10;
+  }
 }
 
 /**
