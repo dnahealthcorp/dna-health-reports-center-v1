@@ -3,7 +3,12 @@ import autoTable from "jspdf-autotable";
 import { PatientFormData, Medication } from "@/types";
 import { calculateAge, convertToKg, calculateBMI } from "./pdfUtilities";
 import { addLogoToPage } from "./logoRenderer";
-import { renderHtmlInPdfCell, sanitizeHtmlForPdf, htmlToPlainText } from "./htmlToPdfConverter";
+import { 
+  renderHtmlInPdfCell, 
+  sanitizeHtmlForPdf, 
+  htmlToPlainText,
+  renderHtmlTableSection
+} from "./htmlToPdfConverter";
 
 // Helper functions for type conversion to fix string/string[] type mismatches
 const ensureStringArray = (value: string | string[] | undefined): string[] => {
@@ -241,6 +246,7 @@ function generateVitalsSection(
 
 /**
  * Section 4: Summary of Findings (striped).
+ * Updated to use enhanced HTML table renderer
  */
 function generateSummarySection(
   doc: jsPDF,
@@ -251,12 +257,7 @@ function generateSummarySection(
   formData: PatientFormData
 ): number {
   currentY += 10;
-  doc.setFontSize(14);
-  doc.setTextColor(153, 188, 68);
-  doc.setFont("helvetica", "bold");
-  doc.text("Summary of findings", contentMargin, currentY);
-  currentY += 8;
-
+  
   // Define summary fields in a structured way for consistent rendering
   const summaryFields = [
     { label: "Glucose Metabolism", value: formData.summaryFindings.glucoseMetabolism || "" },
@@ -279,116 +280,36 @@ function generateSummarySection(
     field.value.includes('<') && field.value.includes('>')
   );
 
-  // If we have HTML content, use our custom rendering approach
+  // If we have HTML content, use our enhanced rendering approach
   if (hasHtmlContent) {
-    // Draw the table header manually
-    const headerHeight = 8;
-    const rowHeight = 30; // Default row height, will adjust based on content
-    const maxRowsPerPage = Math.floor((doc.internal.pageSize.getHeight() - currentY - 20) / rowHeight);
+    // Prepare data structure for the renderer
+    const rows = summaryFields.map(field => ({
+      label: field.label,
+      value: field.value
+    }));
     
-    // Draw table header
-    doc.setFillColor(153, 188, 68);
-    doc.setTextColor(255, 255, 255);
-    doc.rect(contentMargin, currentY, 50, headerHeight, 'F');
-    doc.rect(contentMargin + 50, currentY, contentWidth - 50, headerHeight, 'F');
+    // Use our enhanced renderer
+    currentY = renderHtmlTableSection(
+      doc,
+      "Summary of findings",
+      ["Parameter", "Key findings and next steps"],
+      rows,
+      currentY,
+      contentMargin,
+      contentWidth
+    );
     
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Parameter", contentMargin + 2, currentY + 5);
-    doc.text("Key findings and next steps", contentMargin + 52, currentY + 5);
-    
-    currentY += headerHeight;
-    
-    let rowCount = 0;
-    // Process each field
-    for (let i = 0; i < summaryFields.length; i++) {
-      const field = summaryFields[i];
-      
-      // Check if we need a new page
-      if (rowCount >= maxRowsPerPage) {
-        addFooter(doc, pageWidth);
-        doc.addPage();
-        addLogoToPage(doc);
-        currentY = 40; // reset Y position
-        
-        // Redraw headers on new page
-        doc.setFillColor(153, 188, 68);
-        doc.setTextColor(255, 255, 255);
-        doc.rect(contentMargin, currentY, 50, headerHeight, 'F');
-        doc.rect(contentMargin + 50, currentY, contentWidth - 50, headerHeight, 'F');
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text("Parameter", contentMargin + 2, currentY + 5);
-        doc.text("Key findings and next steps", contentMargin + 52, currentY + 5);
-        
-        currentY += headerHeight;
-        rowCount = 0;
-      }
-      
-      // Calculate row background color (alternating)
-      const rowBgColor = i % 2 === 0 ? [255, 255, 255] : [245, 245, 245];
-      const paramBgColor = [240, 250, 230]; // Light green for parameter column
-      
-      // Draw parameter cell background
-      doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
-      doc.rect(contentMargin, currentY, 50, rowHeight, 'F');
-      
-      // Draw value cell background
-      doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
-      doc.rect(contentMargin + 50, currentY, contentWidth - 50, rowHeight, 'F');
-      
-      // Draw parameter text
-      doc.setTextColor(60, 60, 60);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(field.label, contentMargin + 2, currentY + 5);
-      
-      // Render HTML content in the value cell
-      const startY = currentY;
-      const endY = renderHtmlInPdfCell(
-        doc, 
-        field.value, 
-        contentMargin + 50, 
-        currentY, 
-        contentWidth - 50
-      );
-      
-      // Adjust row height based on content
-      const actualRowHeight = Math.max(rowHeight, endY - startY);
-      
-      // If the content was taller than default row height, adjust the row
-      if (actualRowHeight > rowHeight) {
-        // Redraw backgrounds with proper height
-        doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
-        doc.rect(contentMargin, startY, 50, actualRowHeight, 'F');
-        
-        doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
-        doc.rect(contentMargin + 50, startY, contentWidth - 50, actualRowHeight, 'F');
-        
-        // Redraw parameter text
-        doc.setTextColor(60, 60, 60);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text(field.label, contentMargin + 2, startY + 5);
-        
-        // Re-render HTML content
-        renderHtmlInPdfCell(
-          doc, 
-          field.value, 
-          contentMargin + 50, 
-          startY, 
-          contentWidth - 50
-        );
-      }
-      
-      currentY += actualRowHeight;
-      rowCount++;
+    // Check if we need to add logo and handle page breaks
+    if (currentY > doc.internal.pageSize.getHeight() - 20) {
+      addFooter(doc, pageWidth);
+      doc.addPage();
+      addLogoToPage(doc);
+      currentY = 40;
     }
     
-    return currentY + 10;
+    return currentY;
   } else {
-    // Use autotable for non-HTML content
+    // For non-HTML content, use the existing autoTable approach
     const tableBody = summaryFields.map(field => [field.label, field.value]);
     
     autoTable(doc, {

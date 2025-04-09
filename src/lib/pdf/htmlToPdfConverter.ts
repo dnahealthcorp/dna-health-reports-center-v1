@@ -99,10 +99,10 @@ export function renderHtmlInPdfCell(
       doc.setFont('helvetica', fontStyle);
       
       // Handle text that might need to be wrapped
-      const textLines = doc.splitTextToSize(text, cellWidth - 4); // 4 = padding
+      const textLines = doc.splitTextToSize(text, cellWidth - 10); // Increased padding from 4 to 10
       
       textLines.forEach(line => {
-        doc.text(line, x + 2, currentY);
+        doc.text(line, x + 5, currentY); // Increased left padding from 2 to 5
         currentY += lineHeight;
       });
       
@@ -112,7 +112,7 @@ export function renderHtmlInPdfCell(
           const textWidth = doc.getTextWidth(line);
           const underlineY = currentY - lineHeight + 1;
           doc.setDrawColor(0);
-          doc.line(x + 2, underlineY, x + 2 + textWidth, underlineY);
+          doc.line(x + 5, underlineY, x + 5 + textWidth, underlineY);
         });
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -127,7 +127,7 @@ export function renderHtmlInPdfCell(
       
       // Handle paragraph breaks
       if (tag === 'p' && element.previousElementSibling) {
-        currentY += lineHeight / 2;
+        currentY += lineHeight;
       }
       
       // Process child nodes with updated styles
@@ -137,12 +137,12 @@ export function renderHtmlInPdfCell(
       
       // Add spacing after paragraphs and list items
       if (tag === 'p' || tag === 'li') {
-        currentY += lineHeight / 2;
+        currentY += lineHeight;
       }
       
       // Add extra spacing after lists
       if ((tag === 'ul' || tag === 'ol') && element.childNodes.length > 0) {
-        currentY += lineHeight / 2;
+        currentY += lineHeight;
       }
     }
   }
@@ -153,4 +153,140 @@ export function renderHtmlInPdfCell(
   });
   
   return currentY;
+}
+
+/**
+ * Draw table borders for PDF cells
+ */
+export function drawCellBorders(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: number[] = [0, 0, 0]
+): void {
+  doc.setDrawColor(color[0], color[1], color[2]);
+  doc.setLineWidth(0.1);
+  
+  // Draw rectangle around the cell
+  doc.rect(x, y, width, height);
+}
+
+/**
+ * Enhanced HTML table renderer for PDF
+ * Handles rendering of a complete section with headers and rows
+ */
+export function renderHtmlTableSection(
+  doc: jsPDF,
+  title: string,
+  headers: string[],
+  rows: { label: string, value: string }[],
+  startY: number,
+  contentMargin: number,
+  contentWidth: number
+): number {
+  // Draw section title
+  doc.setFontSize(14);
+  doc.setTextColor(153, 188, 68);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, contentMargin, startY);
+  startY += 8;
+  
+  // Table dimensions
+  const headerHeight = 8;
+  const paramColWidth = 50;
+  const valueColWidth = contentWidth - paramColWidth;
+  const minRowHeight = 30;
+
+  // Draw header background
+  doc.setFillColor(153, 188, 68);
+  doc.rect(contentMargin, startY, paramColWidth, headerHeight, 'F');
+  doc.rect(contentMargin + paramColWidth, startY, valueColWidth, headerHeight, 'F');
+  
+  // Draw header text
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text(headers[0], contentMargin + 5, startY + 5);
+  doc.text(headers[1], contentMargin + paramColWidth + 5, startY + 5);
+  startY += headerHeight;
+  
+  // Draw each row
+  let currentY = startY;
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    
+    // Alternate row background colors
+    const rowBgColor = i % 2 === 0 ? [255, 255, 255] : [245, 245, 245];
+    const paramBgColor = [240, 250, 230]; // Light green for parameter column
+    
+    // Measure how much space we need for this row's content
+    const valueStartY = currentY;
+    
+    // Draw parameter cell background and text first
+    doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
+    doc.rect(contentMargin, currentY, paramColWidth, minRowHeight, 'F');
+    
+    doc.setTextColor(60, 60, 60);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(row.label, contentMargin + 5, currentY + 10);
+    
+    // Render HTML content for value cell
+    doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
+    doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, minRowHeight, 'F');
+    
+    // Render the HTML content
+    const contentEndY = renderHtmlInPdfCell(
+      doc,
+      row.value,
+      contentMargin + paramColWidth,
+      currentY,
+      valueColWidth,
+      10, // font size
+      5   // line height
+    );
+    
+    // Calculate actual row height based on content
+    const actualRowHeight = Math.max(minRowHeight, contentEndY - valueStartY);
+    
+    // If content height is more than minimum, redraw cells with correct height
+    if (actualRowHeight > minRowHeight) {
+      // Redraw parameter cell with correct height
+      doc.setFillColor(paramBgColor[0], paramBgColor[1], paramBgColor[2]);
+      doc.rect(contentMargin, currentY, paramColWidth, actualRowHeight, 'F');
+      
+      // Redraw value cell with correct height
+      doc.setFillColor(rowBgColor[0], rowBgColor[1], rowBgColor[2]);
+      doc.rect(contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight, 'F');
+      
+      // Redraw parameter text
+      doc.setTextColor(60, 60, 60);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(row.label, contentMargin + 5, currentY + 10);
+      
+      // Re-render HTML content
+      renderHtmlInPdfCell(
+        doc,
+        row.value,
+        contentMargin + paramColWidth,
+        currentY,
+        valueColWidth,
+        10,
+        5
+      );
+    }
+    
+    // Draw cell borders
+    drawCellBorders(doc, contentMargin, currentY, paramColWidth, actualRowHeight);
+    drawCellBorders(doc, contentMargin + paramColWidth, currentY, valueColWidth, actualRowHeight);
+    
+    // Move to next row
+    currentY += actualRowHeight;
+  }
+  
+  // Return the Y position after the table
+  return currentY + 10; // Add some padding after the table
 }
