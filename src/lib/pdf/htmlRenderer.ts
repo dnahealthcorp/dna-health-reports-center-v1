@@ -71,12 +71,12 @@ export function renderHtmlInPdfCell(
       switch (tag) {
         case 'strong':
         case 'b':
-          doc.setFont(prevFont, 'bold');
+          doc.setFont(prevFont as string, 'bold');
           isBold = true;
           break;
         case 'em':
         case 'i':
-          doc.setFont(prevFont, 'italic');
+          doc.setFont(prevFont as string, 'italic');
           isItalic = true;
           break;
         case 'u':
@@ -122,7 +122,8 @@ export function renderHtmlInPdfCell(
       }
       
       // Reset styling
-      doc.setFont(prevFont, isBold && isItalic ? 'bolditalic' : isBold ? 'bold' : isItalic ? 'italic' : 'normal');
+      const fontStyle = isBold && isItalic ? 'bolditalic' : isBold ? 'bold' : isItalic ? 'italic' : 'normal';
+      doc.setFont(prevFont as string, fontStyle);
       doc.setFontSize(prevFontStyle);
       
       // Update style tracking based on closing tags
