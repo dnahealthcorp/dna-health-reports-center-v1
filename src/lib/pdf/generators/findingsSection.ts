@@ -123,6 +123,7 @@ export function generateSummarySection(
             doc.rect(rect.x, rect.y, rect.w, rect.h, 'F');
             
             // We'll manually render HTML in this cell
+            // Fixed: Removed the unnecessary numeric result which was causing TS error
             renderHtmlInPdfCell(
               doc,
               rawHtml,

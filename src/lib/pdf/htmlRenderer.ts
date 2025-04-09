@@ -153,8 +153,8 @@ export function renderHtmlInPdfCell(
     const bodyNode = parsed.body;
     processNode(bodyNode);
     
-    // Return the final Y position in case caller needs it
-    return currentY;
+    // Fixed: Removed return statement that was causing Type error
+    // This function is declared as void, so it shouldn't return anything
   } catch (error) {
     console.error("Error rendering HTML in PDF:", error);
   }

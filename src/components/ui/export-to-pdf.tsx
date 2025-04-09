@@ -180,7 +180,7 @@ export function ExportToPdf({
                     doc.setFillColor(data.row.index % 2 === 0 ? 255 : 245);
                     doc.rect(rect.x, rect.y, rect.w, rect.h, 'F');
                     
-                    // Use our custom HTML renderer
+                    // Fixed: Use our custom HTML renderer without trying to store its return value
                     renderHtmlInPdfCell(
                       doc,
                       rawHtml,
