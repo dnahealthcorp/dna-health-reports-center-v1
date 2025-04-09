@@ -1,8 +1,45 @@
+
 // PDF-related database operations
 import { PDFFile } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
+
+// Add new function to handle HTML-to-PDF conversion
+export const convertHtmlToPdf = async (
+  html: string, 
+  fileName: string = "document.pdf",
+  css: string = ""
+): Promise<Blob> => {
+  try {
+    const { data, error } = await supabase.functions.invoke("html-to-pdf", {
+      body: { html, fileName, css }
+    });
+
+    if (error) {
+      console.error("Error in HTML-to-PDF conversion:", error);
+      throw new Error(`PDF conversion failed: ${error.message}`);
+    }
+
+    // The response should be the PDF blob
+    return data;
+  } catch (error) {
+    console.error("Error converting HTML to PDF:", error);
+    throw error;
+  }
+};
+
+// Function to download a PDF from a blob
+export const downloadPdf = (pdfBlob: Blob, fileName: string): void => {
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {

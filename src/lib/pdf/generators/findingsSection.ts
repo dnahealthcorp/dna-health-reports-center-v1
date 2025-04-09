@@ -56,9 +56,7 @@ export function generateSummarySection(
     bloodCounts: processHtmlForPdf(formData.summaryFindings.bloodCounts || "")
   };
 
-  // Configure the PDF to use HTML styling with autoTable
-  const htmlEnabled = true;
-
+  // Using HTML content directly with autoTable
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
@@ -69,19 +67,19 @@ export function generateSummarySection(
       ]
     ],
     body: [
-      ["Glucose Metabolism", { content: formData.summaryFindings.glucoseMetabolism || "", html: htmlEnabled }],
-      ["Proteins", { content: formData.summaryFindings.proteins || "", html: htmlEnabled }],
-      ["Lipid Profile", { content: formData.summaryFindings.lipidProfile || "", html: htmlEnabled }],
-      ["Inflammation", { content: formData.summaryFindings.inflammation || "", html: htmlEnabled }],
-      ["Metabolic", { content: formData.summaryFindings.metabolic || "", html: htmlEnabled }],
-      ["Homocysteine", { content: formData.summaryFindings.homocysteine || "", html: htmlEnabled }],
-      ["Vitamins/Minerals", { content: formData.summaryFindings.vitaminsMinerals || "", html: htmlEnabled }],
-      ["Iron Profile", { content: formData.summaryFindings.ironProfile || "", html: htmlEnabled }],
-      ["Sex Hormones", { content: formData.summaryFindings.sexHormones || "", html: htmlEnabled }],
-      ["Kidney Function and Electrolytes", { content: formData.summaryFindings.kidneyFunctionElectrolytes || "", html: htmlEnabled }],
-      ["Liver Functions", { content: formData.summaryFindings.liverFunctions || "", html: htmlEnabled }],
-      ["Tumor Markers", { content: formData.summaryFindings.tumorMarkers || "", html: htmlEnabled }],
-      ["Blood Counts", { content: formData.summaryFindings.bloodCounts || "", html: htmlEnabled }]
+      ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
+      ["Proteins", formData.summaryFindings.proteins || ""],
+      ["Lipid Profile", formData.summaryFindings.lipidProfile || ""],
+      ["Inflammation", formData.summaryFindings.inflammation || ""],
+      ["Metabolic", formData.summaryFindings.metabolic || ""],
+      ["Homocysteine", formData.summaryFindings.homocysteine || ""],
+      ["Vitamins/Minerals", formData.summaryFindings.vitaminsMinerals || ""],
+      ["Iron Profile", formData.summaryFindings.ironProfile || ""],
+      ["Sex Hormones", formData.summaryFindings.sexHormones || ""],
+      ["Kidney Function and Electrolytes", formData.summaryFindings.kidneyFunctionElectrolytes || ""],
+      ["Liver Functions", formData.summaryFindings.liverFunctions || ""],
+      ["Tumor Markers", formData.summaryFindings.tumorMarkers || ""],
+      ["Blood Counts", formData.summaryFindings.bloodCounts || ""]
     ],
     styles: {
       fontSize: 10,

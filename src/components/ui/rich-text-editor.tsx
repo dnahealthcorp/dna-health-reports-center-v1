@@ -2,6 +2,9 @@
 import React, { useEffect } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { ExportToPdf } from './export-to-pdf';
+import { Button } from './button';
+import { Bold, Italic, List, FileDown } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
@@ -9,6 +12,8 @@ interface RichTextEditorProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  showExportToPdf?: boolean;
+  pdfFileName?: string;
 }
 
 export function RichTextEditor({
@@ -17,6 +22,8 @@ export function RichTextEditor({
   disabled = false,
   placeholder = 'Start typing...',
   className = '',
+  showExportToPdf = false,
+  pdfFileName = 'document.pdf'
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -42,7 +49,7 @@ export function RichTextEditor({
 
   return (
     <div className={`border rounded-md overflow-hidden ${className}`}>
-      <div className="bg-white px-3 py-2 min-h-[150px]">
+      <div className="bg-white px-3 py-2 min-h-[150px] relative">
         <EditorContent editor={editor} className="outline-none" />
         {!value && !editor?.isFocused && (
           <div className="absolute top-2 left-3 text-gray-400 pointer-events-none">
@@ -50,10 +57,12 @@ export function RichTextEditor({
           </div>
         )}
       </div>
-      <div className="flex items-center px-3 py-1.5 bg-gray-50 border-t">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-t">
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => editor?.chain().focus().toggleBold().run()}
             disabled={!editor || disabled}
             className={`p-1 rounded hover:bg-gray-200 ${
@@ -61,10 +70,12 @@ export function RichTextEditor({
             }`}
             title="Bold"
           >
-            <span className="font-bold">B</span>
-          </button>
-          <button
+            <Bold className="h-4 w-4" />
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => editor?.chain().focus().toggleItalic().run()}
             disabled={!editor || disabled}
             className={`p-1 rounded hover:bg-gray-200 ${
@@ -72,10 +83,12 @@ export function RichTextEditor({
             }`}
             title="Italic"
           >
-            <span className="italic">I</span>
-          </button>
-          <button
+            <Italic className="h-4 w-4" />
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => editor?.chain().focus().toggleBulletList().run()}
             disabled={!editor || disabled}
             className={`p-1 rounded hover:bg-gray-200 ${
@@ -83,9 +96,29 @@ export function RichTextEditor({
             }`}
             title="Bullet List"
           >
-            • List
-          </button>
+            <List className="h-4 w-4" />
+          </Button>
         </div>
+        
+        {showExportToPdf && (
+          <ExportToPdf 
+            html={value} 
+            fileName={pdfFileName}
+            buttonText="Export"
+            css={`
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+              }
+              h1, h2, h3 {
+                color: #333;
+              }
+              ul, ol {
+                padding-left: 20px;
+              }
+            `}
+          />
+        )}
       </div>
     </div>
   );
