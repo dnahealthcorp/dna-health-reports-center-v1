@@ -229,6 +229,7 @@ function generateVitalsSection(
 /**
  * Section 4: Summary of Findings (striped).
  */
+
 function generateSummarySection(
   doc: jsPDF,
   currentY: number,
@@ -237,7 +238,7 @@ function generateSummarySection(
   contentWidth: number,
   formData: PatientFormData
 ): number {
-  currentY = ensureSpace(doc, currentY, 60, 40, pageWidth);
+  currentY += 10;
   doc.setFontSize(14);
   doc.setTextColor(153, 188, 68);
   doc.setFont("helvetica", "bold");
@@ -247,12 +248,10 @@ function generateSummarySection(
   autoTable(doc, {
     startY: currentY,
     theme: "grid",
-    head: [
-      [
-        { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } },
-        { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255,255,255] } }
-      ]
-    ],
+    head: [[
+      { content: "Parameter", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } },
+      { content: "Key findings and next steps", styles: { fillColor: [153, 188, 68], textColor: [255, 255, 255] } }
+    ]],
     body: [
       ["Glucose Metabolism", formData.summaryFindings.glucoseMetabolism || ""],
       ["Proteins", formData.summaryFindings.proteins || ""],
@@ -274,29 +273,54 @@ function generateSummarySection(
       font: "helvetica",
       textColor: [60, 60, 60]
     },
-    bodyStyles: {
-      fillColor: [255, 255, 255]
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245]
-    },
     columnStyles: {
       0: { cellWidth: 50, fillColor: [240, 250, 230] },
       1: { cellWidth: contentWidth - 50 }
     },
-    margin: { left: contentMargin, right: contentMargin },
-    didDrawPage: (data) => {
-      // Add logo and footer to each page
-      addLogoToPage(doc);
-      
-      // Add footer only on completed pages
-      if (data.pageNumber < doc.getNumberOfPages()) {
-        addFooter(doc, pageWidth);
+    didDrawCell: (data) => {
+      if (data.column.index === 1 && typeof data.cell.raw === "string" && data.cell.raw.includes("<")) {
+        const { x, y, width } = data.cell;
+        const padding = 2;
+        const html = data.cell.raw;
+        const parser = new DOMParser();
+        const docHtml = parser.parseFromString(html, "text/html");
+
+        let cursorY = y + padding + 2;
+
+        function renderNode(node, style = { bold: false, italic: false }) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent?.trim();
+            if (!text) return;
+            let fontStyle = "normal";
+            if (style.bold && style.italic) fontStyle = "bolditalic";
+            else if (style.bold) fontStyle = "bold";
+            else if (style.italic) fontStyle = "italic";
+            doc.setFont("helvetica", fontStyle);
+            doc.setFontSize(10);
+            doc.text(text, x + padding, cursorY, { maxWidth: width - padding * 2 });
+            cursorY += 5;
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const tag = node.nodeName.toLowerCase();
+            const newStyle = { ...style };
+            if (["b", "strong"].includes(tag)) newStyle.bold = true;
+            if (["i", "em"].includes(tag)) newStyle.italic = true;
+            if (tag === "br") {
+              cursorY += 5;
+              return;
+            }
+            if (tag === "p") {
+              cursorY += 2;
+            }
+            node.childNodes.forEach(child => renderNode(child, newStyle));
+          }
+        }
+
+        docHtml.body.childNodes.forEach(child => renderNode(child));
       }
     }
   });
-  currentY = (doc as any).lastAutoTable.finalY + 10;
-  return currentY;
+
+  return (doc as any).lastAutoTable.finalY + 10;
 }
 
 /**
