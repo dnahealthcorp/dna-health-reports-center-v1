@@ -49,9 +49,17 @@ export function renderHtmlInPdfCell(
       const text = node.textContent || "";
       if (text.trim()) {
         // Split text to fit within cell width using splitTextToSize
-        const textLines = doc.splitTextToSize(text, maxWidth - 4);
+        const availableWidth = maxWidth - (currentX - x) - 4; // Account for current position and padding
+        const textLines = doc.splitTextToSize(text, availableWidth);
+        
         textLines.forEach((line: string, index: number) => {
+          // Check if we need to wrap to next line based on current position
+          if (currentX + doc.getTextWidth(line) > x + maxWidth - 2 && currentX > initialX) {
+            resetPosition();
+          }
+          
           doc.text(line, currentX, currentY);
+          
           if (index < textLines.length - 1) {
             resetPosition();
           } else {
@@ -100,6 +108,7 @@ export function renderHtmlInPdfCell(
           currentY += 1; // Extra space before list
           break;
         case 'li':
+          resetPosition();
           currentX = initialX + 5; // Indent list items
           doc.text("•", initialX, currentY); // Add bullet point
           break;
@@ -143,6 +152,9 @@ export function renderHtmlInPdfCell(
     // Start processing from body
     const bodyNode = parsed.body;
     processNode(bodyNode);
+    
+    // Return the final Y position in case caller needs it
+    return currentY;
   } catch (error) {
     console.error("Error rendering HTML in PDF:", error);
   }

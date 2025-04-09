@@ -43,6 +43,18 @@ export function generateSummarySection(
     bloodCounts: formData.summaryFindings.bloodCounts || ""
   };
 
+  // Pre-calculate approximate row heights based on content length
+  const estimateRowHeight = (content: string): number => {
+    if (!content.trim()) return 10;
+    
+    // Average chars per line based on font size and cell width
+    const charsPerLine = (contentWidth - 50) / 2;
+    // Count lines based on text length and average chars per line
+    const lines = Math.ceil(content.length / charsPerLine);
+    // Set minimum height and add more for longer content
+    return Math.max(10, lines * 4.5 + 10);
+  };
+
   // Prepare the table body with proper content and rawHtml properties
   const tableBody = [
     ["Glucose Metabolism", { content: "", rawHtml: findings.glucoseMetabolism }],
@@ -77,6 +89,7 @@ export function generateSummarySection(
       font: "helvetica",
       textColor: [60, 60, 60],
       overflow: 'linebreak',
+      minCellHeight: 12, // Set minimum cell height
     },
     bodyStyles: {
       fillColor: [255, 255, 255]
@@ -99,6 +112,16 @@ export function generateSummarySection(
           const rawHtml = (cell.raw as {rawHtml: string}).rawHtml;
           
           if (rawHtml && rawHtml.trim() !== '') {
+            // Clear any text that autoTable might have rendered
+            const rect = {
+              x: data.cell.x,
+              y: data.cell.y,
+              w: data.cell.width,
+              h: data.cell.height
+            };
+            doc.setFillColor(data.row.index % 2 === 0 ? 255 : 245);
+            doc.rect(rect.x, rect.y, rect.w, rect.h, 'F');
+            
             // We'll manually render HTML in this cell
             renderHtmlInPdfCell(
               doc,
@@ -107,6 +130,22 @@ export function generateSummarySection(
               data.cell.y,
               data.cell.width
             );
+          }
+        }
+      }
+    },
+    willDrawCell: (data) => {
+      // Dynamically adjust row heights based on content
+      if (data.section === 'body' && data.column.index === 1) {
+        const cell = data.cell;
+        if (cell && cell.raw && typeof cell.raw === 'object' && 'rawHtml' in cell.raw) {
+          const rawHtml = (cell.raw as {rawHtml: string}).rawHtml;
+          if (rawHtml) {
+            // Estimate appropriate row height based on content
+            const estimatedHeight = estimateRowHeight(rawHtml);
+            if (estimatedHeight > data.row.height) {
+              data.row.height = estimatedHeight;
+            }
           }
         }
       }

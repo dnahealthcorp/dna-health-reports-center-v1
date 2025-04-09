@@ -110,6 +110,19 @@ export function ExportToPdf({
             body.push(row);
           });
           
+          // Pre-calculate approximate row heights based on content length
+          const estimateRowHeight = (content: string): number => {
+            if (!content.trim()) return 10;
+            
+            // Average chars per line based on font size and available width
+            const availableWidth = pageWidth - (margin * 2) - 50;
+            const charsPerLine = availableWidth / 2;
+            // Count lines based on text length and average chars per line
+            const lines = Math.ceil(content.length / charsPerLine);
+            // Set minimum height and add more for longer content
+            return Math.max(10, lines * 4.5 + 10);
+          };
+          
           // Draw table with autoTable
           autoTable(doc, {
             startY: margin + 25, // Positioning after title and logo
@@ -121,6 +134,7 @@ export function ExportToPdf({
               cellPadding: 5,
               overflow: 'linebreak',
               font: 'helvetica',
+              minCellHeight: 12,
             },
             headStyles: {
               fillColor: [153, 188, 68],
@@ -129,6 +143,22 @@ export function ExportToPdf({
             },
             alternateRowStyles: {
               fillColor: [245, 245, 245]
+            },
+            willDrawCell: (data) => {
+              // Dynamically adjust row heights based on content
+              if (data.section === 'body' && data.column.index === 1) {
+                const cell = data.cell;
+                if (cell && cell.raw && typeof cell.raw === 'object' && 'rawHtml' in cell.raw) {
+                  const rawHtml = (cell.raw as {rawHtml: string}).rawHtml;
+                  if (rawHtml) {
+                    // Estimate appropriate row height based on content
+                    const estimatedHeight = estimateRowHeight(rawHtml);
+                    if (estimatedHeight > data.row.height) {
+                      data.row.height = estimatedHeight;
+                    }
+                  }
+                }
+              }
             },
             didDrawCell: (data) => {
               // Process cells in the body section that have raw HTML
@@ -140,6 +170,16 @@ export function ExportToPdf({
                   const rawHtml = (cell.raw as {rawHtml: string}).rawHtml;
                   
                   if (rawHtml && rawHtml.trim() !== '') {
+                    // Clear any text that autoTable might have rendered
+                    const rect = {
+                      x: data.cell.x,
+                      y: data.cell.y,
+                      w: data.cell.width,
+                      h: data.cell.height
+                    };
+                    doc.setFillColor(data.row.index % 2 === 0 ? 255 : 245);
+                    doc.rect(rect.x, rect.y, rect.w, rect.h, 'F');
+                    
                     // Use our custom HTML renderer
                     renderHtmlInPdfCell(
                       doc,
