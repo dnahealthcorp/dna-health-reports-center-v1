@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentUser } from "./userService";
 
-// Add new function to handle HTML-to-PDF conversion
+// Function to convert HTML to PDF using the Edge Function
 export const convertHtmlToPdf = async (
   html: string, 
   fileName: string = "document.pdf",
@@ -49,6 +49,7 @@ export const downloadPdf = (pdfBlob: Blob, fileName: string): void => {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 };
 
+// Function to save PDF reference in the database
 export const savePDFReference = async (patientId: string, fileName: string, fileUrl?: string): Promise<PDFFile> => {
   try {
     // Generate a proper UUID using uuidv4 instead of a timestamp string
@@ -99,6 +100,7 @@ export const savePDFReference = async (patientId: string, fileName: string, file
   }
 };
 
+// Function to get all PDF files
 export const getPDFFiles = async (): Promise<PDFFile[]> => {
   try {
     const { data, error } = await supabase
@@ -133,6 +135,7 @@ export const getPDFFiles = async (): Promise<PDFFile[]> => {
   }
 };
 
+// Function to get PDF files for a specific patient
 export const getPDFFilesByPatientId = async (patientId: string): Promise<PDFFile[]> => {
   try {
     const { data, error } = await supabase

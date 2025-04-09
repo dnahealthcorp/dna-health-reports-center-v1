@@ -37,17 +37,36 @@ export function ExportToPdf({
 
     setIsExporting(true);
     try {
+      // Sanitize HTML to remove problematic characters
+      const sanitizedHtml = html.replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]/g, '');
+      
       // Add some custom CSS to enhance rendering of HTML content
       const enhancedCSS = `
         ${css}
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
         strong, b { font-weight: bold !important; }
         em, i { font-style: italic !important; }
         ul, ol { padding-left: 20px !important; margin: 8px 0 !important; }
         li { margin: 4px 0 !important; }
         p { margin: 8px 0 !important; }
+        h1, h2, h3, h4, h5, h6 {
+          margin-top: 16px !important;
+          margin-bottom: 8px !important;
+          font-weight: bold !important;
+        }
+        h1 { font-size: 24px !important; }
+        h2 { font-size: 20px !important; }
+        h3 { font-size: 16px !important; }
       `;
       
-      const pdfBlob = await convertHtmlToPdf(html, fileName, enhancedCSS);
+      const pdfBlob = await convertHtmlToPdf(sanitizedHtml, fileName, enhancedCSS);
       downloadPdf(pdfBlob, fileName);
       
       toast({
